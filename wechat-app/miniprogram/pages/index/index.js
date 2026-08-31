@@ -54,6 +54,18 @@ Page({
       wx.navigateTo({ url: `/pages/login/index?redirect=${encodeURIComponent(target)}` });
       return;
     }
+    if (wx.getStorageSync('lastApplyPhone')) {
+      wx.showModal({
+        title: '您已登记',
+        content: '是否修改已提交的参会信息？',
+        cancelText: '暂不修改',
+        confirmText: '确认修改',
+        success: (res) => {
+          if (res.confirm) wx.navigateTo({ url: `${target}&edit=1` });
+        },
+      });
+      return;
+    }
     wx.navigateTo({ url: target });
   },
   noop() {},

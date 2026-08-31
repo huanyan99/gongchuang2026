@@ -308,3 +308,10 @@ input {
   font-weight: 700;
   letter-spacing: 3rpx;
 }
+
+.qr-countdown {
+  margin-top: 12rpx;
+  color: #8c94a3;
+  font-size: 20rpx;
+  letter-spacing: 0;
+}

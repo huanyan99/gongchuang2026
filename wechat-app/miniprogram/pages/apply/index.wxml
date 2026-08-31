@@ -19,6 +19,7 @@
         <view wx:for="{{qrCells}}" wx:key="index" class="qr-cell {{item ? 'dark' : ''}}"></view>
       </view>
       <view class="ticket-no">{{ticketNo}}</view>
+      <view class="qr-countdown">动态码 {{qrSeconds}} 秒后更新</view>
     </view>
     <button class="cta secondary" bindtap="backHome">返回共创会</button>
   </view>

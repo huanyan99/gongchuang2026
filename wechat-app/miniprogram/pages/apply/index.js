@@ -56,18 +56,27 @@ Page({
     submitted: false,
     ticketNo: '',
     qrCells: createQrCells('BOCHU-ACCESS'),
+    qrSeconds: 120,
+    qrRound: 1,
   },
   onLoad(options) {
-    const memberProfile = wx.getStorageSync('bochuMemberProfile');
+    const memberProfile = wx.getStorageSync('bochuMemberProfile') || {};
+    const applyProfile = wx.getStorageSync('bochuApplyProfile') || {};
     const lastApplyPhone = wx.getStorageSync('lastApplyPhone');
     this.setData({
       inviteCode: options.inviteCode || '',
-      name: memberProfile.name || '',
-      phone: options.ticket === '1' ? lastApplyPhone || '' : '',
+      name: applyProfile.name || memberProfile.name || '',
+      phone: options.ticket === '1' ? lastApplyPhone || applyProfile.phone || '' : applyProfile.phone || '',
+      company: applyProfile.company || '',
+      position: applyProfile.position || '',
+      reason: applyProfile.reason || '',
     });
     if (options.ticket === '1' && lastApplyPhone) {
       this.showTicketResult(lastApplyPhone);
     }
+  },
+  onUnload() {
+    this.clearQrTimer();
   },
   onInput(e) {
     const field = e.currentTarget.dataset.field;
@@ -96,11 +105,43 @@ Page({
     const phone = phoneValue || this.data.phone;
     const ticketNo = `BOCHU-${phone.slice(-4)}`;
     wx.setStorageSync('lastApplyPhone', phone);
+    wx.setStorageSync('bochuApplyProfile', {
+      name: this.data.name,
+      phone,
+      company: this.data.company,
+      position: this.data.position,
+      reason: this.data.reason,
+    });
     this.setData({
       submitted: true,
       ticketNo,
-      qrCells: createQrCells(`${ticketNo}-${this.data.inviteCode}-${this.data.name}`),
+      qrRound: 1,
+      qrSeconds: 120,
+      qrCells: createQrCells(`${ticketNo}-${this.data.inviteCode}-${this.data.name}-1`),
     });
+    this.startQrTimer();
+  },
+  startQrTimer() {
+    this.clearQrTimer();
+    this.qrTimer = setInterval(() => {
+      const nextSeconds = this.data.qrSeconds - 1;
+      if (nextSeconds > 0) {
+        this.setData({ qrSeconds: nextSeconds });
+        return;
+      }
+      const qrRound = this.data.qrRound + 1;
+      this.setData({
+        qrRound,
+        qrSeconds: 120,
+        qrCells: createQrCells(`${this.data.ticketNo}-${this.data.inviteCode}-${this.data.name}-${qrRound}`),
+      });
+    }, 1000);
+  },
+  clearQrTimer() {
+    if (this.qrTimer) {
+      clearInterval(this.qrTimer);
+      this.qrTimer = null;
+    }
   },
   backHome() {
     wx.redirectTo({ url: '/pages/index/index' });
