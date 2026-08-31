@@ -1,4 +1,13 @@
-<view class="page">
+<page-meta page-style="overflow: hidden;" />
+<scroll-view
+  class="page-scroll"
+  scroll-y
+  enhanced="{{true}}"
+  show-scrollbar="{{false}}"
+  bounces="{{true}}"
+  scroll-with-animation="{{true}}"
+>
+<view class="page {{submitted ? 'done' : ''}}">
   <view class="head">
     <image class="head-bg" src="/images/banner.png" mode="aspectFill" />
     <view class="head-shade"></view>
@@ -6,20 +15,29 @@
       <view class="eyebrow">{{submitted ? 'ACCESS' : 'INVITATION'}}</view>
       <view class="title">{{submitted ? '入场核验' : '贵宾登记'}}</view>
       <view class="gold-line"></view>
-      <view class="sub">{{submitted ? '请出示二维码完成签到' : '确认邀请函，并完善您的参会信息'}}</view>
+      <view class="sub">{{submitted ? '请根据审核结果出示入场码' : '确认邀请函，并完善您的参会信息'}}</view>
     </view>
   </view>
 
   <view wx:if="{{submitted}}" class="result-card">
     <view class="result-eyebrow">ACCESS CHECK-IN</view>
-    <view class="result-title">入场核验</view>
-    <view class="result-sub">请于签到处出示此二维码，会务团队将为您完成身份确认与入场核验。</view>
-    <view class="qr-card">
-      <view class="qr-code">
-        <view wx:for="{{qrCells}}" wx:key="index" class="qr-cell {{item ? 'dark' : ''}}"></view>
-      </view>
+    <view class="result-title">{{applyStatus === 'APPROVED' ? (checkedIn ? '已完成核验' : '入场核验') : (applyStatus === 'REJECTED' ? '审核未通过' : '已提交，等待审核')}}</view>
+    <view class="result-sub" wx:if="{{applyStatus === 'PENDING'}}">会务团队正在审核您的参会登记，通过后方可生成入场二维码。</view>
+    <view class="result-sub" wx:elif="{{applyStatus === 'REJECTED'}}">本次登记未通过审核，如有疑问请联系会务人员。</view>
+    <view class="result-sub" wx:elif="{{checkedIn}}">您已完成入场核验，欢迎参加共创会。</view>
+    <view class="result-sub" wx:else>请于签到处出示此二维码，会务团队将为您完成身份确认与入场核验。</view>
+
+    <view wx:if="{{applyStatus === 'APPROVED' && !checkedIn && qrImage}}" class="qr-card">
+      <image class="qr-image" src="{{qrImage}}" mode="aspectFit" />
       <view class="ticket-no">{{ticketNo}}</view>
       <view class="qr-countdown">动态码 {{qrSeconds}} 秒后更新</view>
+    </view>
+    <view wx:elif="{{applyStatus === 'APPROVED' && checkedIn}}" class="qr-card">
+      <view class="ticket-no">{{ticketNo}}</view>
+      <view class="qr-countdown">核验完成</view>
+    </view>
+    <view wx:else class="qr-card">
+      <view class="ticket-no">{{ticketNo || '审核完成后生成入场码'}}</view>
     </view>
     <button class="cta secondary" bindtap="backHome">返回共创会</button>
   </view>
@@ -41,29 +59,30 @@
     <view class="form">
       <view class="form-item">
         <view class="label">姓名 <text class="req">*</text></view>
-        <input placeholder="请填写姓名" placeholder-class="ph" value="{{name}}" data-field="name" bindinput="onInput" />
+        <input placeholder="请填写姓名" placeholder-class="ph" value="{{name}}" data-field="name" bindinput="onInput" cursor-spacing="48" maxlength="32" />
       </view>
       <view class="form-item">
         <view class="label">手机号 <text class="req">*</text></view>
-        <input type="number" maxlength="11" placeholder="用于签到核验" placeholder-class="ph" value="{{phone}}" data-field="phone" bindinput="onInput" />
+        <input type="number" maxlength="11" placeholder="用于签到核验" placeholder-class="ph" value="{{phone}}" data-field="phone" bindinput="onInput" cursor-spacing="48" />
       </view>
       <view class="form-item">
         <view class="label">公司 / 单位</view>
-        <input placeholder="公司或单位名称" placeholder-class="ph" value="{{company}}" data-field="company" bindinput="onInput" />
+        <input placeholder="公司或单位名称" placeholder-class="ph" value="{{company}}" data-field="company" bindinput="onInput" cursor-spacing="48" maxlength="64" />
       </view>
       <view class="form-item">
         <view class="label">职位</view>
-        <input placeholder="职位" placeholder-class="ph" value="{{position}}" data-field="position" bindinput="onInput" />
+        <input placeholder="职位" placeholder-class="ph" value="{{position}}" data-field="position" bindinput="onInput" cursor-spacing="48" maxlength="32" />
       </view>
       <view class="form-item last">
         <view class="label">参会备注</view>
-        <textarea class="textarea" placeholder="如有接待偏好可简要填写（选填）" placeholder-class="ph" value="{{reason}}" data-field="reason" bindinput="onInput" maxlength="200" />
+        <textarea class="textarea" placeholder="如有接待偏好可简要填写（选填）" placeholder-class="ph" value="{{reason}}" data-field="reason" bindinput="onInput" maxlength="200" cursor-spacing="80" auto-height="{{true}}" />
       </view>
     </view>
-
-    <view class="cta-wrap fixed">
-      <button class="cta" loading="{{submitting}}" bindtap="submit">确认提交邀请函</button>
-      <view class="privacy-tip">提交后将用于入场核验与接待服务</view>
-    </view>
   </view>
+</view>
+</scroll-view>
+
+<view wx:if="{{!submitted}}" class="cta-wrap fixed">
+  <button class="cta" loading="{{submitting}}" bindtap="submit">确认提交邀请函</button>
+  <view class="privacy-tip">提交后将用于入场核验与接待服务</view>
 </view>

@@ -207,10 +207,18 @@ page {
   font-weight: 600;
 }
 
+.hero-code text:last-child {
+  max-width: 62%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .code-invalid {
   margin-top: 22rpx;
   font-size: 24rpx;
-  color: #b42318;
+  color: #ffd2d2;
+  text-shadow: 0 2rpx 8rpx rgba(8, 16, 40, 0.35);
 }
 
 .summit-panel {
@@ -254,11 +262,13 @@ page {
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  flex-wrap: wrap;
+  row-gap: 8rpx;
   color: #6f7788;
   font-size: 20rpx;
+  line-height: 1.55;
   background: #f8fbff;
   border-radius: 28rpx;
-  white-space: nowrap;
 }
 
 .weather-line text {

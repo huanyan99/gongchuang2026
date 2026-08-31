@@ -4,7 +4,7 @@ page {
 
 .login-page {
   min-height: 100vh;
-  padding: 46rpx 44rpx 72rpx;
+  padding: 46rpx 44rpx calc(72rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
   color: #17233f;
 }
@@ -274,6 +274,7 @@ input,
   color: #17233f;
   text-align: right;
   font-weight: 600;
+  word-break: break-all;
 }
 
 .record-card {

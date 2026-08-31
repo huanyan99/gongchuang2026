@@ -22,6 +22,7 @@ Page({
     applyRecord: null,
     recordStatus: 'NONE',
     recordStatusText: STATUS_TEXT.NONE,
+    queryFailed: false,
   },
   onLoad(options) {
     this.setData({
@@ -47,49 +48,44 @@ Page({
     if (profileReady) this.fetchApplyRecord();
   },
   fetchApplyRecord() {
-    const phone = wx.getStorageSync('lastApplyPhone');
-    if (!phone) {
-      this.setData({
-        applyRecord: null,
-        recordStatus: 'NONE',
-        recordStatusText: STATUS_TEXT.NONE,
-      });
-      return;
-    }
-    app.request(`/api/apply/status?phone=${phone}`).then((record) => {
+    app.ensureLogin().then(() => app.request('/api/apply/me', 'GET', {}, {}, { silent: true })).then((record) => {
       const status = record && record.status ? record.status : 'NONE';
+      if (record && record.phone) {
+        wx.setStorageSync('lastApplyPhone', record.phone);
+      }
       this.setData({
         applyRecord: record || null,
         recordStatus: status,
         recordStatusText: STATUS_TEXT[status] || status,
+        queryFailed: false,
       });
-    }).catch(() => {
-      this.setData({
-        applyRecord: { phone },
-        recordStatus: 'PENDING',
-        recordStatusText: '已登记',
-      });
+    }).catch((err) => {
+      if (err && err.code === 3002) {
+        wx.removeStorageSync('lastApplyPhone');
+        this.setData({
+          applyRecord: null,
+          recordStatus: 'NONE',
+          recordStatusText: STATUS_TEXT.NONE,
+          queryFailed: false,
+        });
+        return;
+      }
+      this.setData({ queryFailed: true });
     });
   },
   handleLogin() {
+    if (this.data.logging) return;
     this.setData({ logging: true });
-    wx.login({
-      success: (res) => {
-        if (res.code) {
-          app.request('/api/auth/login', 'POST', { code: res.code }).then((data) => {
-            app.globalData.token = data.token;
-            app.globalData.userInfo = data.user;
-            wx.setStorageSync('token', data.token);
-          }).catch(() => {}).finally(() => {
-            this.setData({ wxLogged: true, logging: false });
-          });
-          return;
-        }
-        this.setData({ wxLogged: true, logging: false });
-      },
-      fail: () => {
-        this.setData({ wxLogged: true, logging: false });
-      },
+    app.relogin().then((token) => {
+      if (!token) {
+        wx.showToast({ title: '登录失败，请重试', icon: 'none' });
+        this.setData({ logging: false });
+        return;
+      }
+      this.setData({ wxLogged: true, logging: false });
+    }).catch(() => {
+      wx.showToast({ title: '登录失败，请重试', icon: 'none' });
+      this.setData({ logging: false });
     });
   },
   onNameInput(e) {

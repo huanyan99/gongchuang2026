@@ -1,11 +1,9 @@
 package com.example.app.mapper;
 
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.example.app.entity.User;
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
 
 @Mapper
-public interface UserMapper {
-    User selectByOpenid(@Param("openid") String openid);
-    int insert(User user);
+public interface UserMapper extends BaseMapper<User> {
 }

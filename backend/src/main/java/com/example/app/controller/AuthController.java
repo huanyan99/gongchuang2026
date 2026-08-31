@@ -1,7 +1,7 @@
 package com.example.app.controller;
 
+import com.example.app.common.Result;
 import com.example.app.dto.LoginRequest;
-import com.example.app.dto.Result;
 import com.example.app.entity.User;
 import com.example.app.service.AuthService;
 import jakarta.validation.Valid;
@@ -21,10 +21,6 @@ public class AuthController {
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@Valid @RequestBody LoginRequest req) {
         User user = authService.login(req);
-        String token = authService.issueToken(user);
-        return Result.ok(Map.of(
-                "token", token,
-                "user", user
-        ));
+        return Result.ok(Map.of("token", user.getToken(), "user", user));
     }
 }

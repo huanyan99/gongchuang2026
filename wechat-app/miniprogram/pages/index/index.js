@@ -15,18 +15,33 @@ Page({
     weatherStops: WEATHER_STOPS,
     currentWeather: WEATHER_STOPS[0],
     homeBannerUrl: '/images/banner.png',
+    pageScrollTop: 0,
   },
   onLoad(options) {
     const inviteCode = options.inviteCode || '';
     this.setData({ inviteCode });
-    this.prepareInviteDialog();
     if (inviteCode) {
-      app.request(`/api/apply/check-invitation?code=${inviteCode}`).then(() => {
+      app.request(`/api/apply/check-invitation?code=${encodeURIComponent(inviteCode)}`).then(() => {
         this.setData({ valid: true });
       }).catch(() => {
         this.setData({ valid: false });
       });
     }
+    this.syncApplyFlag().then(() => this.prepareInviteDialog());
+  },
+  syncApplyFlag() {
+    return app.ensureLogin()
+      .then(() => app.request('/api/apply/me', 'GET', {}, {}, { silent: true }))
+      .then((record) => {
+        if (record && record.phone) {
+          wx.setStorageSync('lastApplyPhone', record.phone);
+        }
+      })
+      .catch((err) => {
+        if (err && err.code === 3002) {
+          wx.removeStorageSync('lastApplyPhone');
+        }
+      });
   },
   prepareInviteDialog() {
     const hasApplied = wx.getStorageSync('lastApplyPhone');
@@ -48,29 +63,32 @@ Page({
       wx.showToast({ title: '邀请码无效或已达上限', icon: 'none' });
       return;
     }
+    if (this.data.inviteCode && this.data.valid !== true) {
+      wx.showToast({ title: '正在校验邀请码', icon: 'none' });
+      return;
+    }
     const memberProfile = wx.getStorageSync('bochuMemberProfile');
-    const target = `/pages/apply/index?inviteCode=${this.data.inviteCode || ''}`;
+    const target = `/pages/apply/index?inviteCode=${encodeURIComponent(this.data.inviteCode || '')}`;
     if (!memberProfile || !memberProfile.name || !memberProfile.gender) {
       wx.navigateTo({ url: `/pages/login/index?redirect=${encodeURIComponent(target)}` });
       return;
     }
     if (wx.getStorageSync('lastApplyPhone')) {
-      wx.showModal({
-        title: '您已登记',
-        content: '是否修改已提交的参会信息？',
-        cancelText: '暂不修改',
-        confirmText: '确认修改',
-        success: (res) => {
-          if (res.confirm) wx.navigateTo({ url: `${target}&edit=1` });
-        },
-      });
+      this.showTicket();
       return;
     }
     wx.navigateTo({ url: target });
   },
   noop() {},
+  onPageScrollView(e) {
+    this._pageScrollTop = (e && e.detail && e.detail.scrollTop) || 0;
+  },
   onHomeTap() {
-    wx.pageScrollTo({ scrollTop: 0, duration: 260 });
+    const current = this._pageScrollTop || 0;
+    if (current <= 2) return;
+    this.setData({ pageScrollTop: current }, () => {
+      this.setData({ pageScrollTop: 0 });
+    });
   },
   switchWeather(e) {
     const weatherIndex = Number(e.currentTarget.dataset.index);
@@ -117,7 +135,7 @@ Page({
   onShareAppMessage() {
     return {
       title: '诚邀您参加共创会',
-      path: `/pages/index/index?inviteCode=${this.data.inviteCode || ''}`,
+      path: `/pages/index/index?inviteCode=${encodeURIComponent(this.data.inviteCode || '')}`,
     };
   },
 });

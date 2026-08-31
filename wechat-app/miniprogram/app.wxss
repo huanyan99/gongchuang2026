@@ -1,14 +1,47 @@
 page {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
   background: #f5f7ff;
   font-size: 28rpx;
   color: #111111;
   font-family: -apple-system, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
+::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  display: none !important;
+  background: transparent;
+}
+
+.page-scroll {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  height: auto;
+  box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+}
+
 button {
   margin: 0;
   padding: 0;
   border-radius: 0;
+  box-sizing: border-box;
 }
 
 button::after {

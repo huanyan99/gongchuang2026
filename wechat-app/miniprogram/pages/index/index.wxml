@@ -1,4 +1,15 @@
-<view class="page">
+<page-meta page-style="overflow: hidden;" />
+<scroll-view
+  class="page-scroll"
+  scroll-y
+  enhanced="{{true}}"
+  show-scrollbar="{{false}}"
+  bounces="{{true}}"
+  scroll-with-animation="{{true}}"
+  scroll-top="{{pageScrollTop}}"
+  bindscroll="onPageScrollView"
+>
+  <view class="page">
   <view class="hero-scene">
     <image class="hero-bg" src="{{homeBannerUrl}}" mode="aspectFill" />
     <view class="weather-badge">
@@ -93,6 +104,8 @@
       <text class="arrow">›</text>
     </view>
   </view>
+  </view>
+</scroll-view>
 
   <view class="bottom-nav">
     <view class="nav-item active" bindtap="onHomeTap">
@@ -119,7 +132,7 @@
     </view>
   </view>
 
-  <view wx:if="{{showInviteDialog}}" class="invite-mask" catchtap="closeInviteDialog">
+  <view wx:if="{{showInviteDialog}}" class="invite-mask" catchtap="closeInviteDialog" catchtouchmove="noop">
     <view class="invite-card" catchtap="noop">
       <view class="invite-corner left">
         <view class="ribbon-fold"></view>
@@ -146,4 +159,3 @@
       </view>
     </view>
   </view>
-</view>

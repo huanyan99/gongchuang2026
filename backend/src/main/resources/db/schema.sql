@@ -2,12 +2,14 @@ CREATE DATABASE IF NOT EXISTS wechat_app DEFAULT CHARSET utf8mb4;
 USE wechat_app;
 
 CREATE TABLE IF NOT EXISTS t_user (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    openid      VARCHAR(64) NOT NULL UNIQUE,
-    nickname    VARCHAR(64),
-    avatar_url  VARCHAR(512),
-    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+    openid       VARCHAR(64) NOT NULL UNIQUE,
+    nickname     VARCHAR(64),
+    avatar_url   VARCHAR(512),
+    token        VARCHAR(64) UNIQUE,
+    token_expire DATETIME,
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET utf8mb4;
 
 CREATE TABLE IF NOT EXISTS t_invitation (
     id          BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -15,10 +17,11 @@ CREATE TABLE IF NOT EXISTS t_invitation (
     max_uses    INT NOT NULL DEFAULT 100,
     used_count  INT NOT NULL DEFAULT 0,
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET utf8mb4;
 
 CREATE TABLE IF NOT EXISTS t_application (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id         BIGINT,
     invitation_code VARCHAR(16) NOT NULL,
     name            VARCHAR(64) NOT NULL,
     phone           VARCHAR(20) NOT NULL UNIQUE,
@@ -29,5 +32,7 @@ CREATE TABLE IF NOT EXISTS t_application (
     review_remark   VARCHAR(512),
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
     reviewed_at     DATETIME,
-    KEY idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    checked_in_at   DATETIME,
+    KEY idx_status (status),
+    UNIQUE KEY uk_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET utf8mb4;

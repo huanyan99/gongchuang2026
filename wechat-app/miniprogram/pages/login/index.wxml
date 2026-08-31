@@ -1,3 +1,12 @@
+<page-meta page-style="overflow: hidden;" />
+<scroll-view
+  class="page-scroll"
+  scroll-y
+  enhanced="{{true}}"
+  show-scrollbar="{{false}}"
+  bounces="{{true}}"
+  scroll-with-animation="{{true}}"
+>
 <view class="login-page">
   <view class="login-hero">
     <view class="eyebrow">BOCHU INVITATION</view>
@@ -28,7 +37,7 @@
         <view class="panel-title">贵宾信息</view>
         <view class="form-item">
           <view class="label">姓名</view>
-          <input value="{{name}}" placeholder="请输入姓名" placeholder-class="ph" bindinput="onNameInput" />
+          <input value="{{name}}" placeholder="请输入姓名" placeholder-class="ph" bindinput="onNameInput" maxlength="32" cursor-spacing="48" />
         </view>
         <view class="form-item">
           <view class="label">性别</view>
@@ -75,6 +84,7 @@
             <text>{{applyRecord.position || '未填写'}}</text>
           </view>
         </block>
+        <view wx:elif="{{queryFailed}}" class="empty-record">登记记录查询失败，请稍后重试</view>
         <view wx:else class="empty-record">暂无参会登记记录</view>
       </view>
 
@@ -82,3 +92,4 @@
     </block>
   </view>
 </view>
+</scroll-view>

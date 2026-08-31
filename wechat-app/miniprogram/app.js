@@ -1,51 +1,107 @@
 App({
   onLaunch() {
-    // 登录并缓存 token
-    this.login();
+    const token = wx.getStorageSync('token');
+    if (token) this.globalData.token = token;
+    this.ensureLogin().catch(() => {});
   },
-  login() {
+  ensureLogin() {
     if (this.globalData.mockApi) {
       const data = this.mockRequest('/api/auth/login');
       this.globalData.token = data.token;
       this.globalData.userInfo = data.user;
       wx.setStorageSync('token', data.token);
-      return;
+      return Promise.resolve(data.token);
     }
-    wx.login({
-      success: (res) => {
-        if (!res.code) return;
-        this.request('/api/auth/login', 'POST', { code: res.code }).then((data) => {
-          this.globalData.token = data.token;
-          this.globalData.userInfo = data.user;
-          wx.setStorageSync('token', data.token);
-        });
-      },
+    if (this.globalData.token) {
+      return Promise.resolve(this.globalData.token);
+    }
+    const cached = wx.getStorageSync('token');
+    if (cached) {
+      this.globalData.token = cached;
+      return Promise.resolve(cached);
+    }
+    if (this._loginPromise) return this._loginPromise;
+    this._loginPromise = new Promise((resolve, reject) => {
+      wx.login({
+        success: (res) => {
+          if (!res.code) {
+            reject({ code: -1, message: '微信登录失败' });
+            return;
+          }
+          this.request('/api/auth/login', 'POST', { code: res.code }, {}, { skipRetry: true })
+            .then((data) => {
+              this.globalData.token = data.token;
+              this.globalData.userInfo = data.user;
+              wx.setStorageSync('token', data.token);
+              resolve(data.token);
+            })
+            .catch(reject);
+        },
+        fail: () => reject({ code: -1, message: '微信登录失败' }),
+      });
+    }).finally(() => {
+      this._loginPromise = null;
     });
+    return this._loginPromise;
   },
-  // 统一请求封装；extraHeader 可选，用于管理端密钥等
-  request(path, method = 'GET', data = {}, extraHeader = {}) {
+  relogin() {
+    this.globalData.token = null;
+    wx.removeStorageSync('token');
+    return this.ensureLogin();
+  },
+  request(path, method = 'GET', data = {}, extraHeader = {}, options = {}) {
+    const silent = !!options.silent;
+    const skipRetry = !!options.skipRetry;
     if (this.globalData.mockApi) {
-      return Promise.resolve(this.mockRequest(path, method, data));
+      try {
+        return Promise.resolve(this.mockRequest(path, method, data));
+      } catch (err) {
+        if (!options.silent && (!err || err.code !== 3002)) {
+          wx.showToast({ title: (err && err.message) || '请求失败', icon: 'none' });
+        }
+        return Promise.reject(err);
+      }
     }
     return new Promise((resolve, reject) => {
       wx.request({
         url: this.globalData.baseUrl + path,
         method,
         data,
+        timeout: 15000,
         header: {
           'Content-Type': 'application/json',
           Authorization: this.globalData.token || wx.getStorageSync('token') || '',
           ...extraHeader,
         },
         success: (res) => {
-          if (res.data && res.data.code === 0) {
-            resolve(res.data.data);
-          } else {
-            wx.showToast({ title: (res.data && res.data.message) || '请求失败', icon: 'none' });
-            reject(res.data);
+          const body = res.data;
+          if (body && body.code === 0) {
+            resolve(body.data);
+            return;
           }
+          const err = body && typeof body === 'object'
+            ? body
+            : { code: -1, message: '请求失败' };
+          if (err.code === 1001 && !skipRetry && path !== '/api/auth/login') {
+            this.relogin()
+              .then(() => this.request(path, method, data, extraHeader, { ...options, skipRetry: true }))
+              .then(resolve)
+              .catch(reject);
+            return;
+          }
+          const skipToast = silent || err.code === 3002;
+          if (!skipToast) {
+            wx.showToast({ title: err.message || '请求失败', icon: 'none' });
+          }
+          reject(err);
         },
-        fail: reject,
+        fail: () => {
+          const err = { code: -1, message: '网络异常，请稍后重试' };
+          if (!silent) {
+            wx.showToast({ title: err.message, icon: 'none' });
+          }
+          reject(err);
+        },
       });
     });
   },
@@ -70,33 +126,57 @@ App({
     }
 
     if (path.indexOf('/api/apply/check-invitation') === 0) {
-      return { valid: true };
+      return true;
     }
 
-    if (path.indexOf('/api/apply/status') === 0) {
+    if (path.indexOf('/api/apply/me') === 0 || path.indexOf('/api/apply/status') === 0) {
       const profile = wx.getStorageSync('bochuApplyProfile') || {};
-      if (!profile.phone && !wx.getStorageSync('lastApplyPhone')) return null;
+      if (!profile.phone && !wx.getStorageSync('lastApplyPhone')) {
+        const err = { code: 3002, message: '未查询到申报记录' };
+        throw err;
+      }
       return {
         name: profile.name || '贵宾',
         phone: profile.phone || wx.getStorageSync('lastApplyPhone'),
         company: profile.company || '',
         position: profile.position || '',
         reason: profile.reason || '',
-        status: 'APPROVED',
+        status: 'PENDING',
       };
     }
 
-    if (path.indexOf('/api/admin/applications') === 0) {
+    if (path.indexOf('/api/apply/ticket') === 0) {
       const profile = wx.getStorageSync('bochuApplyProfile') || {};
-      return profile.phone ? [{ ...profile, id: 1, status: 'APPROVED' }] : [];
+      return {
+        status: 'PENDING',
+        name: profile.name || '贵宾',
+        phone: profile.phone || wx.getStorageSync('lastApplyPhone'),
+        ticketNo: 'BOCHU-0000',
+        checkedIn: false,
+        expireSeconds: 120,
+      };
+    }
+
+    if (path.indexOf('/api/admin/checkin') === 0) {
+      return { name: '贵宾', status: 'APPROVED' };
+    }
+
+    if (path.indexOf('/api/admin/applications') === 0) {
+      if (method === 'POST') {
+        return { id: 1, status: data.status, reviewRemark: data.remark || '' };
+      }
+      const profile = wx.getStorageSync('bochuApplyProfile') || {};
+      const records = profile.phone
+        ? [{ ...profile, id: 1, status: 'PENDING' }]
+        : [];
+      return { records, total: records.length, page: 1, size: 20, pages: 1 };
     }
 
     return {};
   },
   globalData: {
-    // 开发时本机调试地址；上线前换成 https 域名并在小程序后台配置
     baseUrl: 'http://localhost:8080',
-    mockApi: true,
+    mockApi: false,
     token: null,
     userInfo: null,
   },

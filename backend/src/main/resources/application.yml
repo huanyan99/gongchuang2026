@@ -1,15 +1,30 @@
 server:
   port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
 
 spring:
+  jackson:
+    time-zone: Asia/Shanghai
+    serialization:
+      write-dates-as-timestamps: false
   datasource:
-    url: jdbc:mysql://localhost:3306/wechat_app?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/wechat_app?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 5000
+      validation-timeout: 3000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
-mybatis:
-  mapper-locations: classpath:mapper/*.xml
+mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
 
@@ -18,8 +33,9 @@ wechat:
   secret: your-secret
 
 admin:
+  # 生产环境（--spring.profiles.active=prod）要求 >=16 位且非默认值，否则启动失败
   key: change-me-admin-key
 
 logging:
   level:
-    com.example.app: debug
+    com.example.app: info

@@ -1,57 +1,115 @@
 package com.example.app.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.example.app.common.BizException;
+import com.example.app.common.ErrorCode;
 import com.example.app.dto.LoginRequest;
 import com.example.app.entity.User;
 import com.example.app.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserMapper userMapper;
+    private static final int TOKEN_DAYS = 30;
 
-    /** 在 application.yml 中配置，或用环境变量覆盖 */
+    private final UserMapper userMapper;
+    private final RestClient wxRestClient;
+
     @Value("${wechat.appid}")
     private String appid;
     @Value("${wechat.secret}")
     private String secret;
 
-    @SuppressWarnings("unchecked")
+    /** code 换 openid 并登录（不存在则建档），签发可校验的登录 token */
+    @Transactional
     public User login(LoginRequest req) {
-        String url = "https://api.weixin.qq.com/sns/jscode2session"
-                + "?appid=" + appid
-                + "&secret=" + secret
-                + "&js_code=" + req.getCode()
-                + "&grant_type=authorization_code";
-
-        RestClient client = RestClient.create();
-        Map<String, Object> resp = client.get().uri(url).retrieve().body(Map.class);
-
-        if (resp == null || resp.get("openid") == null) {
-            throw new IllegalArgumentException("微信登录失败: " + (resp == null ? "空响应" : resp.get("errmsg")));
+        Map<String, Object> resp = callWxJscode2session(req.getCode());
+        if (resp == null) {
+            throw new BizException(ErrorCode.WECHAT_API_ERROR);
         }
-        String openid = (String) resp.get("openid");
+        Object errcode = resp.get("errcode");
+        if (errcode != null && !"0".equals(String.valueOf(errcode))) {
+            log.warn("微信 jscode2session 业务失败: errcode={} errmsg={}", errcode, resp.get("errmsg"));
+            throw new BizException(ErrorCode.WECHAT_API_ERROR);
+        }
+        if (resp.get("openid") == null) {
+            throw new BizException(ErrorCode.WECHAT_API_ERROR);
+        }
+        String openid = String.valueOf(resp.get("openid"));
 
-        User user = userMapper.selectByOpenid(openid);
+        User user = userMapper.selectOne(
+                new LambdaQueryWrapper<User>().eq(User::getOpenid, openid));
         if (user == null) {
             user = new User();
             user.setOpenid(openid);
             user.setNickname(req.getNickname());
             user.setAvatarUrl(req.getAvatarUrl());
-            userMapper.insert(user);
+            try {
+                userMapper.insert(user);
+            } catch (DuplicateKeyException e) {
+                user = userMapper.selectOne(
+                        new LambdaQueryWrapper<User>().eq(User::getOpenid, openid));
+                if (user == null) {
+                    throw new BizException(ErrorCode.INTERNAL_ERROR);
+                }
+            }
+        }
+        issueToken(user);
+        return user;
+    }
+
+    public User findValidByToken(String token) {
+        if (token == null || token.isBlank()) {
+            return null;
+        }
+        User user = userMapper.selectOne(
+                new LambdaQueryWrapper<User>().eq(User::getToken, token.trim()));
+        if (user == null || user.getTokenExpire() == null || user.getTokenExpire().isBefore(LocalDateTime.now())) {
+            return null;
         }
         return user;
     }
 
-    /** 简易 token；生产环境建议换成 JWT 并入库/Redis 管理 */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> callWxJscode2session(String code) {
+        String url = UriComponentsBuilder
+                .fromUriString("https://api.weixin.qq.com/sns/jscode2session")
+                .queryParam("appid", appid)
+                .queryParam("secret", secret)
+                .queryParam("js_code", code)
+                .queryParam("grant_type", "authorization_code")
+                .build()
+                .toUriString();
+        try {
+            return wxRestClient.get()
+                    .uri(url)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception e) {
+            log.warn("微信 jscode2session 调用失败: {}", e.getMessage());
+            throw new BizException(ErrorCode.WECHAT_API_ERROR);
+        }
+    }
+
     public String issueToken(User user) {
-        return UUID.randomUUID().toString().replace("-", "");
+        String token = UUID.randomUUID().toString().replace("-", "");
+        user.setToken(token);
+        user.setTokenExpire(LocalDateTime.now().plusDays(TOKEN_DAYS));
+        userMapper.updateById(user);
+        return token;
     }
 }
