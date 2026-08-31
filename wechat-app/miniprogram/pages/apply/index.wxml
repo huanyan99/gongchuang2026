@@ -3,10 +3,10 @@
     <image class="head-bg" src="/images/banner.png" mode="aspectFill" />
     <view class="head-shade"></view>
     <view class="head-copy">
-      <view class="eyebrow">BOCHU INVITATION</view>
-      <view class="title">贵宾参会登记</view>
+      <view class="eyebrow">INVITATION</view>
+      <view class="title">贵宾登记</view>
       <view class="gold-line"></view>
-      <view class="sub">确认邀请函，并完善您的参会信息</view>
+      <view class="sub">确认信息，预留席位</view>
     </view>
   </view>
 
@@ -36,9 +36,14 @@
     <view class="card-head">
       <view>
         <view class="card-kicker">VIP LETTER</view>
-        <view class="card-title">递交贵宾邀请函</view>
       </view>
-      <view class="invite-seal">B</view>
+      <view class="invite-ribbon">
+        <view class="ribbon-wing left"></view>
+        <view class="ribbon-knot"></view>
+        <view class="ribbon-wing right"></view>
+        <view class="ribbon-tail left"></view>
+        <view class="ribbon-tail right"></view>
+      </view>
     </view>
 
     <view class="form">
@@ -64,9 +69,9 @@
       </view>
     </view>
 
-    <view class="cta-wrap">
+    <view class="cta-wrap fixed">
       <button class="cta" loading="{{submitting}}" bindtap="submit">确认提交邀请函</button>
-      <view class="privacy-tip">提交后，会务团队将依据上述信息为您安排入场核验与接待服务</view>
+      <view class="privacy-tip">提交后将用于入场核验与接待服务</view>
     </view>
   </view>
 </view>

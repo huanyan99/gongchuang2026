@@ -5,12 +5,12 @@ page {
 .page {
   min-height: 100vh;
   color: #111827;
-  padding-bottom: 64rpx;
+  padding-bottom: 190rpx;
 }
 
 .head {
   position: relative;
-  height: 430rpx;
+  height: 338rpx;
   overflow: hidden;
   border-bottom-left-radius: 46rpx;
   border-bottom-right-radius: 46rpx;
@@ -34,7 +34,7 @@ page {
   position: absolute;
   left: 48rpx;
   right: 48rpx;
-  bottom: 58rpx;
+  bottom: 42rpx;
   color: #ffffff;
 }
 
@@ -48,22 +48,22 @@ page {
 }
 
 .title {
-  margin-top: 18rpx;
-  font-size: 52rpx;
+  margin-top: 14rpx;
+  font-size: 48rpx;
   line-height: 1.08;
   font-weight: 800;
   letter-spacing: 0;
 }
 
 .gold-line {
-  margin-top: 22rpx;
+  margin-top: 18rpx;
   width: 82rpx;
   height: 3rpx;
   background: #d6b56d;
 }
 
 .sub {
-  margin-top: 22rpx;
+  margin-top: 16rpx;
   font-size: 25rpx;
   color: rgba(255, 255, 255, 0.82);
   letter-spacing: 0;
@@ -72,8 +72,8 @@ page {
 .form-card,
 .result-card {
   position: relative;
-  margin: -34rpx 28rpx 0;
-  padding: 34rpx 30rpx 38rpx;
+  margin: -28rpx 28rpx 0;
+  padding: 26rpx 30rpx 30rpx;
   background: rgba(255, 255, 255, 0.96);
   border: 1rpx solid rgba(214, 181, 109, 0.22);
   border-radius: 34rpx;
@@ -84,7 +84,7 @@ page {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 26rpx;
+  padding-bottom: 16rpx;
   border-bottom: 1rpx solid #edf0f6;
 }
 
@@ -102,25 +102,72 @@ page {
   font-weight: 800;
 }
 
-.invite-seal {
-  width: 66rpx;
-  height: 66rpx;
-  line-height: 66rpx;
-  text-align: center;
+.invite-ribbon {
+  position: relative;
+  width: 92rpx;
+  height: 68rpx;
+}
+
+.ribbon-wing,
+.ribbon-knot,
+.ribbon-tail {
+  position: absolute;
+  background: linear-gradient(145deg, #f4d98d, #c8a25d);
+  box-shadow: 0 8rpx 18rpx rgba(160, 125, 52, 0.24);
+}
+
+.ribbon-wing {
+  top: 8rpx;
+  width: 42rpx;
+  height: 34rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.45);
+}
+
+.ribbon-wing.left {
+  left: 4rpx;
+  border-radius: 26rpx 8rpx 26rpx 10rpx;
+  transform: rotate(-18deg);
+}
+
+.ribbon-wing.right {
+  right: 4rpx;
+  border-radius: 8rpx 26rpx 10rpx 26rpx;
+  transform: rotate(18deg);
+}
+
+.ribbon-knot {
+  left: 36rpx;
+  top: 18rpx;
+  width: 22rpx;
+  height: 22rpx;
   border-radius: 50%;
-  color: #132653;
-  font-size: 30rpx;
-  font-weight: 800;
-  background: linear-gradient(145deg, #f7dc93, #c7a86a);
-  box-shadow: 0 8rpx 18rpx rgba(160, 125, 52, 0.28);
+  background: #132653;
+  box-shadow: 0 5rpx 12rpx rgba(19, 38, 83, 0.2);
+}
+
+.ribbon-tail {
+  top: 40rpx;
+  width: 22rpx;
+  height: 28rpx;
+  border-radius: 4rpx 4rpx 10rpx 10rpx;
+}
+
+.ribbon-tail.left {
+  left: 34rpx;
+  transform: rotate(9deg);
+}
+
+.ribbon-tail.right {
+  right: 30rpx;
+  transform: rotate(-9deg);
 }
 
 .form {
-  padding: 4rpx 0 0;
+  padding: 0;
 }
 
 .form-item {
-  padding: 28rpx 0;
+  padding: 22rpx 0;
   border-bottom: 1rpx solid #edf0f6;
   display: flex;
   flex-direction: column;
@@ -146,17 +193,17 @@ page {
 }
 
 input {
-  margin-top: 14rpx;
-  height: 52rpx;
+  margin-top: 10rpx;
+  height: 46rpx;
   color: #111827;
   font-size: 30rpx;
   font-weight: 600;
 }
 
 .textarea {
-  margin-top: 14rpx;
+  margin-top: 10rpx;
   width: 100%;
-  min-height: 142rpx;
+  min-height: 86rpx;
   color: #111827;
   font-size: 28rpx;
   font-weight: 500;
@@ -164,6 +211,16 @@ input {
 
 .cta-wrap {
   padding-top: 10rpx;
+}
+
+.cta-wrap.fixed {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 22rpx 32rpx 42rpx;
+  background: linear-gradient(180deg, rgba(244, 246, 251, 0), rgba(244, 246, 251, 0.96) 28%, #f4f6fb);
 }
 
 .cta {
