@@ -1,9 +1,9 @@
 const app = getApp();
 
 const WEATHER_STOPS = [
-  { city: '佛山', date: '9月18日', shortDate: '9.18', temp: '30°C', weather: '多云', icon: 'cloudy', tip: '宜轻装' },
-  { city: '济南', date: '9月22日', shortDate: '9.22', temp: '24°C', weather: '晴', icon: 'sunny', tip: '宜早到' },
-  { city: '上海', date: '10月10日', shortDate: '10.10', temp: '25°C', weather: '有雨', icon: 'rainy', tip: '备雨具' },
+  { city: '佛山', date: '9月18日', temp: '30°C', weather: '多云', icon: 'cloudy', tip: '建议轻装出行并预留抵达时间' },
+  { city: '济南', date: '9月22日', temp: '24°C', weather: '晴', icon: 'sunny', tip: '建议提前出发并预留签到时间' },
+  { city: '上海', date: '10月10日', temp: '25°C', weather: '有雨', icon: 'rainy', tip: '建议备好雨具并预留抵达时间' },
 ];
 
 Page({
