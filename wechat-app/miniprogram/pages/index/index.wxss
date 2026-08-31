@@ -250,24 +250,44 @@ page {
 
 .weather-line {
   margin-top: 22rpx;
-  padding: 22rpx 26rpx;
+  padding: 18rpx 22rpx;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   color: #6f7788;
-  font-size: 23rpx;
+  font-size: 22rpx;
   background: #f8fbff;
-  border-radius: 18rpx;
+  border-radius: 28rpx;
   white-space: nowrap;
 }
 
 .weather-line text {
-  margin-right: 16rpx;
+  margin-right: 12rpx;
 }
 
 .weather-line text:first-child {
+  margin-right: 12rpx;
+}
+
+.weather-pin {
+  display: block;
+  width: 10rpx;
+  height: 10rpx;
+  background: #c7a86a;
+  border-radius: 50%;
+  box-shadow: 0 0 0 6rpx rgba(199, 168, 106, 0.13);
+}
+
+.weather-line text:nth-child(2) {
   color: #17233f;
   font-weight: 700;
+}
+
+.weather-sep {
+  display: inline-block;
+  color: #c7a86a;
+  font-size: 24rpx;
+  transform: translateY(-1rpx);
 }
 
 .weather-line text:last-child {

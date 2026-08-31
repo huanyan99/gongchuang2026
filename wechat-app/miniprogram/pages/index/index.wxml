@@ -33,9 +33,13 @@
     </view>
 
     <view class="weather-line">
+      <text class="weather-pin"></text>
       <text>{{currentWeather.city}}</text>
-      <text>{{currentWeather.date}}</text>
+      <text class="weather-sep">·</text>
+      <text>{{currentWeather.shortDate}}</text>
+      <text class="weather-sep">·</text>
       <text>{{currentWeather.weather}} {{currentWeather.temp}}</text>
+      <text class="weather-sep">·</text>
       <text>{{currentWeather.tip}}</text>
     </view>
 
