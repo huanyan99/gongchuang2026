@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.app.mapper.UserMapper">
+
+    <select id="selectByOpenid" resultType="com.example.app.entity.User">
+        SELECT id, openid, nickname, avatar_url AS avatarUrl, created_at AS createdAt
+        FROM t_user
+        WHERE openid = #{openid}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_user (openid, nickname, avatar_url)
+        VALUES (#{openid}, #{nickname}, #{avatarUrl})
+    </insert>
+</mapper>

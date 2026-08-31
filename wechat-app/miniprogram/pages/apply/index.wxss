@@ -1,0 +1,110 @@
+page {
+  background: #f5f7ff;
+}
+
+.page {
+  min-height: 100vh;
+  color: #111111;
+}
+
+.head {
+  background: #fafbff;
+  padding: 70rpx 48rpx 50rpx;
+  border-bottom: 1rpx solid #eceef1;
+}
+
+.eyebrow {
+  color: #26397b;
+  font-size: 20rpx;
+  font-weight: 600;
+  letter-spacing: 3rpx;
+}
+
+.title {
+  margin-top: 24rpx;
+  font-size: 58rpx;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: #111111;
+}
+
+.sub {
+  margin-top: 24rpx;
+  font-size: 24rpx;
+  color: #6f747c;
+  letter-spacing: 0;
+}
+
+.form {
+  margin: 24rpx;
+  background: #fff;
+  padding: 0 32rpx;
+  border: 1rpx solid #eceef1;
+}
+
+.form-item {
+  padding: 32rpx 0;
+  border-bottom: 1rpx solid #eceef1;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-item.last {
+  border-bottom: none;
+}
+
+.label {
+  font-size: 22rpx;
+  color: #8b9098;
+  letter-spacing: 2rpx;
+  font-weight: 600;
+}
+
+.req {
+  color: #b42318;
+}
+
+.ph {
+  color: #b5bac2;
+}
+
+input {
+  margin-top: 16rpx;
+  height: 52rpx;
+  color: #111111;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+.textarea {
+  margin-top: 16rpx;
+  width: 100%;
+  min-height: 176rpx;
+  color: #111111;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+.cta-wrap {
+  padding: 16rpx 24rpx 64rpx;
+}
+
+.cta {
+  height: 96rpx;
+  line-height: 96rpx;
+  background: #26397b;
+  color: #fff;
+  border-radius: 0;
+  font-size: 28rpx;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.privacy-tip {
+  margin-top: 24rpx;
+  font-size: 20rpx;
+  color: #9aa0a8;
+  text-align: center;
+  letter-spacing: 0;
+}

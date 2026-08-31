@@ -1,0 +1,41 @@
+<view class="container">
+  <view wx:if="{{!logged}}" class="login-box">
+    <view class="eyebrow">ADMIN CONSOLE</view>
+    <view class="page-title">审核后台</view>
+    <input class="key-input" password placeholder="请输入管理密钥" value="{{adminKey}}" bindinput="onInputKey" />
+    <button class="btn" bindtap="login">进入审核后台</button>
+  </view>
+
+  <block wx:else>
+    <view class="admin-head">
+      <view>
+        <view class="eyebrow">ADMIN CONSOLE</view>
+        <view class="page-title">审核后台</view>
+      </view>
+      <view class="count">{{list.length}}</view>
+    </view>
+
+    <view class="tabs">
+      <view class="tab {{statusFilter === '' ? 'active' : ''}}" data-status="" bindtap="switchTab">全部</view>
+      <view class="tab {{statusFilter === 'PENDING' ? 'active' : ''}}" data-status="PENDING" bindtap="switchTab">待审核</view>
+      <view class="tab {{statusFilter === 'APPROVED' ? 'active' : ''}}" data-status="APPROVED" bindtap="switchTab">已通过</view>
+      <view class="tab {{statusFilter === 'REJECTED' ? 'active' : ''}}" data-status="REJECTED" bindtap="switchTab">已驳回</view>
+    </view>
+
+    <view wx:if="{{list.length === 0}}" class="empty">暂无申报记录</view>
+
+    <view wx:for="{{list}}" wx:key="id" class="card">
+      <view class="row">
+        <text class="name">{{item.name}}</text>
+        <text class="status {{item.status}}">{{item.statusText}}</text>
+      </view>
+      <view class="info">{{item.phone}} / {{item.company || '未填写'}} / {{item.position || '未填写'}}</view>
+      <view class="reason" wx:if="{{item.reason}}">{{item.reason}}</view>
+      <view class="remark" wx:if="{{item.reviewRemark}}">审核备注：{{item.reviewRemark}}</view>
+      <view class="actions" wx:if="{{item.status === 'PENDING'}}">
+        <button class="mini-btn approve" size="mini" data-id="{{item.id}}" data-status="APPROVED" bindtap="review">通过</button>
+        <button class="mini-btn reject" size="mini" data-id="{{item.id}}" data-status="REJECTED" bindtap="review">驳回</button>
+      </view>
+    </view>
+  </block>
+</view>

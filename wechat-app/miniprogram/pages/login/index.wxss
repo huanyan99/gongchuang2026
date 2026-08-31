@@ -1,0 +1,311 @@
+page {
+  background: #f5f7ff;
+}
+
+.login-page {
+  min-height: 100vh;
+  padding: 46rpx 44rpx 72rpx;
+  box-sizing: border-box;
+  color: #17233f;
+}
+
+.login-hero {
+  text-align: center;
+  padding-top: 24rpx;
+}
+
+.eyebrow {
+  color: #8a7447;
+  font-size: 20rpx;
+  font-weight: 700;
+  letter-spacing: 5rpx;
+}
+
+.title {
+  margin-top: 28rpx;
+  font-size: 50rpx;
+  line-height: 1.12;
+  font-weight: 500;
+  letter-spacing: 6rpx;
+}
+
+.sub {
+  margin: 26rpx auto 0;
+  max-width: 560rpx;
+  color: #6f7788;
+  font-size: 25rpx;
+  line-height: 1.7;
+}
+
+.member-card {
+  position: relative;
+  height: 520rpx;
+  margin-top: 58rpx;
+  padding: 62rpx 56rpx;
+  box-sizing: border-box;
+  overflow: hidden;
+  color: #ffffff;
+  background: #26397b;
+  border-radius: 12rpx;
+  box-shadow: 0 28rpx 68rpx rgba(38, 57, 123, 0.24);
+}
+
+.member-card.compact {
+  height: 300rpx;
+  margin-top: 40rpx;
+  padding: 46rpx 44rpx;
+}
+
+.member-card.compact::before {
+  left: -120rpx;
+  bottom: -300rpx;
+}
+
+.member-card.compact::after {
+  width: 250rpx;
+  height: 250rpx;
+}
+
+.member-card.compact .card-shine {
+  height: 130rpx;
+}
+
+.member-card.compact .card-title {
+  font-size: 40rpx;
+}
+
+.member-card.compact .card-lines {
+  width: 130rpx;
+  right: 36rpx;
+  bottom: 36rpx;
+}
+
+.member-card::before {
+  content: '';
+  position: absolute;
+  left: -80rpx;
+  bottom: -220rpx;
+  width: 620rpx;
+  height: 620rpx;
+  border: 36rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+}
+
+.member-card::after {
+  content: '';
+  position: absolute;
+  right: -120rpx;
+  top: -120rpx;
+  width: 360rpx;
+  height: 360rpx;
+  border: 2rpx solid rgba(199, 168, 106, 0.42);
+  transform: rotate(28deg);
+}
+
+.card-shine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 210rpx;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.card-label {
+  position: relative;
+  color: #c7a86a;
+  font-size: 26rpx;
+  font-weight: 600;
+  letter-spacing: 4rpx;
+}
+
+.card-title {
+  position: relative;
+  margin-top: 22rpx;
+  font-size: 42rpx;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.card-sub {
+  position: relative;
+  margin-top: 18rpx;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 22rpx;
+  letter-spacing: 3rpx;
+}
+
+.card-lines {
+  position: absolute;
+  right: 48rpx;
+  bottom: 48rpx;
+  width: 180rpx;
+}
+
+.card-lines view {
+  height: 2rpx;
+  margin-top: 18rpx;
+  background: rgba(255, 255, 255, 0.46);
+}
+
+.login-panel {
+  margin-top: 36rpx;
+}
+
+.panel-card {
+  position: relative;
+  margin-bottom: 28rpx;
+  padding: 30rpx 32rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(199, 168, 106, 0.42);
+  border-radius: 14rpx;
+  box-shadow: 0 18rpx 42rpx rgba(38, 57, 123, 0.08);
+  box-sizing: border-box;
+}
+
+.panel-card::before {
+  content: '';
+  position: absolute;
+  left: 20rpx;
+  right: 20rpx;
+  top: 14rpx;
+  height: 1rpx;
+  background: rgba(38, 57, 123, 0.12);
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-title {
+  color: #17233f;
+  font-size: 30rpx;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.edit-link {
+  color: #8a7447;
+  font-size: 23rpx;
+  line-height: 1;
+  border-bottom: 1rpx solid #c7a86a;
+  padding-bottom: 6rpx;
+}
+
+.login-btn {
+  height: 92rpx;
+  line-height: 92rpx;
+  border-radius: 48rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  letter-spacing: 4rpx;
+}
+
+.login-btn.primary {
+  color: #ffffff;
+  background: #26397b;
+  box-shadow: 0 14rpx 34rpx rgba(38, 57, 123, 0.18);
+}
+
+.hint {
+  margin-top: 28rpx;
+  color: #949aa7;
+  font-size: 22rpx;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.form-item {
+  padding: 26rpx 0;
+  border-bottom: 1rpx solid rgba(38, 57, 123, 0.12);
+}
+
+.form-item:last-child {
+  border-bottom: none;
+}
+
+.label {
+  color: #8a7447;
+  font-size: 21rpx;
+  font-weight: 700;
+  letter-spacing: 4rpx;
+}
+
+input,
+.picker-value {
+  margin-top: 18rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+  color: #17233f;
+  font-size: 32rpx;
+  font-weight: 500;
+}
+
+.ph,
+.picker-value.empty {
+  color: #b4bac7;
+}
+
+.form-item + .login-btn {
+  margin-top: 42rpx;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24rpx 0 0;
+  font-size: 27rpx;
+  line-height: 1.45;
+}
+
+.info-row text:first-child {
+  width: 180rpx;
+  color: #8a7447;
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 3rpx;
+}
+
+.info-row text:last-child {
+  flex: 1;
+  color: #17233f;
+  text-align: right;
+  font-weight: 600;
+}
+
+.record-card {
+  margin-top: 22rpx;
+}
+
+.record-status {
+  padding: 8rpx 18rpx;
+  color: #8a7447;
+  border: 1rpx solid rgba(199, 168, 106, 0.78);
+  border-radius: 26rpx;
+  font-size: 21rpx;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.record-status.APPROVED {
+  color: #26397b;
+  border-color: rgba(38, 57, 123, 0.7);
+}
+
+.record-status.REJECTED {
+  color: #a43a32;
+  border-color: rgba(164, 58, 50, 0.56);
+}
+
+.empty-record {
+  margin-top: 28rpx;
+  padding: 28rpx 0;
+  color: #949aa7;
+  font-size: 26rpx;
+  line-height: 1.5;
+  text-align: center;
+  border-top: 1rpx solid rgba(38, 57, 123, 0.1);
+}

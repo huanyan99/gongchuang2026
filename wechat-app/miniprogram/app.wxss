@@ -1,0 +1,16 @@
+page {
+  background: #f5f7ff;
+  font-size: 28rpx;
+  color: #111111;
+  font-family: -apple-system, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+button {
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+}
+
+button::after {
+  border: none;
+}
