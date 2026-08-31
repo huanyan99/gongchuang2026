@@ -13,10 +13,10 @@
     </view>
 
     <view class="hero-copy">
-      <view class="kicker">BOCHU VALUE CO-CREATION SUMMIT</view>
+      <view class="kicker">BOCHU WELCOME</view>
       <view class="hero-title">共创会</view>
       <view class="hero-rule"></view>
-      <view class="hero-sub">2026价值共创峰会</view>
+      <view class="hero-sub">柏楚2026价值共创峰会</view>
       <view class="hero-code" wx:if="{{inviteCode}}">
         <text>INVITATION</text>
         <text>{{inviteCode}}</text>

@@ -146,7 +146,7 @@ page {
   position: absolute;
   left: 42rpx;
   right: 172rpx;
-  bottom: 48rpx;
+  bottom: 82rpx;
   z-index: 2;
 }
 
