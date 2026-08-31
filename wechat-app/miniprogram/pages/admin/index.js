@@ -53,7 +53,7 @@ Page({
     }
     wx.showModal({
       title: '确认通过',
-      content: '确定通过该申报吗？',
+      content: '确定通过该登记吗？',
       success: (res) => {
         if (res.confirm) this.doReview(id, status, '');
       },

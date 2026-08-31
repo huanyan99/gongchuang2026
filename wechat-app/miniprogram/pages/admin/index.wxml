@@ -22,7 +22,7 @@
       <view class="tab {{statusFilter === 'REJECTED' ? 'active' : ''}}" data-status="REJECTED" bindtap="switchTab">已驳回</view>
     </view>
 
-    <view wx:if="{{list.length === 0}}" class="empty">暂无申报记录</view>
+    <view wx:if="{{list.length === 0}}" class="empty">暂无登记记录</view>
 
     <view wx:for="{{list}}" wx:key="id" class="card">
       <view class="row">

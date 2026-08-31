@@ -9,6 +9,8 @@ Page({
     position: '',
     reason: '',
     submitting: false,
+    submitted: false,
+    ticketNo: '',
   },
   onLoad(options) {
     const memberProfile = wx.getStorageSync('bochuMemberProfile');
@@ -36,12 +38,13 @@ Page({
       reason: this.data.reason,
     }).then(() => {
       wx.setStorageSync('lastApplyPhone', this.data.phone);
-      wx.showModal({
-        title: '提交成功',
-        content: '您的申报信息已提交，请等待审核',
-        showCancel: false,
-        success: () => wx.navigateBack(),
+      this.setData({
+        submitted: true,
+        ticketNo: `BOCHU-${this.data.phone.slice(-4)}`,
       });
     }).finally(() => this.setData({ submitting: false }));
+  },
+  backHome() {
+    wx.redirectTo({ url: '/pages/index/index' });
   },
 });

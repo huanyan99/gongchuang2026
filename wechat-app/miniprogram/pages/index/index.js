@@ -1,9 +1,9 @@
 const app = getApp();
 
 const WEATHER_STOPS = [
-  { city: '佛山', date: '9月18日', temp: '30°C', weather: '多云', icon: 'cloudy', tip: '建议轻装出行并预留抵达时间' },
-  { city: '济南', date: '9月22日', temp: '24°C', weather: '晴', icon: 'sunny', tip: '建议提前出发并预留签到时间' },
-  { city: '上海', date: '10月10日', temp: '25°C', weather: '有雨', icon: 'rainy', tip: '建议备好雨具并预留抵达时间' },
+  { city: '佛山', date: '9月18日', temp: '30°C', weather: '多云', icon: 'cloudy', tip: '轻装出行，预留抵达时间' },
+  { city: '济南', date: '9月22日', temp: '24°C', weather: '晴', icon: 'sunny', tip: '提前出发，预留签到时间' },
+  { city: '上海', date: '10月10日', temp: '25°C', weather: '有雨', icon: 'rainy', tip: '备好雨具，预留抵达时间' },
 ];
 
 Page({
@@ -86,8 +86,8 @@ Page({
     const phone = wx.getStorageSync('lastApplyPhone');
     if (!phone) {
       wx.showModal({
-        title: '还未申报',
-        content: '请先填写参会登记，审核通过后即可获取入场资格',
+        title: '尚未登记',
+        content: '请先完成参会登记，确认后即可获取入场资格',
         confirmText: '去登记',
         success: (res) => {
           if (res.confirm) {
@@ -99,7 +99,7 @@ Page({
     }
     app.request(`/api/apply/status?phone=${phone}`).then((data) => {
       if (!data) {
-        wx.showModal({ title: '未找到记录', content: '未查询到申报记录', showCancel: false });
+        wx.showModal({ title: '未找到记录', content: '暂未查询到参会登记记录', showCancel: false });
         return;
       }
       const map = { PENDING: '审核中，请耐心等待', APPROVED: '已通过，凭报名手机号入场', REJECTED: `已驳回${data.reviewRemark ? '：' + data.reviewRemark : ''}` };
