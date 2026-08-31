@@ -1,5 +1,49 @@
 const app = getApp();
 
+function hashText(text) {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function isFinder(x, y, ox, oy) {
+  const dx = x - ox;
+  const dy = y - oy;
+  if (dx < 0 || dy < 0 || dx > 6 || dy > 6) return null;
+  return dx === 0 || dy === 0 || dx === 6 || dy === 6 || (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4);
+}
+
+function createQrCells(payload) {
+  const cells = [];
+  const size = 21;
+  const seed = hashText(payload || 'BOCHU-ACCESS');
+
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      let finder = isFinder(x, y, 0, 0);
+      if (finder === null) finder = isFinder(x, y, 14, 0);
+      if (finder === null) finder = isFinder(x, y, 0, 14);
+      if (finder !== null) {
+        cells.push(finder);
+        continue;
+      }
+
+      if (x === 6 || y === 6) {
+        cells.push((x + y) % 2 === 0);
+        continue;
+      }
+
+      const value = (seed + x * 29 + y * 41 + x * y * 7) >>> 0;
+      cells.push(value % 5 === 0 || value % 7 === 0 || ((value >>> ((x + y) % 13)) & 1) === 1);
+    }
+  }
+
+  return cells;
+}
+
 Page({
   data: {
     inviteCode: '',
@@ -11,13 +55,19 @@ Page({
     submitting: false,
     submitted: false,
     ticketNo: '',
+    qrCells: createQrCells('BOCHU-ACCESS'),
   },
   onLoad(options) {
     const memberProfile = wx.getStorageSync('bochuMemberProfile');
+    const lastApplyPhone = wx.getStorageSync('lastApplyPhone');
     this.setData({
       inviteCode: options.inviteCode || '',
       name: memberProfile.name || '',
+      phone: options.ticket === '1' ? lastApplyPhone || '' : '',
     });
+    if (options.ticket === '1' && lastApplyPhone) {
+      this.showTicketResult(lastApplyPhone);
+    }
   },
   onInput(e) {
     const field = e.currentTarget.dataset.field;
@@ -42,11 +92,14 @@ Page({
       this.showTicketResult();
     }).finally(() => this.setData({ submitting: false }));
   },
-  showTicketResult() {
-    wx.setStorageSync('lastApplyPhone', this.data.phone);
+  showTicketResult(phoneValue) {
+    const phone = phoneValue || this.data.phone;
+    const ticketNo = `BOCHU-${phone.slice(-4)}`;
+    wx.setStorageSync('lastApplyPhone', phone);
     this.setData({
       submitted: true,
-      ticketNo: `BOCHU-${this.data.phone.slice(-4)}`,
+      ticketNo,
+      qrCells: createQrCells(`${ticketNo}-${this.data.inviteCode}-${this.data.name}`),
     });
   },
   backHome() {

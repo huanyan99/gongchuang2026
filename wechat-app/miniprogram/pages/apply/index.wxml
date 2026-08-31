@@ -3,29 +3,20 @@
     <image class="head-bg" src="/images/banner.png" mode="aspectFill" />
     <view class="head-shade"></view>
     <view class="head-copy">
-      <view class="eyebrow">INVITATION</view>
-      <view class="title">贵宾登记</view>
+      <view class="eyebrow">{{submitted ? 'ACCESS' : 'INVITATION'}}</view>
+      <view class="title">{{submitted ? '入场核验' : '贵宾登记'}}</view>
       <view class="gold-line"></view>
-      <view class="sub">确认邀请函，并完善您的参会信息</view>
+      <view class="sub">{{submitted ? '请出示二维码完成签到' : '确认邀请函，并完善您的参会信息'}}</view>
     </view>
   </view>
 
   <view wx:if="{{submitted}}" class="result-card">
-    <view class="result-eyebrow">ACCESS CONFIRMED</view>
-    <view class="result-title">邀请函已提交</view>
-    <view class="result-sub">请妥善保存入场二维码，会务团队将据此为您完成签到核验。</view>
+    <view class="result-eyebrow">ACCESS CHECK-IN</view>
+    <view class="result-title">入场核验</view>
+    <view class="result-sub">请于签到处出示此二维码，会务团队将为您完成身份确认与入场核验。</view>
     <view class="qr-card">
       <view class="qr-code">
-        <view class="qr-block large tl"></view>
-        <view class="qr-block large tr"></view>
-        <view class="qr-block large bl"></view>
-        <view class="qr-dot d1"></view>
-        <view class="qr-dot d2"></view>
-        <view class="qr-dot d3"></view>
-        <view class="qr-dot d4"></view>
-        <view class="qr-dot d5"></view>
-        <view class="qr-dot d6"></view>
-        <view class="qr-dot d7"></view>
+        <view wx:for="{{qrCells}}" wx:key="index" class="qr-cell {{item ? 'dark' : ''}}"></view>
       </view>
       <view class="ticket-no">{{ticketNo}}</view>
     </view>

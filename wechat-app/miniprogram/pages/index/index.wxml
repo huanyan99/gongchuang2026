@@ -67,7 +67,7 @@
     </view>
     <view class="feature" data-key="ticket" bindtap="onMenu">
       <text class="feature-no">02</text>
-      <text class="feature-name">入场资格</text>
+      <text class="feature-name">入场核验</text>
       <text class="feature-meta">ACCESS</text>
     </view>
   </view>

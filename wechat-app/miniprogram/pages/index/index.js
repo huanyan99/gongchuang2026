@@ -87,7 +87,7 @@ Page({
     if (!phone) {
       wx.showModal({
         title: '尚未登记',
-        content: '请先完成参会登记，确认后即可获取入场资格',
+        content: '请先完成参会登记，确认后即可生成入场核验二维码',
         confirmText: '去登记',
         success: (res) => {
           if (res.confirm) {
@@ -97,18 +97,7 @@ Page({
       });
       return;
     }
-    app.request(`/api/apply/status?phone=${phone}`).then((data) => {
-      if (!data) {
-        wx.showModal({ title: '未找到记录', content: '暂未查询到参会登记记录', showCancel: false });
-        return;
-      }
-      const map = { PENDING: '审核中，请耐心等待', APPROVED: '已通过，凭报名手机号入场', REJECTED: `已驳回${data.reviewRemark ? '：' + data.reviewRemark : ''}` };
-      wx.showModal({
-        title: data.status === 'APPROVED' ? '入场资格 ✓' : '入场状态',
-        content: `${data.name}：${map[data.status]}`,
-        showCancel: false,
-      });
-    });
+    wx.navigateTo({ url: '/pages/apply/index?ticket=1' });
   },
   goAdmin() {
     wx.navigateTo({ url: '/pages/admin/index' });
