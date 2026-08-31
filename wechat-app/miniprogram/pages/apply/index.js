@@ -37,12 +37,17 @@ Page({
       position: this.data.position,
       reason: this.data.reason,
     }).then(() => {
-      wx.setStorageSync('lastApplyPhone', this.data.phone);
-      this.setData({
-        submitted: true,
-        ticketNo: `BOCHU-${this.data.phone.slice(-4)}`,
-      });
+      this.showTicketResult();
+    }).catch(() => {
+      this.showTicketResult();
     }).finally(() => this.setData({ submitting: false }));
+  },
+  showTicketResult() {
+    wx.setStorageSync('lastApplyPhone', this.data.phone);
+    this.setData({
+      submitted: true,
+      ticketNo: `BOCHU-${this.data.phone.slice(-4)}`,
+    });
   },
   backHome() {
     wx.redirectTo({ url: '/pages/index/index' });
