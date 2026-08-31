@@ -35,7 +35,8 @@
     <view class="weather-line">
       <text>{{currentWeather.city}}</text>
       <text>{{currentWeather.date}}</text>
-      <text>{{currentWeather.weather}}</text>
+      <text>{{currentWeather.weather}} {{currentWeather.temp}}</text>
+      <text>{{currentWeather.tip}}</text>
     </view>
 
     <view class="event-panel">

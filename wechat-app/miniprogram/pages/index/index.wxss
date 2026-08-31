@@ -253,19 +253,26 @@ page {
   padding: 22rpx 26rpx;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   color: #6f7788;
-  font-size: 24rpx;
+  font-size: 23rpx;
   background: #f8fbff;
   border-radius: 18rpx;
+  white-space: nowrap;
 }
 
 .weather-line text {
-  margin-right: 22rpx;
+  margin-right: 16rpx;
 }
 
 .weather-line text:first-child {
   color: #17233f;
   font-weight: 700;
+}
+
+.weather-line text:last-child {
+  margin-right: 0;
+  color: #8a7447;
 }
 
 .event-panel {
