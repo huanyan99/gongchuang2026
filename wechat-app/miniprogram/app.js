@@ -157,6 +157,21 @@ App({
       };
     }
 
+    if (path === '/api/lottery/draw' && method === 'POST') {
+      let luckyCode = wx.getStorageSync('bochuLuckyNumber');
+      if (!luckyCode) {
+        luckyCode = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+        wx.setStorageSync('bochuLuckyNumber', luckyCode);
+      }
+      return { luckyCode, newlyDrawn: true };
+    }
+
+    if (path === '/api/lottery/me') {
+      const luckyCode = wx.getStorageSync('bochuLuckyNumber');
+      if (!luckyCode) throw { code: 4001, message: '尚未抽取号码' };
+      return { luckyCode, newlyDrawn: false };
+    }
+
     if (path.indexOf('/api/admin/checkin') === 0) {
       return { name: '贵宾', status: 'APPROVED' };
     }

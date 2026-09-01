@@ -63,9 +63,9 @@
         <text class="cell-label">VENUE</text>
         <text class="cell-value">{{currentWeather.city}}</text>
       </view>
-      <view class="event-cell">
-        <text class="cell-label">FORMAT</text>
-        <text class="cell-value">闭门邀约</text>
+      <view class="event-cell status-cell">
+        <text class="cell-label">登记状态</text>
+        <text class="cell-value status-value {{registrationStatusClass}}">{{registrationStatus}}</text>
       </view>
     </view>
   </view>
@@ -76,10 +76,10 @@
       <text class="feature-name">参会登记</text>
       <text class="feature-meta">APPLICATION</text>
     </view>
-    <view class="feature" data-key="ticket" bindtap="onMenu">
+    <view class="feature lottery-feature" data-key="lottery" bindtap="onMenu">
       <text class="feature-no">02</text>
-      <text class="feature-name">入场核验</text>
-      <text class="feature-meta">ACCESS</text>
+      <text class="feature-name">抽奖码</text>
+      <text class="feature-meta">LUCKY DRAW</text>
     </view>
   </view>
 
@@ -114,14 +114,10 @@
       </view>
       <view class="nav-text">共创会</view>
     </view>
-    <view class="nav-center" bindtap="showTicket">
-      <view class="qr-circle">
-        <view class="qr-grid">
-          <view></view>
-          <view></view>
-          <view></view>
-          <view></view>
-        </view>
+    <view class="nav-center" bindtap="goLottery">
+      <view class="qr-circle lottery-circle">
+        <view class="lottery-mark">LUCKY</view>
+        <view class="lottery-mark-cn">抽奖码</view>
       </view>
     </view>
     <view class="nav-item" bindtap="goProfile">

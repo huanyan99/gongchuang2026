@@ -13,7 +13,7 @@ public interface InvitationMapper extends BaseMapper<Invitation> {
      * 原子扣减邀请码可用次数：只在 used_count < max_uses 时生效。
      * 返回受影响行数，0 表示已被并发请求用完。
      */
-    @Update("UPDATE t_invitation SET used_count = used_count + 1 " +
+    @Update("UPDATE gonghcuang_invitation SET used_count = used_count + 1 " +
             "WHERE id = #{id} AND used_count < max_uses")
     int consumeUse(@Param("id") Long id);
 }

@@ -1,0 +1,54 @@
+<view class="page {{running ? 'is-running' : ''}} {{drawn ? 'is-drawn' : ''}}">
+  <view class="ambient ambient-one"></view>
+  <view class="ambient ambient-two"></view>
+
+  <view class="marine-hero">
+    <image class="ship-visual" src="/images/lottery-shipyard-v2.jpg" mode="aspectFill" />
+    <view class="ship-shade"></view>
+    <view class="spotlight"></view>
+    <view class="masthead">
+      <view class="title">幸运抽奖</view>
+      <view class="title-gem"></view>
+      <view class="subtitle">LUCKY DRAW CEREMONY</view>
+    </view>
+  </view>
+
+  <view class="ticket">
+    <view class="ticket-line top"></view>
+    <view class="ticket-kicker">EXCLUSIVE LUCKY CODE</view>
+    <view class="ticket-title">专属抽奖码</view>
+    <view class="ticket-rule"><view></view></view>
+
+    <view class="slot-machine {{reveal ? 'is-revealing' : ''}} {{focusNumber ? 'is-focused' : ''}}">
+      <view class="slot-topline">
+        <view class="slot-bolt"></view>
+        <text>LUCKY NUMBER · 4 DIGITS</text>
+        <view class="slot-bolt"></view>
+      </view>
+      <view class="reels">
+        <view wx:for="{{rollingDigits}}" wx:key="index" class="reel reel-{{index}} {{activeReels[index] ? 'active' : ''}} {{lockedReels[index] ? 'locked' : ''}}">
+          <view class="reel-glass"></view>
+          <view class="reel-lamp"></view>
+          <view class="reel-number">{{item}}</view>
+          <view class="reel-tick top"></view>
+          <view class="reel-tick bottom"></view>
+        </view>
+      </view>
+      <view class="slot-baseline">
+        <text>PORT</text><view></view><text>STARBOARD</text>
+      </view>
+      <view wx:if="{{drawn}}" class="result-seal">LUCKY</view>
+    </view>
+
+    <view class="status-copy" wx:if="{{running}}">好运正在汇聚，请稍候</view>
+    <view class="status-copy success {{showResultText ? 'visible' : ''}}" wx:elif="{{drawn}}">您的抽奖码已经生成，等待开奖。</view>
+    <view class="status-copy" wx:else>请提前抽取您的专属号码，并静候会场开奖。</view>
+
+    <button class="draw-button {{buttonPressed ? 'pressed' : ''}}" disabled="{{requesting || running || drawn}}" bindtap="startDraw">
+      {{requesting ? '正在连接 ···' : (running ? '摇号中 ···' : (drawn ? '号码已抽取' : '抽取号码'))}}
+    </button>
+    <view class="one-chance">每位嘉宾仅有一次抽取机会</view>
+    <view class="ticket-line bottom"></view>
+  </view>
+
+</view>

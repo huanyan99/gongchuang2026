@@ -33,23 +33,13 @@ public class AuthService {
     private String appid;
     @Value("${wechat.secret}")
     private String secret;
+    @Value("${wechat.mock-login:false}")
+    private boolean mockLogin;
 
     /** code 换 openid 并登录（不存在则建档），签发可校验的登录 token */
     @Transactional
     public User login(LoginRequest req) {
-        Map<String, Object> resp = callWxJscode2session(req.getCode());
-        if (resp == null) {
-            throw new BizException(ErrorCode.WECHAT_API_ERROR);
-        }
-        Object errcode = resp.get("errcode");
-        if (errcode != null && !"0".equals(String.valueOf(errcode))) {
-            log.warn("微信 jscode2session 业务失败: errcode={} errmsg={}", errcode, resp.get("errmsg"));
-            throw new BizException(ErrorCode.WECHAT_API_ERROR);
-        }
-        if (resp.get("openid") == null) {
-            throw new BizException(ErrorCode.WECHAT_API_ERROR);
-        }
-        String openid = String.valueOf(resp.get("openid"));
+        String openid = mockLogin ? "dev-user" : resolveOpenid(req.getCode());
 
         User user = userMapper.selectOne(
                 new LambdaQueryWrapper<User>().eq(User::getOpenid, openid));
@@ -70,6 +60,22 @@ public class AuthService {
         }
         issueToken(user);
         return user;
+    }
+
+    private String resolveOpenid(String code) {
+        Map<String, Object> resp = callWxJscode2session(code);
+        if (resp == null) {
+            throw new BizException(ErrorCode.WECHAT_API_ERROR);
+        }
+        Object errcode = resp.get("errcode");
+        if (errcode != null && !"0".equals(String.valueOf(errcode))) {
+            log.warn("微信 jscode2session 业务失败: errcode={} errmsg={}", errcode, resp.get("errmsg"));
+            throw new BizException(ErrorCode.WECHAT_API_ERROR);
+        }
+        if (resp.get("openid") == null) {
+            throw new BizException(ErrorCode.WECHAT_API_ERROR);
+        }
+        return String.valueOf(resp.get("openid"));
     }
 
     public User findValidByToken(String token) {

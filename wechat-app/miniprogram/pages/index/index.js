@@ -1,9 +1,9 @@
 const app = getApp();
 
 const WEATHER_STOPS = [
-  { city: '佛山', date: '9月18日', temp: '30°C', weather: '多云', icon: 'cloudy', tip: '轻装出行，预留抵达时间' },
-  { city: '济南', date: '9月22日', temp: '24°C', weather: '晴', icon: 'sunny', tip: '提前出发，预留签到时间' },
-  { city: '上海', date: '10月10日', temp: '25°C', weather: '有雨', icon: 'rainy', tip: '备好雨具，预留抵达时间' },
+  { city: '佛山', date: '18日', temp: '23 ~ 30℃', weather: '小雨', icon: 'rainy', tip: '请备好雨具，预留抵达时间' },
+  { city: '济南', date: '22日', temp: '17 ~ 28℃', weather: '多云', icon: 'cloudy', tip: '早晚温差明显，建议携带薄外套' },
+  { city: '上海', date: '10月21日', temp: '----', weather: '', icon: 'cloudy', tip: '临近活动日期将自动更新天气' },
 ];
 
 Page({
@@ -16,10 +16,13 @@ Page({
     currentWeather: WEATHER_STOPS[0],
     homeBannerUrl: '/images/banner.png',
     pageScrollTop: 0,
+    registrationStatus: '未登记',
+    registrationStatusClass: 'unregistered',
   },
   onLoad(options) {
     const inviteCode = options.inviteCode || '';
     this.setData({ inviteCode });
+    this.loadEventWeather();
     if (inviteCode) {
       app.request(`/api/apply/check-invitation?code=${encodeURIComponent(inviteCode)}`).then(() => {
         this.setData({ valid: true });
@@ -29,10 +32,46 @@ Page({
     }
     this.syncApplyFlag().then(() => this.prepareInviteDialog());
   },
+  onShow() {
+    this.syncApplyFlag();
+  },
+  loadEventWeather() {
+    app.request('/api/events', 'GET', {}, {}, { silent: true }).then((rows) => {
+      if (!Array.isArray(rows) || !rows.length) return;
+      const weatherStops = WEATHER_STOPS.map((fallback) => {
+        const row = rows.find((item) => String(item.city || '').replace(/场$/, '') === fallback.city);
+        if (!row) return fallback;
+        const dateParts = String(row.eventDate || '').split('-');
+        const day = Number(dateParts[2]);
+        const hasWeather = row.tempMin != null && row.tempMax != null && !!row.weatherText;
+        return {
+          city: fallback.city,
+          date: day ? `${day}日` : fallback.date,
+          temp: hasWeather ? `${row.tempMin} ~ ${row.tempMax}℃` : fallback.temp,
+          weather: hasWeather ? row.weatherText : fallback.weather,
+          icon: hasWeather ? (row.icon || fallback.icon) : fallback.icon,
+          tip: hasWeather ? (row.tip || fallback.tip) : fallback.tip,
+        };
+      });
+      const weatherIndex = Math.min(this.data.weatherIndex, weatherStops.length - 1);
+      this.setData({
+        weatherStops,
+        weatherIndex,
+        currentWeather: weatherStops[weatherIndex],
+      });
+    }).catch(() => {});
+  },
   syncApplyFlag() {
     return app.ensureLogin()
       .then(() => app.request('/api/apply/me', 'GET', {}, {}, { silent: true }))
       .then((record) => {
+        const checkedIn = !!(record && record.checkedInAt);
+        const approved = record && record.status === 'APPROVED';
+        const pending = record && record.status === 'PENDING';
+        this.setData({
+          registrationStatus: checkedIn ? '已入场' : (approved ? '已审核' : (pending ? '审核中' : '未登记')),
+          registrationStatusClass: checkedIn ? 'checked-in' : (approved ? 'approved' : (pending ? 'pending' : 'unregistered')),
+        });
         if (record && record.phone) {
           wx.setStorageSync('lastApplyPhone', record.phone);
         }
@@ -40,6 +79,7 @@ Page({
       .catch((err) => {
         if (err && err.code === 3002) {
           wx.removeStorageSync('lastApplyPhone');
+          this.setData({ registrationStatus: '未登记', registrationStatusClass: 'unregistered' });
         }
       });
   },
@@ -94,7 +134,7 @@ Page({
     const weatherIndex = Number(e.currentTarget.dataset.index);
     this.setData({
       weatherIndex,
-      currentWeather: WEATHER_STOPS[weatherIndex],
+      currentWeather: this.data.weatherStops[weatherIndex],
     });
   },
   goProfile() {
@@ -105,11 +145,14 @@ Page({
     const key = e.currentTarget.dataset.key;
     if (key === 'register') {
       this.goRegister();
-    } else if (key === 'ticket') {
-      this.showTicket();
+    } else if (key === 'lottery') {
+      this.goLottery();
     } else {
       wx.showToast({ title: '敬请期待', icon: 'none' });
     }
+  },
+  goLottery() {
+    wx.navigateTo({ url: '/pages/lottery/index' });
   },
   // 入场码：查询自己的审核状态
   showTicket() {

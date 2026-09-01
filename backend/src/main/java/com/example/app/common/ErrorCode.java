@@ -28,6 +28,9 @@ public enum ErrorCode {
     CHECKIN_ALREADY(3006, "该嘉宾已完成入场核验"),
     CHECKIN_NOT_APPROVED(3007, "该申报尚未通过审核，无法核验入场"),
 
+    // 抽奖
+    LOTTERY_NOT_DRAWN(4001, "尚未抽取号码"),
+
     // 系统
     INTERNAL_ERROR(9000, "服务器内部错误"),
     WECHAT_API_ERROR(9001, "微信接口调用失败");

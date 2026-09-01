@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/lottery/index",
     "pages/apply/index",
     "pages/admin/index",
     "pages/login/index"

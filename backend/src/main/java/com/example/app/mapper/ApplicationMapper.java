@@ -17,14 +17,14 @@ public interface ApplicationMapper extends BaseMapper<Application> {
      * 条件更新审核状态：只在当前状态为 PENDING 时生效（乐观流转）。
      * 返回受影响行数，0 表示已被并发审核或已终态。
      */
-    @Update("UPDATE t_application SET status = #{target}, review_remark = #{remark}, reviewed_at = NOW() " +
+    @Update("UPDATE gonghcuang_application SET status = #{target}, review_remark = #{remark}, reviewed_at = NOW() " +
             "WHERE id = #{id} AND status = 'PENDING'")
     int reviewIfPending(@Param("id") Long id, @Param("target") String target, @Param("remark") String remark);
 
-    @Update("UPDATE t_application SET checked_in_at = NOW() " +
+    @Update("UPDATE gonghcuang_application SET checked_in_at = NOW() " +
             "WHERE id = #{id} AND status = 'APPROVED' AND checked_in_at IS NULL")
     int checkInIfApproved(@Param("id") Long id);
 
-    @Select("SELECT status AS status, COUNT(*) AS cnt FROM t_application GROUP BY status")
+    @Select("SELECT status AS status, COUNT(*) AS cnt FROM gonghcuang_application GROUP BY status")
     List<Map<String, Object>> countGroupByStatus();
 }

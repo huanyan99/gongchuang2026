@@ -8,7 +8,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("t_application")
+@TableName("gonghcuang_application")
 public class Application {
 
     @TableId(type = IdType.AUTO)

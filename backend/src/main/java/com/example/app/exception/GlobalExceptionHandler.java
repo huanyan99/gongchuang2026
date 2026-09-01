@@ -84,7 +84,7 @@ public class GlobalExceptionHandler {
         if (msg.contains("openid")) {
             return Result.fail(ErrorCode.CONFLICT, "账号已存在，请重试登录");
         }
-        if (msg.contains("t_invitation")) {
+        if (msg.contains("gonghcuang_invitation")) {
             return Result.fail(ErrorCode.INVITATION_CODE_CONFLICT);
         }
         return Result.fail(ErrorCode.APPLY_DUPLICATED);
