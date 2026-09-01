@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+import com.baomidou.mybatisplus.annotation.TableField;
+import java.util.List;
 
 import java.time.LocalDateTime;
 
@@ -40,4 +42,13 @@ public class Application {
     private LocalDateTime reviewedAt;
 
     private LocalDateTime checkedInAt;
+
+    /** 嘉宾主动修改次数，最多 2 次 */
+    private Integer editCount;
+
+    @TableField(exist = false)
+    private List<ApplicationGuest> attendees;
+
+    @TableField(exist = false)
+    private String eventCity;
 }

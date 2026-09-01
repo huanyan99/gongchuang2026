@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "邀请列表",
+  "navigationBarBackgroundColor": "#0d214d",
+  "navigationBarTextStyle": "white",
+  "enablePullDownRefresh": true
+}

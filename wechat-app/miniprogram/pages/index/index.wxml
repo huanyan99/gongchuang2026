@@ -28,17 +28,13 @@
       <view class="hero-title">共创会</view>
       <view class="hero-rule"></view>
       <view class="hero-sub">柏楚2026价值共创峰会</view>
-      <view class="hero-code" wx:if="{{inviteCode}}">
-        <text>INVITATION</text>
-        <text>{{inviteCode}}</text>
-      </view>
       <view wx:if="{{valid === false}}" class="code-invalid">邀请码无效或已达使用上限</view>
     </view>
   </view>
 
   <view class="summit-panel">
     <view class="city-tabs">
-      <view wx:for="{{weatherStops}}" wx:key="city" class="weather-tab {{weatherIndex === index ? 'active' : ''}}" data-index="{{index}}" bindtap="switchWeather">
+      <view wx:for="{{weatherStops}}" wx:key="city" class="weather-tab {{weatherIndex === index ? 'active' : ''}} {{lockedCity && lockedCity !== item.city ? 'disabled' : ''}}" data-index="{{index}}" bindtap="switchWeather">
         <text>{{item.city}}</text>
       </view>
     </view>
@@ -68,6 +64,14 @@
         <text class="cell-value status-value {{registrationStatusClass}}">{{registrationStatus}}</text>
       </view>
     </view>
+    <view class="directed-invite" wx:if="{{valid && invitationContext.eventCity}}">
+      <view class="invite-emblem">贵宾</view>
+      <view class="invite-venue-copy">
+        <text>EXCLUSIVE INVITATION</text>
+        <text>受邀场次 · {{invitationContext.eventCity}}场</text>
+      </view>
+      <view class="invite-gem"></view>
+    </view>
   </view>
 
   <view class="feature-grid">
@@ -82,8 +86,15 @@
       <text class="feature-meta">LUCKY DRAW</text>
     </view>
   </view>
+  <view wx:if="{{canManageInvitations}}" class="invitation-manager" data-key="invitations" bindtap="onMenu">
+    <view class="manager-copy">
+      <text class="feature-name">我的邀请</text>
+      <text class="feature-meta">INVITATION MANAGEMENT</text>
+    </view>
+    <text class="arrow">›</text>
+  </view>
 
-  <view class="section">
+  <view class="section {{hasServiceAccess ? '' : 'service-locked'}}">
     <view class="section-head">
       <text>参会服务</text>
       <text>SERVICES</text>

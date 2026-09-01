@@ -4,7 +4,7 @@ page {
 
 .page {
   min-height: 100vh;
-  padding-bottom: 168rpx;
+  padding-bottom: calc(236rpx + env(safe-area-inset-bottom));
   color: #111111;
   box-sizing: border-box;
 }
@@ -55,7 +55,7 @@ page {
   right: 28rpx;
   top: 28rpx;
   z-index: 2;
-  width: 112rpx;
+  width: 156rpx;
   min-height: 118rpx;
   box-sizing: border-box;
   display: flex;
@@ -132,6 +132,8 @@ page {
   font-size: 25rpx;
   line-height: 1;
   font-weight: 800;
+  white-space: nowrap;
+  width: max-content;
 }
 
 .weather-desc {
@@ -145,7 +147,7 @@ page {
 .hero-copy {
   position: absolute;
   left: 42rpx;
-  right: 172rpx;
+  right: 196rpx;
   bottom: 82rpx;
   z-index: 2;
 }
@@ -262,17 +264,17 @@ page {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  flex-wrap: wrap;
-  row-gap: 8rpx;
+  flex-wrap: nowrap;
   color: #6f7788;
-  font-size: 20rpx;
+  font-size: 18rpx;
   line-height: 1.55;
   background: #f8fbff;
   border-radius: 28rpx;
 }
 
 .weather-line text {
-  margin-right: 8rpx;
+  margin-right: 5rpx;
+  white-space: nowrap;
 }
 
 .weather-line text:first-child {
@@ -301,6 +303,11 @@ page {
 }
 
 .weather-line text:last-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin-right: 0;
   color: #8a7447;
 }
@@ -370,6 +377,12 @@ page {
   border-color: #26397b;
 }
 
+.weather-tab.disabled {
+  color: #c1c6d0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .status-value {
   font-size: 26rpx;
 }
@@ -378,6 +391,99 @@ page {
 .status-value.pending { color: #a47727; }
 .status-value.approved { color: #26397b; }
 .status-value.checked-in { color: #28705a; }
+
+.directed-invite {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-top: 26rpx;
+  padding: 22rpx 26rpx;
+  min-height: 88rpx;
+  color: #10244f;
+  background: linear-gradient(135deg, #f7e8bc 0%, #d9b86f 48%, #f3dda5 100%);
+  border: 1rpx solid rgba(168, 125, 49, .72);
+  border-radius: 16rpx;
+  box-shadow: 0 12rpx 28rpx rgba(143, 104, 39, .18), inset 0 0 0 1rpx rgba(255,255,255,.48);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.directed-invite::after {
+  content: '';
+  position: absolute;
+  right: -24rpx;
+  top: -42rpx;
+  width: 130rpx;
+  height: 130rpx;
+  border: 1rpx solid rgba(93, 64, 20, .15);
+  border-radius: 50%;
+  box-shadow: 0 0 0 18rpx rgba(255, 250, 231, .16);
+}
+
+.invite-emblem {
+  width: 62rpx;
+  height: 62rpx;
+  line-height: 62rpx;
+  text-align: center;
+  color: #173064;
+  font-size: 19rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+  border: 1rpx solid rgba(23, 48, 100, .5);
+  border-radius: 50%;
+}
+
+.invite-venue-copy {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-left: 22rpx;
+}
+
+.invite-venue-copy text:first-child {
+  color: rgba(52, 42, 25, .62);
+  font-size: 16rpx;
+  line-height: 1;
+  letter-spacing: 3rpx;
+}
+
+.invite-venue-copy text:last-child {
+  margin-top: 10rpx;
+  color: #10244f;
+  font-size: 27rpx;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+}
+
+.invite-gem {
+  position: relative;
+  z-index: 1;
+  width: 11rpx;
+  height: 11rpx;
+  margin-right: 10rpx;
+  background: #173064;
+  transform: rotate(45deg);
+  box-shadow: 0 0 14rpx rgba(23, 48, 100, .28);
+}
+
+.invitation-manager {
+  margin: 0 24rpx 24rpx;
+  min-height: 112rpx;
+  padding: 0 32rpx;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #0d214d, #26397b);
+  color: #fff;
+  border-radius: 12rpx;
+  box-shadow: 0 14rpx 32rpx rgba(13, 33, 77, .15);
+  box-sizing: border-box;
+}
+
+.invitation-manager .feature-no { color: #d5b46e; width: 64rpx; }
+.invitation-manager .manager-copy { flex: 1; display: flex; flex-direction: column; gap: 8rpx; }
+.invitation-manager .feature-meta { color: rgba(255,255,255,.58); }
+.invitation-manager .arrow { color: #d5b46e; font-size: 44rpx; }
 
 .lottery-feature {
   position: relative;
@@ -619,6 +725,12 @@ page {
   height: 19rpx;
   border: 4rpx solid #ffffff;
   box-sizing: border-box;
+}
+
+.section.service-locked .menu-name,
+.section.service-locked .no,
+.section.service-locked .arrow {
+  color: #b8bdc7;
 }
 
 .lottery-circle {

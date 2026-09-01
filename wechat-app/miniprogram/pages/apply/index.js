@@ -1,4 +1,11 @@
 const app = getApp();
+const COUNT_OPTIONS = [1,2,3,4,5,6,7,8,9,10];
+const EVENT_DATES = { 佛山: '2026-09-18', 济南: '2026-09-22', 上海: '2026-10-21' };
+const EVENT_STAY_LABELS = { 佛山: '9月18日晚', 济南: '9月22日晚', 上海: '10月21日晚' };
+
+function blankAttendee(checkinDate) {
+  return { name: '', company: '', sameCompany: false, gender: '男', phone: '', position: '', accommodation: '无需住宿', roomType: '柏楚预定房型', checkinDate };
+}
 
 Page({
   data: {
@@ -15,6 +22,16 @@ Page({
     qrImage: '',
     qrSeconds: 120,
     checkedIn: false,
+    editMode: false,
+    editCount: 0,
+    editRemaining: 2,
+    countOptions: COUNT_OPTIONS,
+    attendeeCount: 1,
+    attendees: [blankAttendee('')],
+    eventCity: '',
+    eventStayLabel: '',
+    genderOptions: ['男', '女'],
+    accommodationOptions: ['无需住宿', '需要住宿'],
   },
   onLoad(options) {
     const memberProfile = wx.getStorageSync('bochuMemberProfile') || {};
@@ -27,14 +44,21 @@ Page({
       position: applyProfile.position || '',
       reason: applyProfile.reason || '',
     });
-    if (options.ticket === '1') {
-      this.loadTicket();
+    if (this.data.inviteCode) {
+      app.request(`/api/apply/check-invitation?code=${encodeURIComponent(this.data.inviteCode)}`, 'GET', {}, {}, { silent: true }).then((context) => {
+        const eventCity = context.eventCity || '';
+        const checkinDate = EVENT_DATES[eventCity] || '';
+        const attendees = this.data.attendees.map((item) => ({ ...item, checkinDate }));
+        attendees[0] = { ...attendees[0], name: this.data.name, phone: this.data.phone, company: this.data.company, position: this.data.position };
+        this.setData({ eventCity, eventStayLabel: EVENT_STAY_LABELS[eventCity] || '活动当晚', attendees });
+      }).catch(() => {});
+    }
+    if (options.ticket === '1' || options.record === '1') {
+      this.loadApplication();
     }
   },
   onShow() {
-    if (this.data.submitted && this.data.applyStatus === 'APPROVED' && !this.data.checkedIn && !this.qrTimer) {
-      this.startQrTimer();
-    }
+    // 登记状态页不再使用动态入场二维码。
   },
   onHide() {
     this.clearQrTimer();
@@ -46,79 +70,125 @@ Page({
     const field = e.currentTarget.dataset.field;
     this.setData({ [field]: e.detail.value });
   },
+  onAttendeeCountChange(e) {
+    const attendeeCount = COUNT_OPTIONS[Number(e.detail.value)];
+    const attendees = this.data.attendees.slice(0, attendeeCount);
+    while (attendees.length < attendeeCount) attendees.push(blankAttendee(EVENT_DATES[this.data.eventCity] || ''));
+    this.setData({ attendeeCount, attendees });
+  },
+  onGuestInput(e) {
+    const index = Number(e.currentTarget.dataset.index);
+    const field = e.currentTarget.dataset.field;
+    const attendees = this.data.attendees.slice();
+    attendees[index] = { ...attendees[index], [field]: e.detail.value };
+    if (index === 0 && field === 'company') {
+      attendees.forEach((item, i) => { if (i > 0 && item.sameCompany) attendees[i] = { ...item, company: e.detail.value }; });
+    }
+    this.setData({ attendees });
+  },
+  onGenderChange(e) {
+    const attendees = this.data.attendees.slice();
+    attendees[Number(e.currentTarget.dataset.index)].gender = ['男', '女'][Number(e.detail.value)];
+    this.setData({ attendees });
+  },
+  onAccommodationChange(e) {
+    const attendees = this.data.attendees.slice();
+    attendees[Number(e.currentTarget.dataset.index)].accommodation = ['无需住宿', '需要住宿'][Number(e.detail.value)];
+    this.setData({ attendees });
+  },
+  onSameCompany(e) {
+    const index = Number(e.currentTarget.dataset.index);
+    const attendees = this.data.attendees.slice();
+    const sameCompany = e.detail.value.length > 0;
+    attendees[index] = { ...attendees[index], sameCompany, company: sameCompany ? attendees[0].company : '' };
+    this.setData({ attendees });
+  },
   submit() {
     if (this.data.submitting) return;
-    const name = (this.data.name || '').trim();
-    const phone = (this.data.phone || '').trim();
-    if (!name) return wx.showToast({ title: '请填写姓名', icon: 'none' });
-    if (!/^1\d{10}$/.test(phone)) return wx.showToast({ title: '手机号格式不正确', icon: 'none' });
-    if (!this.data.inviteCode) return wx.showToast({ title: '缺少邀请码', icon: 'none' });
+    const attendees = this.data.attendees.map((item) => ({ ...item, name: item.name.trim(), company: item.company.trim(), phone: item.phone.trim(), position: item.position.trim() }));
+    for (let i = 0; i < attendees.length; i += 1) {
+      if (!attendees[i].name) return wx.showToast({ title: `请填写第${i + 1}位姓名`, icon: 'none' });
+      if (!/^1\d{10}$/.test(attendees[i].phone)) return wx.showToast({ title: `第${i + 1}位手机号有误`, icon: 'none' });
+    }
+    const name = attendees[0].name;
+    const phone = attendees[0].phone;
+    if (!this.data.inviteCode && !this.data.editMode) return wx.showToast({ title: '缺少邀请码', icon: 'none' });
 
     this.setData({ submitting: true, name, phone });
-    app.ensureLogin().then(() => app.request('/api/apply', 'POST', {
+    const payload = {
       invitationCode: this.data.inviteCode,
       name,
       phone,
       company: this.data.company,
       position: this.data.position,
       reason: this.data.reason,
-    })).then(() => {
+      attendeeCount: attendees.length,
+      attendees: attendees.map(({ sameCompany, ...item }) => item),
+    };
+    app.ensureLogin().then(() => app.request('/api/apply', this.data.editMode ? 'PUT' : 'POST', payload)).then(() => {
       wx.setStorageSync('lastApplyPhone', phone);
       wx.setStorageSync('bochuApplyProfile', {
-        name: this.data.name,
+        name: attendees[0].name,
         phone,
-        company: this.data.company,
-        position: this.data.position,
+        company: attendees[0].company,
+        position: attendees[0].position,
         reason: this.data.reason,
       });
-      this.loadTicket();
+      this.loadApplication();
     }).catch(() => {}).finally(() => this.setData({ submitting: false }));
   },
-  loadTicket() {
-    app.ensureLogin().then(() => app.request('/api/apply/ticket')).then((ticket) => {
-      this.applyTicket(ticket);
+  loadApplication() {
+    app.ensureLogin().then(() => app.request('/api/apply/me')).then((record) => {
+      this.applyRecord(record);
     }).catch((err) => {
       if (err && err.code === 3002) {
         this.setData({ submitted: false });
       }
     });
   },
-  applyTicket(ticket) {
-    const qrImage = ticket.qrBase64 ? `data:image/png;base64,${ticket.qrBase64}` : '';
+  applyRecord(record) {
+    const eventCity = record.eventCity || this.data.eventCity;
+    const attendees = (record.attendees || []).map((guest) => ({
+      ...guest,
+      sameCompany: false,
+      checkinDate: guest.checkinDate || EVENT_DATES[eventCity] || '',
+    }));
+    const editCount = Number(record.editCount || 0);
     this.setData({
       submitted: true,
-      applyStatus: ticket.status || '',
-      ticketNo: ticket.ticketNo || '',
-      name: ticket.name || this.data.name,
-      phone: ticket.phone || this.data.phone,
-      qrImage,
-      qrSeconds: ticket.expireSeconds || 120,
-      checkedIn: !!ticket.checkedIn,
+      editMode: false,
+      applyStatus: record.status || '',
+      name: record.name || this.data.name,
+      phone: record.phone || this.data.phone,
+      company: record.company || '',
+      position: record.position || '',
+      reason: record.reason || '',
+      attendees: attendees.length ? attendees : this.data.attendees,
+      attendeeCount: attendees.length || 1,
+      eventCity,
+      inviteCode: record.invitationCode || this.data.inviteCode,
+      eventStayLabel: EVENT_STAY_LABELS[eventCity] || '活动当晚',
+      editCount,
+      editRemaining: Math.max(0, 2 - editCount),
     });
-    if (ticket.status === 'APPROVED' && !ticket.checkedIn && ticket.qrBase64) {
-      this.startQrTimer();
-    } else {
-      this.clearQrTimer();
-    }
-  },
-  startQrTimer() {
     this.clearQrTimer();
-    this.qrTimer = setInterval(() => {
-      const nextSeconds = this.data.qrSeconds - 1;
-      if (nextSeconds > 0) {
-        this.setData({ qrSeconds: nextSeconds });
-        return;
-      }
-      this.clearQrTimer();
-      this.refreshQr();
-    }, 1000);
   },
-  refreshQr() {
-    app.request('/api/apply/ticket', 'GET', {}, {}, { silent: true }).then((ticket) => {
-      this.applyTicket(ticket);
-    }).catch(() => {
-      this.setData({ qrSeconds: 120 });
+  startEdit() {
+    if (this.data.editRemaining <= 0) {
+      wx.showModal({ title: '无法修改', content: '每份登记信息最多修改两次。', showCancel: false });
+      return;
+    }
+    wx.showModal({
+      title: '修改登记信息',
+      content: `每人共有两次修改机会，您还剩 ${this.data.editRemaining} 次。修改提交后需要重新审核。`,
+      confirmText: '开始修改',
+      success: (res) => {
+        if (res.confirm) this.setData({ submitted: false, editMode: true });
+      },
     });
+  },
+  goLottery() {
+    wx.navigateTo({ url: '/pages/lottery/index' });
   },
   clearQrTimer() {
     if (this.qrTimer) {

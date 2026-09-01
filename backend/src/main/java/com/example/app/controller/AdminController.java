@@ -8,6 +8,8 @@ import com.example.app.dto.CheckinRequest;
 import com.example.app.dto.ReviewRequest;
 import com.example.app.entity.Application;
 import com.example.app.entity.Invitation;
+import com.example.app.entity.User;
+import com.example.app.mapper.UserMapper;
 import com.example.app.service.ApplicationService;
 import com.example.app.service.InvitationService;
 import jakarta.validation.Valid;
@@ -19,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
 /** 管理端接口：请求头需带 X-Admin-Key */
 @RestController
@@ -32,6 +36,30 @@ public class AdminController {
     private final ApplicationService applicationService;
     private final InvitationService invitationService;
     private final AdminAuth adminAuth;
+    private final UserMapper userMapper;
+
+    /** 可授权用户列表（openid、token 等敏感字段由实体注解隐藏） */
+    @GetMapping("/users")
+    public Result<List<User>> users(@RequestHeader("X-Admin-Key") String adminKey) {
+        adminAuth.verify(adminKey);
+        return Result.ok(userMapper.selectList(new LambdaQueryWrapper<User>().orderByDesc(User::getId)));
+    }
+
+    /** 开通或关闭“我的邀请”和全局审核权限 */
+    @PostMapping("/users/{id}/invitation-permissions")
+    public Result<User> updateInvitationPermissions(
+            @PathVariable @Min(1) Long id,
+            @RequestParam boolean canInvite,
+            @RequestParam(defaultValue = "false") boolean canReview,
+            @RequestHeader("X-Admin-Key") String adminKey) {
+        adminAuth.verify(adminKey);
+        User user = userMapper.selectById(id);
+        if (user == null) throw new com.example.app.common.BizException(com.example.app.common.ErrorCode.NOT_FOUND, "用户不存在");
+        user.setCanInvite(canInvite);
+        user.setCanReview(canReview);
+        userMapper.updateById(user);
+        return Result.ok(userMapper.selectById(id));
+    }
 
     /** 生成邀请码 */
     @PostMapping("/invitation")

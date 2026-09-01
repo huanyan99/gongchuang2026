@@ -4,6 +4,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
+import java.util.List;
 
 /** 申报表单 */
 @Data
@@ -23,4 +27,8 @@ public class ApplyRequest {
     private String position;
     @Size(max = 512, message = "备注过长")
     private String reason;
+    @Min(1) @Max(10)
+    private Integer attendeeCount;
+    @Valid
+    private List<GuestRequest> attendees;
 }

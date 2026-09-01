@@ -1,0 +1,25 @@
+<view class="page">
+  <view class="title">用户协议</view>
+  <view class="updated">更新日期：2026年9月1日</view>
+  <view class="section">
+    <view class="heading">一、服务说明</view>
+    <view class="text">本小程序用于柏楚2026价值共创峰会的邀请、参会登记、住宿安排、审核、入场核验及现场活动服务。</view>
+  </view>
+  <view class="section">
+    <view class="heading">二、信息使用</view>
+    <view class="text">我们尊重并保护您的个人信息。您提交的姓名、公司、性别、手机号、职位及住宿信息，仅用于本次活动的身份确认、会务联络、住宿安排和现场服务。</view>
+  </view>
+  <view class="section">
+    <view class="heading">三、信息准确性</view>
+    <view class="text">请您确保提交的信息真实、准确、完整。同行人员信息应在取得同行人员知情同意后填写。</view>
+  </view>
+  <view class="section">
+    <view class="heading">四、信息安全</view>
+    <view class="text">我们将采取合理措施保护相关信息，限制无关人员访问，并在活动服务所需范围内使用。</view>
+  </view>
+  <view class="section">
+    <view class="heading">五、联系我们</view>
+    <view class="text">如需查询、更正或删除登记信息，请联系本次活动会务工作人员处理。</view>
+  </view>
+  <view class="notice">继续使用并提交登记，即表示您已阅读并同意本协议。</view>
+</view>

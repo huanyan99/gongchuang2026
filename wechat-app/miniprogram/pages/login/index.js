@@ -7,6 +7,11 @@ const STATUS_TEXT = {
   REJECTED: '已驳回',
 };
 
+function formatStayDate(value) {
+  const parts = String(value || '').split('-');
+  return parts.length === 3 ? `${Number(parts[1])}月${Number(parts[2])}日晚` : (value || '待确认');
+}
+
 Page({
   data: {
     redirect: '',
@@ -49,6 +54,9 @@ Page({
   },
   fetchApplyRecord() {
     app.ensureLogin().then(() => app.request('/api/apply/me', 'GET', {}, {}, { silent: true })).then((record) => {
+      if (record && Array.isArray(record.attendees)) {
+        record.attendees = record.attendees.map((guest) => ({ ...guest, checkinDateText: formatStayDate(guest.checkinDate) }));
+      }
       const status = record && record.status ? record.status : 'NONE';
       if (record && record.phone) {
         wx.setStorageSync('lastApplyPhone', record.phone);
@@ -132,5 +140,8 @@ Page({
   goApply() {
     const url = this.data.redirect || `/pages/apply/index?inviteCode=${this.data.inviteCode || ''}`;
     wx.navigateTo({ url });
+  },
+  openAgreement() {
+    wx.navigateTo({ url: '/pages/agreement/index' });
   },
 });

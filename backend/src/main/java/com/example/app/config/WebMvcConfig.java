@@ -18,5 +18,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .excludePathPatterns("/api/apply/check-invitation");
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/api/lottery/**");
+        registry.addInterceptor(authInterceptor)
+                .addPathPatterns("/api/invitations/**");
     }
 }

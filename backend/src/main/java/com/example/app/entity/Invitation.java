@@ -23,5 +23,23 @@ public class Invitation {
     /** 已使用次数（原子递增，防止并发超卖） */
     private Integer usedCount;
 
+    private Long inviterUserId;
+
+    private String inviterName;
+
+    private String eventCity;
+
+    private String guestName;
+
+    private String guestCompany;
+
+    private String guestPhone;
+
+    private String note;
+
+    private String status;
+
+    private LocalDateTime expiresAt;
+
     private LocalDateTime createdAt;
 }

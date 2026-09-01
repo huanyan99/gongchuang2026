@@ -11,6 +11,10 @@ import com.example.app.entity.Application;
 import com.example.app.entity.Invitation;
 import com.example.app.entity.User;
 import com.example.app.mapper.ApplicationMapper;
+import com.example.app.mapper.ApplicationGuestMapper;
+import com.example.app.entity.ApplicationGuest;
+import com.example.app.dto.GuestRequest;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -28,6 +32,7 @@ public class ApplicationService {
     private final InvitationService invitationService;
     private final CheckinTokenService checkinTokenService;
     private final QrCodeService qrCodeService;
+    private final ApplicationGuestMapper applicationGuestMapper;
 
     /**
      * 提交申报。事务内完成：
@@ -37,7 +42,13 @@ public class ApplicationService {
      */
     @Transactional
     public Application submit(ApplyRequest req, User user) {
-        String phone = trimToEmpty(req.getPhone());
+        List<GuestRequest> guests = req.getAttendees();
+        if (guests == null || guests.isEmpty() || guests.size() > 10 ||
+                (req.getAttendeeCount() != null && req.getAttendeeCount() != guests.size())) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "同行人员信息不完整");
+        }
+        GuestRequest primary = guests.get(0);
+        String phone = trimToEmpty(primary.getPhone());
         String invitationCode = trimToEmpty(req.getInvitationCode());
 
         if (getByUserId(user.getId()) != null) {
@@ -55,18 +66,75 @@ public class ApplicationService {
         Application application = new Application();
         application.setUserId(user.getId());
         application.setInvitationCode(invitation.getCode());
-        application.setName(trimToEmpty(req.getName()));
+        application.setName(trimToEmpty(primary.getName()));
         application.setPhone(phone);
-        application.setCompany(trimToEmpty(req.getCompany()));
-        application.setPosition(trimToEmpty(req.getPosition()));
+        application.setCompany(trimToEmpty(primary.getCompany()));
+        application.setPosition(trimToEmpty(primary.getPosition()));
         application.setReason(trimToEmpty(req.getReason()));
         application.setStatus(ApplyStatus.PENDING.name());
         try {
             applicationMapper.insert(application);
+            for (int i = 0; i < guests.size(); i++) {
+                GuestRequest guest = guests.get(i);
+                ApplicationGuest row = new ApplicationGuest();
+                row.setApplicationId(application.getId()); row.setGuestIndex(i + 1);
+                row.setName(trimToEmpty(guest.getName())); row.setCompany(trimToEmpty(guest.getCompany()));
+                row.setGender(guest.getGender()); row.setPhone(trimToEmpty(guest.getPhone()));
+                row.setPosition(trimToEmpty(guest.getPosition())); row.setAccommodation(guest.getAccommodation());
+                row.setRoomType(guest.getRoomType()); row.setCheckinDate(LocalDate.parse(guest.getCheckinDate()));
+                applicationGuestMapper.insert(row);
+            }
+            application.setAttendees(loadGuests(application.getId()));
         } catch (DuplicateKeyException e) {
             throw new BizException(ErrorCode.APPLY_DUPLICATED);
         }
         return application;
+    }
+
+    /** 嘉宾最多修改两次；修改后重置为待审核并替换全部同行人员信息。 */
+    @Transactional
+    public Application resubmit(ApplyRequest req, User user) {
+        Application current = getByUserId(user.getId());
+        if (current == null) throw new BizException(ErrorCode.APPLY_NOT_FOUND);
+        int editCount = current.getEditCount() == null ? 0 : current.getEditCount();
+        if (editCount >= 2) throw new BizException(ErrorCode.CONFLICT, "登记信息最多修改两次");
+        List<GuestRequest> guests = req.getAttendees();
+        if (guests == null || guests.isEmpty() || guests.size() > 10 ||
+                (req.getAttendeeCount() != null && req.getAttendeeCount() != guests.size())) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "同行人员信息不完整");
+        }
+        GuestRequest primary = guests.get(0);
+        String phone = trimToEmpty(primary.getPhone());
+        Long duplicate = applicationMapper.selectCount(new LambdaQueryWrapper<Application>()
+                .eq(Application::getPhone, phone).ne(Application::getId, current.getId()));
+        if (duplicate > 0) throw new BizException(ErrorCode.APPLY_DUPLICATED);
+        int updated = applicationMapper.resubmit(current.getId(), trimToEmpty(primary.getName()), phone,
+                trimToEmpty(primary.getCompany()), trimToEmpty(primary.getPosition()), trimToEmpty(req.getReason()));
+        if (updated == 0) throw new BizException(ErrorCode.CONFLICT, "登记信息最多修改两次");
+        applicationGuestMapper.delete(new LambdaQueryWrapper<ApplicationGuest>()
+                .eq(ApplicationGuest::getApplicationId, current.getId()));
+        insertGuests(current.getId(), guests);
+        Application result = applicationMapper.selectById(current.getId());
+        result.setAttendees(loadGuests(result.getId()));
+        return result;
+    }
+
+    private void insertGuests(Long applicationId, List<GuestRequest> guests) {
+        for (int i = 0; i < guests.size(); i++) {
+            GuestRequest guest = guests.get(i);
+            ApplicationGuest row = new ApplicationGuest();
+            row.setApplicationId(applicationId); row.setGuestIndex(i + 1);
+            row.setName(trimToEmpty(guest.getName())); row.setCompany(trimToEmpty(guest.getCompany()));
+            row.setGender(guest.getGender()); row.setPhone(trimToEmpty(guest.getPhone()));
+            row.setPosition(trimToEmpty(guest.getPosition())); row.setAccommodation(guest.getAccommodation());
+            row.setRoomType(guest.getRoomType()); row.setCheckinDate(LocalDate.parse(guest.getCheckinDate()));
+            applicationGuestMapper.insert(row);
+        }
+    }
+
+    public List<ApplicationGuest> loadGuests(Long applicationId) {
+        return applicationGuestMapper.selectList(new LambdaQueryWrapper<ApplicationGuest>()
+                .eq(ApplicationGuest::getApplicationId, applicationId).orderByAsc(ApplicationGuest::getGuestIndex));
     }
 
     /** 分页查询，status 为空查全部 */

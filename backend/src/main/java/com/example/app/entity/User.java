@@ -22,6 +22,12 @@ public class User {
 
     private String avatarUrl;
 
+    /** 是否可以创建并管理自己的定向邀请 */
+    private Boolean canInvite;
+
+    /** 是否可以审核全部邀请记录 */
+    private Boolean canReview;
+
     @JsonIgnore
     private String token;
 

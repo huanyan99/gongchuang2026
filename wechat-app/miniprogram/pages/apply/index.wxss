@@ -170,6 +170,14 @@ page {
 .form {
   padding: 0;
 }
+.guest-card { margin-top:24rpx; padding:20rpx 22rpx; border:1rpx solid #e3e7f0; border-radius:18rpx; background:#fbfcff; }
+.guest-title { padding-bottom:14rpx; color:#1b3269; font-size:28rpx; font-weight:800; border-bottom:1rpx solid #e7eaf1; }
+.form-row { display:flex; gap:24rpx; }
+.form-row .half { flex:1; min-width:0; }
+.picker-value,.fixed-value { margin-top:12rpx; color:#18264a; font-size:28rpx; font-weight:600; }
+.same-company { display:block; margin-top:12rpx; color:#687083; font-size:22rpx; }
+.same-company checkbox { transform:scale(.75); }
+.stay-info { padding:0 18rpx; background:#f5f1e8; border-radius:12rpx; }
 
 .form-item {
   padding: 22rpx 0;
@@ -269,6 +277,49 @@ input {
   color: #6f7788;
   font-size: 24rpx;
   line-height: 1.7;
+}
+
+.guest-badge {
+  margin: 34rpx auto 0;
+  padding: 22rpx 30rpx;
+  color: #173064;
+  font-size: 27rpx;
+  font-weight: 800;
+  background: linear-gradient(135deg, #f8eac0, #d9b76d, #f3dda5);
+  border: 1rpx solid rgba(166, 123, 47, .55);
+  border-radius: 12rpx;
+  box-shadow: 0 12rpx 26rpx rgba(143, 104, 39, .13);
+}
+
+.approved-actions {
+  margin-top: 30rpx;
+}
+
+.approved-actions .cta + .cta {
+  margin-top: 18rpx;
+}
+
+.lottery-action {
+  background: linear-gradient(135deg, #142b61, #294785);
+}
+
+.edit-action {
+  color: #20386f;
+  background: #fff;
+  border: 2rpx solid #b9954d;
+  box-shadow: none;
+}
+
+.edit-action[disabled] {
+  color: #a8adb7;
+  border-color: #d7dae1;
+  background: #f3f4f7;
+}
+
+.edit-chance {
+  margin-top: 18rpx;
+  color: #8a7447;
+  font-size: 21rpx;
 }
 
 .qr-card {

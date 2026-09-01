@@ -48,6 +48,10 @@ public class AuthService {
             user.setOpenid(openid);
             user.setNickname(req.getNickname());
             user.setAvatarUrl(req.getAvatarUrl());
+            if (mockLogin) {
+                user.setCanInvite(true);
+                user.setCanReview(true);
+            }
             try {
                 userMapper.insert(user);
             } catch (DuplicateKeyException e) {
@@ -57,6 +61,10 @@ public class AuthService {
                     throw new BizException(ErrorCode.INTERNAL_ERROR);
                 }
             }
+        }
+        if (mockLogin && (!Boolean.TRUE.equals(user.getCanInvite()) || !Boolean.TRUE.equals(user.getCanReview()))) {
+            user.setCanInvite(true);
+            user.setCanReview(true);
         }
         issueToken(user);
         return user;

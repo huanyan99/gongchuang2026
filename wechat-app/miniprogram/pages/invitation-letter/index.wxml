@@ -1,0 +1,10 @@
+<view class="page">
+  <view class="letter-card">
+    <view class="eyebrow">EXCLUSIVE INVITATION</view>
+    <view class="title">诚挚邀请</view><view class="gem"></view>
+    <view class="body">尊敬的贵宾：</view>
+    <view class="body">诚邀您参加柏楚2026价值共创峰会，与行业伙伴共同探讨产业趋势、创新实践与协同发展的更多可能。</view>
+    <view class="event"><text>{{city}}场</text><text>{{date}}</text></view>
+    <view class="note">具体时间及会场信息以会务团队最终通知为准</view>
+  </view>
+</view>

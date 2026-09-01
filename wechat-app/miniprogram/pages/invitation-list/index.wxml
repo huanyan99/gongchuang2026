@@ -1,0 +1,38 @@
+<view class="page">
+  <view class="hero">
+    <text class="eyebrow">INVITATION LIST</text>
+    <text class="title">{{city}}场邀请列表</text>
+    <text class="sub">登记审核与入场状态管理</text>
+  </view>
+  <view class="status-tabs">
+    <view class="{{activeStatus === 'PENDING' ? 'active' : ''}}" data-status="PENDING" bindtap="selectStatus"><text>{{stats.pending}}</text><text>待审核</text></view>
+    <view class="{{activeStatus === 'APPROVED' ? 'active' : ''}}" data-status="APPROVED" bindtap="selectStatus"><text>{{stats.approved}}</text><text>已审核</text></view>
+    <view class="{{activeStatus === 'CHECKED_IN' ? 'active' : ''}}" data-status="CHECKED_IN" bindtap="selectStatus"><text>{{stats.checkedIn}}</text><text>已入场</text></view>
+  </view>
+  <view wx:if="{{loading}}" class="empty">正在加载...</view>
+  <view wx:elif="{{!filteredApplications.length}}" class="empty">当前暂无相关登记</view>
+  <view wx:for="{{filteredApplications}}" wx:key="id" class="record-card">
+    <view class="record-head"><text>{{item.name}}</text><text>{{item.statusText}}</text></view>
+    <view class="record-summary">
+      <text>参会场次</text><text>{{city}}场</text>
+      <text>同行人数</text><text>{{item.attendees.length || 1}} 人</text>
+    </view>
+    <view class="guest-list" wx:if="{{item.attendees.length}}">
+      <view wx:for="{{item.attendees}}" wx:for-item="guest" wx:key="id" class="guest-row">
+        <view class="guest-title">{{guest.guestIndex === 1 ? '主要联系人' : '同行人 ' + guest.guestIndex}}</view>
+        <view class="detail-row"><text>姓名</text><text>{{guest.name}}</text></view>
+        <view class="detail-row"><text>公司</text><text>{{guest.company || '未填写'}}</text></view>
+        <view class="detail-row"><text>性别</text><text>{{guest.gender}}</text></view>
+        <view class="detail-row"><text>手机号</text><text>{{guest.phone}}</text></view>
+        <view class="detail-row"><text>职位</text><text>{{guest.position || '未填写'}}</text></view>
+        <view class="detail-row"><text>住宿要求</text><text>{{guest.accommodation}}</text></view>
+        <view class="detail-row"><text>房型</text><text>{{guest.roomType}}</text></view>
+        <view class="detail-row"><text>入住时间</text><text>{{guest.checkinDateText}}</text></view>
+      </view>
+    </view>
+    <view wx:if="{{item.status === 'PENDING'}}" class="review-actions">
+      <button data-id="{{item.id}}" data-status="REJECTED" bindtap="review">拒绝</button>
+      <button class="approve" data-id="{{item.id}}" data-status="APPROVED" bindtap="review">审核通过</button>
+    </view>
+  </view>
+</view>

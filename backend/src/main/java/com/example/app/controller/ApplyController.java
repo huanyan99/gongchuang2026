@@ -15,6 +15,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /** 受邀人侧接口：校验邀请码公开，申报/查询/入场码需登录 */
 @RestController
 @RequestMapping("/api/apply")
@@ -27,15 +30,26 @@ public class ApplyController {
 
     /** 打开邀请函时校验邀请码可用性 */
     @GetMapping("/check-invitation")
-    public Result<Boolean> checkInvitation(@RequestParam @NotBlank String code) {
+    public Result<Map<String, Object>> checkInvitation(@RequestParam @NotBlank String code) {
         invitationService.checkUsable(code);
-        return Result.ok(true);
+        var invitation = invitationService.getByCode(code);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("valid", true);
+        body.put("eventCity", invitation.getEventCity());
+        body.put("inviterName", invitation.getInviterName());
+        return Result.ok(body);
     }
 
     /** 提交申报 */
     @PostMapping
     public Result<Application> submit(@Valid @RequestBody ApplyRequest req) {
         return Result.ok(applicationService.submit(req, UserContext.require()));
+    }
+
+    /** 修改登记信息，最多两次；每次修改后重新进入待审核 */
+    @PutMapping
+    public Result<Application> resubmit(@Valid @RequestBody ApplyRequest req) {
+        return Result.ok(applicationService.resubmit(req, UserContext.require()));
     }
 
     /** 查询当前登录用户的申报与审核状态 */
@@ -45,6 +59,8 @@ public class ApplyController {
         if (application == null) {
             throw new BizException(ErrorCode.APPLY_NOT_FOUND);
         }
+        application.setEventCity(invitationService.getByCode(application.getInvitationCode()).getEventCity());
+        application.setAttendees(applicationService.loadGuests(application.getId()));
         return Result.ok(application);
     }
 

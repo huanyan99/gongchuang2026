@@ -2,6 +2,12 @@
   "pages": [
     "pages/index/index",
     "pages/lottery/index",
+    "pages/invitations/index",
+    "pages/invitation-list/index",
+    "pages/agreement/index",
+    "pages/invitation-letter/index",
+    "pages/agenda/index",
+    "pages/route/index",
     "pages/apply/index",
     "pages/admin/index",
     "pages/login/index"

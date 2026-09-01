@@ -1,0 +1,18 @@
+<view class="page">
+  <view class="hero">
+    <text class="eyebrow">INVITATION MANAGEMENT</text>
+    <text class="title">我的邀请</text>
+    <text class="hero-sub">选择场次，转发专属邀请并管理登记名单</text>
+  </view>
+
+  <view class="section-title">活动场次</view>
+  <view wx:for="{{invitations}}" wx:key="id" class="card invite-item">
+    <view class="item-head"><text>{{item.eventCity}}场</text><text>多人邀请</text></view>
+    <text class="company">已登记 {{item.usedCount || 0}} 人</text>
+    <view class="actions share-actions">
+      <button open-type="share" disabled="{{!item.code}}" data-code="{{item.code}}">转发邀请</button>
+      <button disabled="{{!item.code}}" data-code="{{item.code}}" bindtap="showMiniCode">小程序码</button>
+    </view>
+    <button class="list-button" data-city="{{item.eventCity}}" bindtap="openList">查看邀请列表 <text>›</text></button>
+  </view>
+</view>

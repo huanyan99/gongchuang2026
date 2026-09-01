@@ -1,8 +1,8 @@
 const app = getApp();
 
 const WEATHER_STOPS = [
-  { city: '佛山', date: '18日', temp: '23 ~ 30℃', weather: '小雨', icon: 'rainy', tip: '请备好雨具，预留抵达时间' },
-  { city: '济南', date: '22日', temp: '17 ~ 28℃', weather: '多云', icon: 'cloudy', tip: '早晚温差明显，建议携带薄外套' },
+  { city: '佛山', date: '9月18日', temp: '23 ~ 30℃', weather: '小雨', icon: 'rainy', tip: '请备好雨具，预留抵达时间' },
+  { city: '济南', date: '9月22日', temp: '17 ~ 28℃', weather: '多云', icon: 'cloudy', tip: '早晚温差明显，建议携带薄外套' },
   { city: '上海', date: '10月21日', temp: '----', weather: '', icon: 'cloudy', tip: '临近活动日期将自动更新天气' },
 ];
 
@@ -18,15 +18,27 @@ Page({
     pageScrollTop: 0,
     registrationStatus: '未登记',
     registrationStatusClass: 'unregistered',
+    invitationContext: null,
+    canManageInvitations: false,
+    lockedCity: '',
+    hasServiceAccess: false,
   },
   onLoad(options) {
-    const inviteCode = options.inviteCode || '';
+    let sceneCode = '';
+    if (options.scene) {
+      const scene = decodeURIComponent(options.scene);
+      sceneCode = scene.indexOf('i=') === 0 ? scene.substring(2) : scene;
+    }
+    const inviteCode = options.code || options.inviteCode || sceneCode || wx.getStorageSync('activeInviteCode') || '';
     this.setData({ inviteCode });
     this.loadEventWeather();
     if (inviteCode) {
-      app.request(`/api/apply/check-invitation?code=${encodeURIComponent(inviteCode)}`).then(() => {
-        this.setData({ valid: true });
+      app.request(`/api/apply/check-invitation?code=${encodeURIComponent(inviteCode)}`).then((context) => {
+        wx.setStorageSync('activeInviteCode', inviteCode);
+        this.applyInvitationContext(context || {});
+        this.setData({ valid: true, invitationContext: context || {}, hasServiceAccess: true });
       }).catch(() => {
+        wx.removeStorageSync('activeInviteCode');
         this.setData({ valid: false });
       });
     }
@@ -34,6 +46,25 @@ Page({
   },
   onShow() {
     this.syncApplyFlag();
+    this.loadInvitationPermission();
+  },
+  loadInvitationPermission() {
+    app.ensureLogin().then(() => app.request('/api/invitations/permissions', 'GET', {}, {}, { silent: true }))
+      .then((permission) => this.setData({
+        canManageInvitations: !!(permission && (permission.canInvite || permission.canReview)),
+      })).catch(() => this.setData({ canManageInvitations: false }));
+  },
+  applyInvitationContext(context) {
+    if (!context || !context.eventCity) return;
+    const weatherIndex = this.data.weatherStops.findIndex((item) => item.city === context.eventCity);
+    if (weatherIndex >= 0) {
+      this.setData({
+        weatherIndex,
+        currentWeather: this.data.weatherStops[weatherIndex],
+        lockedCity: context.eventCity,
+        hasServiceAccess: true,
+      });
+    }
   },
   loadEventWeather() {
     app.request('/api/events', 'GET', {}, {}, { silent: true }).then((rows) => {
@@ -42,11 +73,12 @@ Page({
         const row = rows.find((item) => String(item.city || '').replace(/场$/, '') === fallback.city);
         if (!row) return fallback;
         const dateParts = String(row.eventDate || '').split('-');
+        const month = Number(dateParts[1]);
         const day = Number(dateParts[2]);
         const hasWeather = row.tempMin != null && row.tempMax != null && !!row.weatherText;
         return {
           city: fallback.city,
-          date: day ? `${day}日` : fallback.date,
+          date: month && day ? `${month}月${day}日` : fallback.date,
           temp: hasWeather ? `${row.tempMin} ~ ${row.tempMax}℃` : fallback.temp,
           weather: hasWeather ? row.weatherText : fallback.weather,
           icon: hasWeather ? (row.icon || fallback.icon) : fallback.icon,
@@ -59,6 +91,7 @@ Page({
         weatherIndex,
         currentWeather: weatherStops[weatherIndex],
       });
+      this.applyInvitationContext(this.data.invitationContext);
     }).catch(() => {});
   },
   syncApplyFlag() {
@@ -75,11 +108,21 @@ Page({
         if (record && record.phone) {
           wx.setStorageSync('lastApplyPhone', record.phone);
         }
+        if (record && record.eventCity) {
+          this.setData({ hasServiceAccess: true });
+          if (record.invitationCode) wx.setStorageSync('activeInviteCode', record.invitationCode);
+          if (!this.data.lockedCity) {
+            const context = { eventCity: record.eventCity };
+            this.setData({ valid: true, invitationContext: context });
+            this.applyInvitationContext(context);
+          }
+        }
       })
       .catch((err) => {
         if (err && err.code === 3002) {
           wx.removeStorageSync('lastApplyPhone');
           this.setData({ registrationStatus: '未登记', registrationStatusClass: 'unregistered' });
+          if (!this.data.valid) this.setData({ hasServiceAccess: false, lockedCity: '' });
         }
       });
   },
@@ -99,6 +142,14 @@ Page({
     this.goRegister();
   },
   goRegister() {
+    if (!this.data.inviteCode) {
+      wx.showModal({
+        title: '定向邀请活动',
+        content: '本次活动采用定向邀请制，请通过主办方发送的专属邀请进入。',
+        showCancel: false,
+      });
+      return;
+    }
     if (this.data.inviteCode && this.data.valid === false) {
       wx.showToast({ title: '邀请码无效或已达上限', icon: 'none' });
       return;
@@ -132,6 +183,8 @@ Page({
   },
   switchWeather(e) {
     const weatherIndex = Number(e.currentTarget.dataset.index);
+    const target = this.data.weatherStops[weatherIndex];
+    if (this.data.lockedCity && target && target.city !== this.data.lockedCity) return;
     this.setData({
       weatherIndex,
       currentWeather: this.data.weatherStops[weatherIndex],
@@ -143,13 +196,33 @@ Page({
   // 宫格菜单
   onMenu(e) {
     const key = e.currentTarget.dataset.key;
+    if (!this.data.hasServiceAccess && ['letter', 'agenda', 'route'].includes(key)) {
+      wx.showModal({
+        title: '提示',
+        content: '您好，无法查看',
+        showCancel: false,
+      });
+      return;
+    }
     if (key === 'register') {
       this.goRegister();
     } else if (key === 'lottery') {
       this.goLottery();
+    } else if (key === 'invitations') {
+      wx.navigateTo({ url: '/pages/invitations/index' });
+    } else if (key === 'letter') {
+      this.openServicePage('invitation-letter');
+    } else if (key === 'agenda') {
+      this.openServicePage('agenda');
+    } else if (key === 'route') {
+      this.openServicePage('route');
     } else {
       wx.showToast({ title: '敬请期待', icon: 'none' });
     }
+  },
+  openServicePage(page) {
+    const city = this.data.lockedCity || this.data.currentWeather.city || '';
+    wx.navigateTo({ url: `/pages/${page}/index?city=${encodeURIComponent(city)}` });
   },
   goLottery() {
     wx.navigateTo({ url: '/pages/lottery/index' });
@@ -170,7 +243,7 @@ Page({
       });
       return;
     }
-    wx.navigateTo({ url: '/pages/apply/index?ticket=1' });
+    wx.navigateTo({ url: `/pages/apply/index?record=1&inviteCode=${encodeURIComponent(this.data.inviteCode || wx.getStorageSync('activeInviteCode') || '')}` });
   },
   goAdmin() {
     wx.navigateTo({ url: '/pages/admin/index' });
@@ -178,7 +251,7 @@ Page({
   onShareAppMessage() {
     return {
       title: '诚邀您参加共创会',
-      path: `/pages/index/index?inviteCode=${encodeURIComponent(this.data.inviteCode || '')}`,
+      path: `/pages/index/index?code=${encodeURIComponent(this.data.inviteCode || '')}`,
     };
   },
 });

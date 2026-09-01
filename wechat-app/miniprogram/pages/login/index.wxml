@@ -72,16 +72,23 @@
         </view>
         <block wx:if="{{applyRecord}}">
           <view class="info-row">
-            <text>手机号</text>
-            <text>{{applyRecord.phone}}</text>
+            <text>参会场次</text>
+            <text>{{applyRecord.eventCity || '待确认'}}场</text>
           </view>
           <view class="info-row">
-            <text>公司 / 单位</text>
-            <text>{{applyRecord.company || '未填写'}}</text>
+            <text>同行人数</text>
+            <text>{{applyRecord.attendees.length || 1}} 人</text>
           </view>
-          <view class="info-row">
-            <text>职位</text>
-            <text>{{applyRecord.position || '未填写'}}</text>
+          <view wx:for="{{applyRecord.attendees}}" wx:key="id" wx:for-item="guest" class="attendee-detail">
+            <view class="attendee-title">{{guest.guestIndex === 1 ? '主要联系人' : '同行人 ' + guest.guestIndex}}</view>
+            <view class="detail-row"><text>姓名</text><text>{{guest.name}}</text></view>
+            <view class="detail-row"><text>公司</text><text>{{guest.company || '未填写'}}</text></view>
+            <view class="detail-row"><text>性别</text><text>{{guest.gender}}</text></view>
+            <view class="detail-row"><text>手机号</text><text>{{guest.phone}}</text></view>
+            <view class="detail-row"><text>职位</text><text>{{guest.position || '未填写'}}</text></view>
+            <view class="detail-row"><text>住宿要求</text><text>{{guest.accommodation}}</text></view>
+            <view class="detail-row"><text>房型</text><text>{{guest.roomType}}</text></view>
+            <view class="detail-row"><text>入住时间</text><text>{{guest.checkinDateText}}</text></view>
           </view>
         </block>
         <view wx:elif="{{queryFailed}}" class="empty-record">登记记录查询失败，请稍后重试</view>
@@ -90,6 +97,10 @@
 
       <button wx:if="{{!applyRecord}}" class="login-btn primary" bindtap="goApply">前往登记</button>
     </block>
+  </view>
+  <view class="agreement-footer">
+    <view>我们尊重并保护您的个人信息，仅用于活动登记、住宿安排与现场服务。</view>
+    <view class="agreement-link" bindtap="openAgreement">《用户协议》</view>
   </view>
 </view>
 </scroll-view>
