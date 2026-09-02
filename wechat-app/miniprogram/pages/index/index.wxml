@@ -64,11 +64,11 @@
         <text class="cell-value status-value {{registrationStatusClass}}">{{registrationStatus}}</text>
       </view>
     </view>
-    <view class="directed-invite" wx:if="{{valid && invitationContext.eventCity}}">
+    <view class="directed-invite" wx:if="{{lotteryEligible && registrationEventCity}}">
       <view class="invite-emblem">贵宾</view>
       <view class="invite-venue-copy">
         <text>EXCLUSIVE INVITATION</text>
-        <text>受邀场次 · {{invitationContext.eventCity}}场</text>
+        <text>受邀场次 · {{registrationEventCity}}场</text>
       </view>
       <view class="invite-gem"></view>
     </view>
@@ -139,30 +139,26 @@
     </view>
   </view>
 
-  <view wx:if="{{showInviteDialog}}" class="invite-mask" catchtap="closeInviteDialog" catchtouchmove="noop">
-    <view class="invite-card" catchtap="noop">
+  <view wx:if="{{showPrivacyConsent}}" class="invite-mask privacy-consent-mask" catchtouchmove="noop">
+    <view class="invite-card privacy-invite-card" catchtap="noop">
       <view class="invite-corner left">
-        <view class="ribbon-fold"></view>
-        <view class="ribbon-thread"></view>
-        <view class="ribbon-mark">B</view>
+        <view class="ribbon-fold"></view><view class="ribbon-thread"></view><view class="ribbon-mark">B</view>
       </view>
       <view class="invite-corner right">
-        <view class="ribbon-fold"></view>
-        <view class="ribbon-thread"></view>
-        <view class="ribbon-mark">C</view>
+        <view class="ribbon-fold"></view><view class="ribbon-thread"></view><view class="ribbon-mark">C</view>
       </view>
-      <view class="invite-inner">
-        <view class="invite-eyebrow">INVITATION</view>
+      <view class="invite-inner privacy-invite-inner">
+        <view class="invite-eyebrow">PRIVACY NOTICE</view>
         <view class="invite-title">尊敬的贵宾</view>
+        <view class="privacy-subtitle">用户协议与个人信息保护提示</view>
         <view class="invite-rule"></view>
-        <view class="invite-body">
-          欢迎您参加柏楚2026价值共创峰会。我们诚挚期待与您共同见证新品发布、生态合作与行业价值的进一步共创。
+        <view class="privacy-copy">为提供邀请函、参会登记及抽奖码服务，我们需要处理您主动提交的个人信息。请阅读相关协议后自主选择是否同意。</view>
+        <view class="privacy-check-row" bindtap="togglePrivacyConsent">
+          <view class="privacy-checkbox {{privacyChecked ? 'checked' : ''}}"><text wx:if="{{privacyChecked}}">✓</text></view>
+          <view class="privacy-check-copy">我已阅读并同意<text catchtap="openAgreement">《用户服务协议》</text>、<text catchtap="openPrivacy">《隐私政策》</text>及<text catchtap="openLotteryRules">《抽奖活动说明》</text>，并确认已获得同行人员授权后代其提交信息。</view>
         </view>
-        <view class="invite-note">本邀请函为定向邀约，请完成参会登记以便会务团队为您预留席位。</view>
-        <view class="invite-actions">
-          <button class="invite-btn ghost" bindtap="closeInviteDialog">稍后查看</button>
-          <button class="invite-btn primary" bindtap="enterInviteApply">进入登记</button>
-        </view>
+        <button class="privacy-confirm {{privacyChecked ? 'enabled' : ''}}" bindtap="confirmPrivacyConsent">同意并进入</button>
+        <view class="privacy-note">如不同意，将无法使用参会登记等需处理个人信息的服务。</view>
       </view>
     </view>
   </view>

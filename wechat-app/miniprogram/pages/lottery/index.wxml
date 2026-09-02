@@ -1,3 +1,4 @@
+<lottery-stage>
 <view class="page {{running ? 'is-running' : ''}} {{drawn ? 'is-drawn' : ''}}">
   <view class="ambient ambient-one"></view>
   <view class="ambient ambient-two"></view>
@@ -48,7 +49,9 @@
       {{requesting ? '正在连接 ···' : (running ? '摇号中 ···' : (drawn ? '号码已抽取' : '抽取号码'))}}
     </button>
     <view class="one-chance">每位嘉宾仅有一次抽取机会</view>
+    <view class="rules-link" bindtap="openRules">查看《抽奖活动说明》</view>
     <view class="ticket-line bottom"></view>
   </view>
 
 </view>
+</lottery-stage>

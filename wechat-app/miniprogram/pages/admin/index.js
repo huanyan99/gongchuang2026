@@ -51,8 +51,7 @@ Page({
       'X-Admin-Key': this.data.adminKey,
     }).then((result) => {
       wx.setStorageSync('adminKey', this.data.adminKey);
-      const records = ((result && result.records) || []).map((item) => ({
-        ...item,
+      const records = ((result && result.records) || []).map((item) => Object.assign({}, item, {
         statusText: STATUS_TEXT[item.status] || item.status,
         checkedIn: !!item.checkedInAt,
       }));
@@ -98,7 +97,8 @@ Page({
     });
   },
   review(e) {
-    const { id, status } = e.currentTarget.dataset;
+    const id = e.currentTarget.dataset.id;
+    const status = e.currentTarget.dataset.status;
     if (status === 'REJECTED') {
       wx.showModal({
         title: '驳回',

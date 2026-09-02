@@ -1,0 +1,10 @@
+spring:
+  sql:
+    init:
+      mode: never
+
+wechat:
+  # 正式环境必须由部署环境提供真实小程序凭据，严禁启用模拟用户。
+  mock-login: false
+  appid: ${WECHAT_APPID}
+  secret: ${WECHAT_SECRET}

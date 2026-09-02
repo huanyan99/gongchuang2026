@@ -16,6 +16,7 @@
 
   <view class="member-card {{profileReady ? 'compact' : ''}}">
     <view class="card-shine"></view>
+    <view wx:if="{{profileReady}}" class="profile-badge">贵宾档案</view>
     <view class="card-label">BOCHU</view>
     <view class="card-title">{{profileReady ? name : 'VALUE CO-CREATION'}}</view>
     <view class="card-sub">{{profileReady ? genderText : '2026 VIP ACCESS'}}</view>
@@ -50,21 +51,6 @@
     </block>
 
     <block wx:else>
-      <view class="panel-card">
-        <view class="panel-head">
-          <view class="panel-title">贵宾档案</view>
-          <view class="edit-link" bindtap="editProfile">编辑</view>
-        </view>
-        <view class="info-row">
-          <text>姓名</text>
-          <text>{{name}}</text>
-        </view>
-        <view class="info-row">
-          <text>性别</text>
-          <text>{{genderText}}</text>
-        </view>
-      </view>
-
       <view class="panel-card record-card">
         <view class="panel-head">
           <view class="panel-title">参会登记记录</view>
@@ -99,8 +85,30 @@
     </block>
   </view>
   <view class="agreement-footer">
-    <view>我们尊重并保护您的个人信息，仅用于活动登记、住宿安排与现场服务。</view>
-    <view class="agreement-link" bindtap="openAgreement">《用户协议》</view>
+    <view>我们尊重并保护您的个人信息。</view>
+    <view class="agreement-links">
+      <text class="agreement-link" bindtap="openAgreement">《用户服务协议》</text>
+      <text>及</text>
+      <text class="agreement-link" bindtap="openPrivacy">《隐私政策》</text>
+    </view>
+    <view class="delete-info-link" bindtap="requestPersonalInfoDeletion">注销并删除个人信息</view>
   </view>
 </view>
 </scroll-view>
+
+<view class="bottom-nav">
+  <view class="nav-item" bindtap="goHome">
+    <view class="nav-icon home-icon"><view></view></view>
+    <view class="nav-text">共创会</view>
+  </view>
+  <view class="nav-center" bindtap="goLottery">
+    <view class="qr-circle lottery-circle">
+      <view class="lottery-mark">LUCKY</view>
+      <view class="lottery-mark-cn">抽奖码</view>
+    </view>
+  </view>
+  <view class="nav-item active">
+    <view class="nav-icon user-icon"><view></view></view>
+    <view class="nav-text">个人中心</view>
+  </view>
+</view>

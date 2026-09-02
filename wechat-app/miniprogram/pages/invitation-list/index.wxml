@@ -1,3 +1,4 @@
+<page-stage>
 <view class="page">
   <view class="hero">
     <text class="eyebrow">INVITATION LIST</text>
@@ -36,3 +37,4 @@
     </view>
   </view>
 </view>
+</page-stage>

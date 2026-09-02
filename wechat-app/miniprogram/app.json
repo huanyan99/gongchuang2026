@@ -2,9 +2,11 @@
   "pages": [
     "pages/index/index",
     "pages/lottery/index",
+    "pages/lottery-rules/index",
     "pages/invitations/index",
     "pages/invitation-list/index",
     "pages/agreement/index",
+    "pages/privacy/index",
     "pages/invitation-letter/index",
     "pages/agenda/index",
     "pages/route/index",
@@ -19,5 +21,6 @@
     "backgroundColor": "#f5f7ff"
   },
   "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
   "sitemapLocation": "sitemap.json"
 }

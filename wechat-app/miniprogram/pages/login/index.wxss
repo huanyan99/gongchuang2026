@@ -4,7 +4,7 @@ page {
 
 .login-page {
   min-height: 100vh;
-  padding: 46rpx 44rpx calc(72rpx + env(safe-area-inset-bottom));
+  padding: 46rpx 44rpx calc(238rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
   color: #17233f;
 }
@@ -311,6 +311,35 @@ input,
   border-top: 1rpx solid rgba(38, 57, 123, 0.1);
 }
 
+.bottom-nav { position:fixed;left:0;right:0;bottom:0;z-index:40;height:132rpx;padding:12rpx 48rpx calc(12rpx + env(safe-area-inset-bottom));box-sizing:content-box;display:flex;align-items:flex-start;justify-content:space-between;background:rgba(255,255,255,.96);border-top:1rpx solid #e7eaf1;box-shadow:0 -12rpx 34rpx rgba(31,44,84,.06); }
+.nav-item { width:172rpx;height:116rpx;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#a3a8b2; }
+.nav-item.active { color:#26397b; }
+.nav-text { margin-top:10rpx;font-size:23rpx;line-height:1;font-weight:600; }
+.nav-icon { position:relative;width:52rpx;height:52rpx;box-sizing:border-box; }
+.home-icon { border:4rpx solid currentColor;border-radius:24rpx 24rpx 6rpx 6rpx; }
+.home-icon view { position:absolute;left:14rpx;right:14rpx;top:12rpx;bottom:-4rpx;border-left:4rpx solid currentColor;border-right:4rpx solid currentColor; }
+.user-icon::before { content:'';position:absolute;left:13rpx;top:4rpx;width:26rpx;height:26rpx;border:4rpx solid currentColor;border-radius:50%;box-sizing:border-box; }
+.user-icon::after { content:'';position:absolute;left:5rpx;bottom:2rpx;width:42rpx;height:25rpx;border:4rpx solid currentColor;border-top-left-radius:26rpx;border-top-right-radius:26rpx;border-bottom:none;box-sizing:border-box; }
+.nav-center { width:172rpx;display:flex;justify-content:center;transform:translateY(-26rpx); }
+.qr-circle { width:112rpx;height:112rpx;border-radius:50%;display:flex;align-items:center;justify-content:center;border:8rpx solid #fff; }
+.lottery-circle { flex-direction:column;background:linear-gradient(145deg,#101a35,#263b6b);border-color:#fffaf0;box-shadow:0 18rpx 38rpx rgba(14,25,52,.28),inset 0 0 0 1rpx rgba(218,184,112,.34); }
+.lottery-mark { color:#d9bd7c;font-size:16rpx;line-height:1;letter-spacing:2rpx;font-family:Georgia,"Times New Roman",serif; }
+.lottery-mark-cn { margin-top:8rpx;color:#fff;font-size:22rpx;line-height:1;font-weight:700;letter-spacing:2rpx; }
+
+.profile-badge {
+  position: absolute;
+  right: 42rpx;
+  top: 38rpx;
+  padding: 9rpx 17rpx;
+  color: #f0d38b;
+  font-size: 19rpx;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 3rpx;
+  border: 1rpx solid rgba(240, 211, 139, .58);
+  border-radius: 24rpx;
+}
+
 .attendee-detail {
   margin-top: 26rpx;
   padding: 24rpx;
@@ -348,7 +377,14 @@ input,
 }
 
 .agreement-link {
-  margin-top: 10rpx;
+  color: #7f6736;
+  text-decoration: underline;
+}
+
+.agreement-links { margin-top: 10rpx; }
+
+.delete-info-link {
+  margin-top: 18rpx;
   color: #7f6736;
   text-decoration: underline;
 }

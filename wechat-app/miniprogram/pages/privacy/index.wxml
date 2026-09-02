@@ -1,0 +1,17 @@
+<scroll-view class="policy-scroll" scroll-y enhanced="{{true}}" show-scrollbar="{{false}}">
+<view class="page">
+  <view class="title">隐私政策</view><view class="updated">更新日期：2026年9月1日</view>
+  <view class="intro">我们尊重并保护您的个人信息。本政策说明本小程序如何收集、使用、保存和保护相关信息。</view>
+  <view class="section"><view class="heading">一、我们收集的信息</view><view class="text">为提供活动服务，我们可能收集微信登录标识，以及您主动提交的姓名、性别、手机号、公司、职位、参会场次、住宿要求、房型、入住日期和同行人员信息。</view></view>
+  <view class="section"><view class="heading">二、信息使用目的</view><view class="text">相关信息仅用于身份确认、邀请管理、参会审核、会务联络、同行人员管理、住宿安排、现场服务、抽奖活动及必要的活动统计。</view></view>
+  <view class="section"><view class="heading">三、同行人员信息</view><view class="text">当您代同行人员填写信息时，请确保已向其说明使用目的并取得同意。我们将按照本政策保护同行人员信息。</view></view>
+  <view class="section"><view class="heading">四、运营主体</view><view class="text">本小程序由上海柏楚电子科技股份有限公司运营。如对个人信息处理存在疑问，可通过邮箱 it@bochu.com 联系我们。</view></view>
+  <view class="section"><view class="heading">五、信息共享</view><view class="text">为完成住宿安排，我们可能根据实际接待需要向承接本次活动住宿服务的酒店提供必要的入住人员信息。除完成本次活动所必需的酒店住宿、会务及现场服务，或法律法规另有要求外，我们不会向无关第三方提供您的个人信息，并将要求相关服务方仅在约定范围内处理信息及采取相应保护措施。</view></view>
+  <view class="section"><view class="heading">六、保存期限与存储地区</view><view class="text">相关个人信息存储于上海柏楚电子科技股份有限公司总部所管理的信息系统，并原则上保存至活动结束后30天。保存期限届满后，我们将删除或进行匿名化处理；法律法规另有规定的除外。</view></view>
+  <view class="section"><view class="heading">七、您的权利与注销删除</view><view class="text">您可以通过小程序查看并在规则允许范围内修改登记信息。如需注销、查询、更正或删除个人信息，可以联系会务人员或发送邮件至 it@bochu.com。核验身份后，我们将在合理期限内处理；注销后将删除或匿名化处理相关个人信息，但法律法规要求继续保存的除外。</view></view>
+  <view class="section"><view class="heading">八、撤回授权</view><view class="text">您可以联系会务人员或发送邮件至 it@bochu.com 撤回授权。撤回不影响撤回前基于授权已经开展的信息处理；撤回后，我们将停止相应处理，但可能导致参会登记、住宿安排或相关会务服务无法继续提供。</view></view>
+  <view class="section"><view class="heading">九、未成年人保护</view><view class="text">本活动主要面向成年人。如涉及未成年人信息，应由其监护人同意并代为办理相关事项。</view></view>
+  <view class="section"><view class="heading">十、政策更新</view><view class="text">我们可能根据服务变化更新本政策。重要调整将通过小程序页面或其他适当方式进行提示。</view></view>
+  <view class="section"><view class="heading">十一、联系我们</view><view class="text">运营主体：上海柏楚电子科技股份有限公司。联系邮箱：it@bochu.com。如需注销、删除个人信息或撤回授权，也可以联系本次活动会务人员。</view></view>
+</view>
+</scroll-view>

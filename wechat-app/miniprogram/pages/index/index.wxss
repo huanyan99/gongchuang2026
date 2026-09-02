@@ -980,3 +980,18 @@ page {
     transform: translateY(0) scale(1);
   }
 }
+
+.privacy-consent-mask { z-index:120; }
+.privacy-invite-card { max-width:650rpx; }
+.privacy-invite-inner { padding-top:58rpx; }
+.privacy-invite-inner .invite-title { font-size:36rpx; }
+.privacy-subtitle { margin-top:14rpx; color:#8a7447; font-size:22rpx; letter-spacing:2rpx; text-align:center; }
+.privacy-copy { margin-top:30rpx; color:#505a6c; font-size:25rpx; line-height:1.8; text-align:justify; }
+.privacy-check-row { margin-top:30rpx; display:flex; align-items:flex-start; }
+.privacy-checkbox { flex:none; width:34rpx; height:34rpx; margin-top:3rpx; margin-right:16rpx; color:#fff; font-size:24rpx; line-height:34rpx; text-align:center; border:2rpx solid #9da3ae; border-radius:6rpx; box-sizing:border-box; }
+.privacy-checkbox.checked { background:#26397b; border-color:#26397b; }
+.privacy-check-copy { flex:1; color:#555f70; font-size:23rpx; line-height:1.7; }
+.privacy-check-copy text { color:#9a6d20; }
+.privacy-confirm { margin-top:34rpx; height:84rpx; line-height:84rpx; color:rgba(255,255,255,.65); font-size:27rpx; border-radius:44rpx; background:#aeb4c2; }
+.privacy-confirm.enabled { color:#fff; background:linear-gradient(100deg,#122653,#26397b); box-shadow:0 12rpx 26rpx rgba(38,57,123,.22); }
+.privacy-note { margin-top:18rpx; color:#979da8; font-size:19rpx; line-height:1.5; text-align:center; }

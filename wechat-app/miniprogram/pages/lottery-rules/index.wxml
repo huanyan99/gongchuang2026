@@ -1,0 +1,12 @@
+<scroll-view class="rules-scroll" scroll-y enhanced="{{true}}" show-scrollbar="{{false}}">
+  <view class="page">
+    <view class="title">抽奖活动说明</view>
+    <view class="updated">适用于柏楚2026价值共创峰会现场抽奖活动</view>
+    <view class="section"><view class="heading">一、参与资格</view><view class="text">本活动面向收到定向邀请、完成参会登记并经会务团队审核通过的参会嘉宾。每位符合资格的嘉宾可领取一个四位数字抽奖码。</view></view>
+    <view class="section"><view class="heading">二、参与方式</view><view class="text">审核通过后，嘉宾可在小程序“抽奖码”页面抽取专属号码。每位嘉宾仅有一次抽取机会，号码生成后不可重复抽取或自行更换。</view></view>
+    <view class="section"><view class="heading">三、开奖安排</view><view class="text">开奖时间、开奖轮次及结果以活动现场主持人和会务团队公布为准。请妥善保管抽奖码，并在现场需要核验时出示。</view></view>
+    <view class="section"><view class="heading">四、中奖核验</view><view class="text">中奖嘉宾须配合会务团队核验参会登记信息及抽奖码。抽奖码与登记身份不一致、重复使用或者无法完成身份核验的，会务团队有权取消对应资格。</view></view>
+    <view class="section"><view class="heading">五、其他说明</view><view class="text">本活动不收取抽奖费用，不以购买商品、转发分享或邀请人数作为参与条件或增加中奖概率。因网络异常等原因无法正常展示号码时，请联系现场会务人员处理。</view></view>
+    <view class="section"><view class="heading">六、联系我们</view><view class="text">如对抽奖活动有疑问，请联系现场会务人员或发送邮件至 it@bochu.com。</view></view>
+  </view>
+</scroll-view>

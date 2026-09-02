@@ -50,23 +50,45 @@ Page({
       genderText: profile.gender ? `${profile.gender}士` : '',
       genderIndex: profile.gender === '女' ? 1 : 0,
     });
-    if (profileReady) this.fetchApplyRecord();
+    // 微信身份在 app.ensureLogin 中统一建立；个人中心始终优先查询数据库登记。
+    app.ensureLogin()
+      .then(() => this.fetchApplyRecord())
+      .catch(() => this.setData({ queryFailed: true }));
   },
   fetchApplyRecord() {
     app.ensureLogin().then(() => app.request('/api/apply/me', 'GET', {}, {}, { silent: true })).then((record) => {
       if (record && Array.isArray(record.attendees)) {
-        record.attendees = record.attendees.map((guest) => ({ ...guest, checkinDateText: formatStayDate(guest.checkinDate) }));
+        record.attendees = record.attendees.map((guest) => Object.assign({}, guest, {
+          checkinDateText: formatStayDate(guest.checkinDate),
+        }));
       }
+      const primaryGuest = record && record.attendees && record.attendees.length
+        ? record.attendees[0]
+        : null;
+      const databaseName = (record && record.name) || (primaryGuest && primaryGuest.name) || '';
+      const databaseGender = (primaryGuest && primaryGuest.gender) || '';
       const status = record && record.status ? record.status : 'NONE';
       if (record && record.phone) {
         wx.setStorageSync('lastApplyPhone', record.phone);
       }
       this.setData({
+        wxLogged: true,
+        profileReady: !!databaseName,
+        name: databaseName || this.data.name,
+        gender: databaseGender || this.data.gender,
+        genderText: databaseGender ? `${databaseGender}士` : this.data.genderText,
+        genderIndex: databaseGender === '女' ? 1 : 0,
         applyRecord: record || null,
         recordStatus: status,
         recordStatusText: STATUS_TEXT[status] || status,
         queryFailed: false,
       });
+      if (databaseName) {
+        wx.setStorageSync('bochuMemberProfile', {
+          name: databaseName,
+          gender: databaseGender || this.data.gender || '',
+        });
+      }
     }).catch((err) => {
       if (err && err.code === 3002) {
         wx.removeStorageSync('lastApplyPhone');
@@ -143,5 +165,29 @@ Page({
   },
   openAgreement() {
     wx.navigateTo({ url: '/pages/agreement/index' });
+  },
+  openPrivacy() {
+    wx.navigateTo({ url: '/pages/privacy/index' });
+  },
+  requestPersonalInfoDeletion() {
+    wx.showModal({
+      title: '注销并删除个人信息',
+      content: '请联系会务人员或发送邮件至 it@bochu.com。完成身份核验后，我们将为您办理注销及个人信息删除。',
+      showCancel: false,
+    });
+  },
+  goHome() {
+    wx.redirectTo({ url: '/pages/index/index' });
+  },
+  goLottery() {
+    if (!this.data.applyRecord || this.data.applyRecord.status !== 'APPROVED') {
+      wx.showModal({
+        title: '暂不可领取',
+        content: '参会登记审核通过后方可领取抽奖码。',
+        showCancel: false,
+      });
+      return;
+    }
+    wx.navigateTo({ url: '/pages/lottery/index' });
   },
 });

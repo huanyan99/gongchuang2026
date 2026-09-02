@@ -1,25 +1,13 @@
+<scroll-view class="policy-scroll" scroll-y enhanced="{{true}}" show-scrollbar="{{false}}">
 <view class="page">
-  <view class="title">用户协议</view>
-  <view class="updated">更新日期：2026年9月1日</view>
-  <view class="section">
-    <view class="heading">一、服务说明</view>
-    <view class="text">本小程序用于柏楚2026价值共创峰会的邀请、参会登记、住宿安排、审核、入场核验及现场活动服务。</view>
-  </view>
-  <view class="section">
-    <view class="heading">二、信息使用</view>
-    <view class="text">我们尊重并保护您的个人信息。您提交的姓名、公司、性别、手机号、职位及住宿信息，仅用于本次活动的身份确认、会务联络、住宿安排和现场服务。</view>
-  </view>
-  <view class="section">
-    <view class="heading">三、信息准确性</view>
-    <view class="text">请您确保提交的信息真实、准确、完整。同行人员信息应在取得同行人员知情同意后填写。</view>
-  </view>
-  <view class="section">
-    <view class="heading">四、信息安全</view>
-    <view class="text">我们将采取合理措施保护相关信息，限制无关人员访问，并在活动服务所需范围内使用。</view>
-  </view>
-  <view class="section">
-    <view class="heading">五、联系我们</view>
-    <view class="text">如需查询、更正或删除登记信息，请联系本次活动会务工作人员处理。</view>
-  </view>
-  <view class="notice">继续使用并提交登记，即表示您已阅读并同意本协议。</view>
+  <view class="title">用户服务协议</view><view class="updated">更新日期：2026年9月1日</view>
+  <view class="section"><view class="heading">一、服务内容</view><view class="text">本小程序提供活动邀请、参会登记、同行人员登记、审核状态查询、抽奖码领取、活动议程及交通信息等会务服务。实际服务内容可能根据活动安排进行调整。</view></view>
+  <view class="section"><view class="heading">二、账号与使用</view><view class="text">您应通过合法方式进入小程序，并妥善使用邀请链接和邀请码。请勿冒用他人身份、恶意提交信息、干扰系统运行或将服务用于与本次活动无关的用途。</view></view>
+  <view class="section"><view class="heading">三、信息提交</view><view class="text">您应保证提交的信息真实、准确、完整。提交同行人员信息前，您应已取得相关人员的知情同意。因信息错误导致的联络、审核或接待问题，可能需要您配合更正。</view></view>
+  <view class="section"><view class="heading">四、审核与修改</view><view class="text">参会登记须经会务团队审核。每份登记信息最多可主动修改两次；修改后将重新进入审核流程。审核结果、活动资格及服务安排以会务团队最终确认为准。</view></view>
+  <view class="section"><view class="heading">五、活动调整</view><view class="text">因天气、场地、公共安全或其他合理原因，活动时间、地点、议程及服务内容可能变化。我们将通过小程序或会务通知及时告知。</view></view>
+  <view class="section"><view class="heading">六、知识产权</view><view class="text">本小程序中的文字、图片、标识及页面设计受法律保护。未经授权，不得擅自复制、传播、修改或用于商业用途。</view></view>
+  <view class="section"><view class="heading">七、联系我们</view><view class="text">如对登记、审核、信息修改或本协议有疑问，请联系本次活动会务工作人员。</view></view>
+  <view class="notice">继续使用本小程序，表示您已阅读并同意本协议及《隐私政策》。</view>
 </view>
+</scroll-view>

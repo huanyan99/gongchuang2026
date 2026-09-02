@@ -25,6 +25,14 @@ page {
   font-size: 22rpx;
 }
 
+.intro {
+  margin-top: 32rpx;
+  color: #444444;
+  font-size: 26rpx;
+  line-height: 1.9;
+  text-align: justify;
+}
+
 .section {
   margin-top: 38rpx;
 }
@@ -41,11 +49,4 @@ page {
   font-size: 26rpx;
   line-height: 1.9;
   text-align: justify;
-}
-
-.notice {
-  margin-top: 44rpx;
-  color: #666666;
-  font-size: 24rpx;
-  line-height: 1.8;
 }

@@ -12,11 +12,16 @@ Page({
   refresh() {
     return app.ensureLogin().then(() => this.ensureCityInvitations()).then((invitations) => Promise.all([
       Promise.resolve(invitations), app.request('/api/invitations/applications', 'GET', {}, {}, { silent: true }),
-    ])).then(([invitations, applications]) => {
+    ])).then((results) => {
+      let invitations = results[0];
+      let applications = results[1];
       invitations = invitations || [];
       const cityByCode = {};
       invitations.forEach((item) => { cityByCode[item.code] = item.eventCity; });
-      applications = (applications || []).map((item) => ({ ...item, eventCity: cityByCode[item.invitationCode] || '', statusText: this.statusText(item) }));
+      applications = (applications || []).map((item) => Object.assign({}, item, {
+        eventCity: cityByCode[item.invitationCode] || '',
+        statusText: this.statusText(item),
+      }));
       const cards = this.data.cities.map((city) => invitations.find((item) => item.eventCity === city) || { eventCity: city, loading: true });
       const filteredApplications = this.filterApplications(applications, this.data.activeStatus, this.data.selectedCity);
       this.setData({
@@ -82,7 +87,8 @@ Page({
     }));
   },
   review(e) {
-    const { id, status } = e.currentTarget.dataset;
+    const id = e.currentTarget.dataset.id;
+    const status = e.currentTarget.dataset.status;
     const action = status === 'APPROVED' ? '通过' : '拒绝';
     wx.showModal({ title: `${action}该登记？`, editable: status === 'REJECTED', placeholderText: '拒绝原因（可选）', success: (res) => {
       if (!res.confirm) return;

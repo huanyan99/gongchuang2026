@@ -84,9 +84,8 @@ ON DUPLICATE KEY UPDATE max_uses = VALUES(max_uses);
 INSERT INTO gonghcuang_event_weather
 (city, location_id, event_date, temp_min, temp_max, weather_text, icon, tip, updated_at)
 VALUES
-('佛山', '113.12,23.02', '2026-09-18', 23, 30, '小雨', 'rainy', '请备好雨具，预留抵达时间', NOW()),
-('济南', '116.98,36.67', '2026-09-22', 17, 28, '多云', 'cloudy', '早晚温差明显，建议携带薄外套', NOW()),
-('上海', '121.47,31.23', '2026-10-21', 20, 25, '待更新', 'cloudy', '临近活动日期将自动更新天气', NOW())
-ON DUPLICATE KEY UPDATE
-location_id=VALUES(location_id), event_date=VALUES(event_date), temp_min=VALUES(temp_min),
-temp_max=VALUES(temp_max), weather_text=VALUES(weather_text), icon=VALUES(icon), tip=VALUES(tip);
+  ('佛山', '113.12,23.02', '2026-09-18', NULL, NULL, NULL, NULL, '临近活动日期将自动更新天气', NULL),
+  ('济南', '116.98,36.67', '2026-09-22', NULL, NULL, NULL, NULL, '临近活动日期将自动更新天气', NULL),
+  ('上海', '121.47,31.23', '2026-10-21', NULL, NULL, NULL, NULL, '临近活动日期将自动更新天气', NULL)
+  ON DUPLICATE KEY UPDATE
+  location_id=VALUES(location_id), event_date=VALUES(event_date);

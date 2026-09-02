@@ -85,12 +85,12 @@ Page({
     this.schedule(() => this.finishDraw(finalNumber), 3900);
   },
   activateReel(index) {
-    const activeReels = [...this.data.activeReels];
+    const activeReels = this.data.activeReels.slice();
     activeReels[index] = true;
     this.setData({ activeReels });
   },
   advanceReels() {
-    const rollingDigits = [...this.data.rollingDigits];
+    const rollingDigits = this.data.rollingDigits.slice();
     this.data.activeReels.forEach((active, index) => {
       if (active && !this.data.lockedReels[index]) {
         rollingDigits[index] = String(Math.floor(Math.random() * 10));
@@ -99,13 +99,13 @@ Page({
     this.setData({ rollingDigits });
   },
   overshootReel(index) {
-    const rollingDigits = [...this.data.rollingDigits];
+    const rollingDigits = this.data.rollingDigits.slice();
     rollingDigits[index] = String((Number(this.finalDigits[index]) + 1) % 10);
     this.setData({ rollingDigits });
   },
   lockReel(index) {
-    const rollingDigits = [...this.data.rollingDigits];
-    const lockedReels = [...this.data.lockedReels];
+    const rollingDigits = this.data.rollingDigits.slice();
+    const lockedReels = this.data.lockedReels.slice();
     rollingDigits[index] = this.finalDigits[index];
     lockedReels[index] = true;
     this.setData({ rollingDigits, lockedReels });
@@ -141,5 +141,8 @@ Page({
     this.clearRollingTimer();
     (this.animationTimers || []).forEach((timer) => clearTimeout(timer));
     this.animationTimers = [];
+  },
+  openRules() {
+    wx.navigateTo({ url: '/pages/lottery-rules/index' });
   },
 });

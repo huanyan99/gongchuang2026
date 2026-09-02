@@ -1,3 +1,4 @@
+<page-stage>
 <view class="page">
   <view class="hero">
     <text class="eyebrow">INVITATION MANAGEMENT</text>
@@ -16,3 +17,4 @@
     <button class="list-button" data-city="{{item.eventCity}}" bindtap="openList">查看邀请列表 <text>›</text></button>
   </view>
 </view>
+</page-stage>

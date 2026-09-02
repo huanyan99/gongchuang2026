@@ -16,4 +16,9 @@ public interface InvitationMapper extends BaseMapper<Invitation> {
     @Update("UPDATE gonghcuang_invitation SET used_count = used_count + 1 " +
             "WHERE id = #{id} AND used_count < max_uses")
     int consumeUse(@Param("id") Long id);
+
+    /** 用户被拒绝后改用其他场次邀请码时，归还原邀请码的一次使用名额。 */
+    @Update("UPDATE gonghcuang_invitation SET used_count = used_count - 1 " +
+            "WHERE id = #{id} AND used_count > 0")
+    int releaseUse(@Param("id") Long id);
 }

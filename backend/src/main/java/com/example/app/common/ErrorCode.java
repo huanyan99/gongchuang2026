@@ -30,6 +30,7 @@ public enum ErrorCode {
 
     // 抽奖
     LOTTERY_NOT_DRAWN(4001, "尚未抽取号码"),
+    LOTTERY_NOT_APPROVED(4002, "参会登记审核通过后方可领取抽奖码"),
 
     // 系统
     INTERNAL_ERROR(9000, "服务器内部错误"),

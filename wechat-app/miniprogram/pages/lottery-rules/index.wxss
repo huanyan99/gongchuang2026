@@ -1,0 +1,8 @@
+page { background:#fff; color:#222; }
+.rules-scroll { height:100vh; }
+.page { min-height:100vh; padding:40rpx 34rpx calc(100rpx + env(safe-area-inset-bottom)); box-sizing:border-box; }
+.title { font-size:40rpx; line-height:1.4; font-weight:700; }
+.updated { margin-top:12rpx; color:#888; font-size:22rpx; line-height:1.6; }
+.section { margin-top:38rpx; }
+.heading { font-size:28rpx; line-height:1.6; font-weight:700; }
+.text { margin-top:12rpx; color:#444; font-size:26rpx; line-height:1.9; text-align:justify; }

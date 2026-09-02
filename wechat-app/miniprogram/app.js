@@ -4,12 +4,34 @@ App({
     if (token) this.globalData.token = token;
     this.ensureLogin().catch(() => {});
   },
+  clearIdentityCache() {
+    [
+      'token',
+      'activeInviteCode',
+      'lastApplyPhone',
+      'bochuMemberProfile',
+      'bochuApplyProfile',
+      'bochuLuckyNumber',
+      'authUserId',
+    ].forEach((key) => wx.removeStorageSync(key));
+    this.globalData.token = null;
+    this.globalData.userInfo = null;
+  },
+  applyLoginSession(data) {
+    const nextUserId = data && data.user && data.user.id ? String(data.user.id) : '';
+    const previousUserId = String(wx.getStorageSync('authUserId') || '');
+    if (previousUserId && nextUserId && previousUserId !== nextUserId) {
+      this.clearIdentityCache();
+    }
+    this.globalData.token = data.token;
+    this.globalData.userInfo = data.user;
+    wx.setStorageSync('token', data.token);
+    if (nextUserId) wx.setStorageSync('authUserId', nextUserId);
+  },
   ensureLogin() {
     if (this.globalData.mockApi) {
       const data = this.mockRequest('/api/auth/login');
-      this.globalData.token = data.token;
-      this.globalData.userInfo = data.user;
-      wx.setStorageSync('token', data.token);
+      this.applyLoginSession(data);
       return Promise.resolve(data.token);
     }
     if (this.globalData.token) {
@@ -30,9 +52,7 @@ App({
           }
           this.request('/api/auth/login', 'POST', { code: res.code }, {}, { skipRetry: true })
             .then((data) => {
-              this.globalData.token = data.token;
-              this.globalData.userInfo = data.user;
-              wx.setStorageSync('token', data.token);
+              this.applyLoginSession(data);
               resolve(data.token);
             })
             .catch(reject);
@@ -68,11 +88,10 @@ App({
         method,
         data,
         timeout: 15000,
-        header: {
+        header: Object.assign({
           'Content-Type': 'application/json',
           Authorization: this.globalData.token || wx.getStorageSync('token') || '',
-          ...extraHeader,
-        },
+        }, extraHeader),
         success: (res) => {
           const body = res.data;
           if (body && body.code === 0) {
@@ -84,7 +103,7 @@ App({
             : { code: -1, message: '请求失败' };
           if (err.code === 1001 && !skipRetry && path !== '/api/auth/login') {
             this.relogin()
-              .then(() => this.request(path, method, data, extraHeader, { ...options, skipRetry: true }))
+              .then(() => this.request(path, method, data, extraHeader, Object.assign({}, options, { skipRetry: true })))
               .then(resolve)
               .catch(reject);
             return;
@@ -182,7 +201,7 @@ App({
       }
       const profile = wx.getStorageSync('bochuApplyProfile') || {};
       const records = profile.phone
-        ? [{ ...profile, id: 1, status: 'PENDING' }]
+        ? [Object.assign({}, profile, { id: 1, status: 'PENDING' })]
         : [];
       return { records, total: records.length, page: 1, size: 20, pages: 1 };
     }

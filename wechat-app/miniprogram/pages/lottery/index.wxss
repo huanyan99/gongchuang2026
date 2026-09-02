@@ -345,6 +345,15 @@ page {
   letter-spacing: 2rpx;
 }
 
+.rules-link {
+  margin-top: 18rpx;
+  color: #8a6a31;
+  font-size: 21rpx;
+  line-height: 1.6;
+  text-decoration: underline;
+  text-align: center;
+}
+
 .reel.active .reel-number { animation: reelRoll 135ms cubic-bezier(.2,.72,.25,1) infinite; }
 .reel.locked .reel-number { animation: reelLock 360ms cubic-bezier(.16,.84,.28,1.2) both; }
 .reel.locked { animation: edgeSweep 520ms ease-out both; }

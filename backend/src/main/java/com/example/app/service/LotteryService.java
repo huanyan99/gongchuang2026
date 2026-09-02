@@ -5,6 +5,8 @@ import com.example.app.common.BizException;
 import com.example.app.common.ErrorCode;
 import com.example.app.dto.LuckyCodeResponse;
 import com.example.app.entity.LotteryDraw;
+import com.example.app.entity.Application;
+import com.example.app.mapper.ApplicationMapper;
 import com.example.app.mapper.LotteryDrawMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
@@ -17,9 +19,11 @@ import java.security.SecureRandom;
 @RequiredArgsConstructor
 public class LotteryService {
     private final LotteryDrawMapper lotteryDrawMapper;
+    private final ApplicationMapper applicationMapper;
     private final SecureRandom random = new SecureRandom();
 
     public LuckyCodeResponse get(Long userId) {
+        requireApproved(userId);
         LotteryDraw draw = findByUserId(userId);
         if (draw == null) {
             throw new BizException(ErrorCode.LOTTERY_NOT_DRAWN);
@@ -29,6 +33,7 @@ public class LotteryService {
 
     @Transactional
     public LuckyCodeResponse draw(Long userId) {
+        requireApproved(userId);
         LotteryDraw existing = findByUserId(userId);
         if (existing != null) {
             return new LuckyCodeResponse(existing.getLuckyCode(), false);
@@ -50,5 +55,15 @@ public class LotteryService {
         return lotteryDrawMapper.selectOne(new LambdaQueryWrapper<LotteryDraw>()
                 .eq(LotteryDraw::getUserId, userId)
                 .last("LIMIT 1"));
+    }
+
+    private void requireApproved(Long userId) {
+        Application application = applicationMapper.selectOne(new LambdaQueryWrapper<Application>()
+                .eq(Application::getUserId, userId)
+                .orderByDesc(Application::getId)
+                .last("LIMIT 1"));
+        if (application == null || !"APPROVED".equalsIgnoreCase(application.getStatus())) {
+            throw new BizException(ErrorCode.LOTTERY_NOT_APPROVED);
+        }
     }
 }

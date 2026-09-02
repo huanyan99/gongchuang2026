@@ -9,13 +9,13 @@
 >
 <view class="page {{submitted ? 'done' : ''}}">
   <view class="head">
-    <image class="head-bg" src="/images/banner.png" mode="aspectFill" />
+    <image class="head-bg" src="/images/banner.jpg" mode="aspectFill" />
     <view class="head-shade"></view>
     <view class="head-copy">
       <view class="eyebrow">{{submitted ? 'REGISTRATION' : 'INVITATION'}}</view>
       <view class="title">{{submitted ? '登记状态' : (editMode ? '修改登记' : '贵宾登记')}}</view>
       <view class="gold-line"></view>
-      <view class="sub">{{submitted ? '查看审核结果与参会服务' : (editMode ? '修改提交后将重新进入审核' : '确认邀请函，并完善您的参会信息')}}</view>
+      <view wx:if="{{!submitted}}" class="sub">{{editMode ? '修改提交后将重新进入审核' : '确认邀请函，并完善您的参会信息'}}</view>
     </view>
   </view>
 
@@ -23,12 +23,12 @@
     <view class="result-eyebrow">REGISTRATION STATUS</view>
     <view class="result-title">{{applyStatus === 'APPROVED' ? '审核已通过' : (applyStatus === 'REJECTED' ? '审核未通过' : '已提交，等待审核')}}</view>
     <view class="result-sub" wx:if="{{applyStatus === 'PENDING'}}">会务团队正在审核您的参会登记，通过后可以前往领取抽奖码。</view>
-    <view class="result-sub" wx:elif="{{applyStatus === 'REJECTED'}}">本次登记未通过审核，如有疑问请联系会务人员。</view>
+    <view class="result-sub" wx:elif="{{applyStatus === 'REJECTED'}}">本次登记未通过审核，您可以修改登记信息后重新提交审核。</view>
     <view class="result-sub" wx:else>您的参会登记已审核通过，可以前往领取抽奖码。</view>
 
     <view class="guest-badge">贵宾 · {{name}}</view>
-    <view wx:if="{{applyStatus === 'APPROVED'}}" class="approved-actions">
-      <button class="cta lottery-action" bindtap="goLottery">领取抽奖码</button>
+    <view wx:if="{{applyStatus === 'APPROVED' || applyStatus === 'REJECTED'}}" class="approved-actions">
+      <button wx:if="{{applyStatus === 'APPROVED'}}" class="cta lottery-action" bindtap="goLottery">领取抽奖码</button>
       <button class="cta edit-action" bindtap="startEdit" disabled="{{editRemaining <= 0}}">修改参会登记信息</button>
       <view class="edit-chance">每人共有 2 次修改机会 · 当前剩余 {{editRemaining}} 次</view>
     </view>

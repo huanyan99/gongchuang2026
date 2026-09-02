@@ -7,6 +7,16 @@ function blankAttendee(checkinDate) {
   return { name: '', company: '', sameCompany: false, gender: '男', phone: '', position: '', accommodation: '无需住宿', roomType: '柏楚预定房型', checkinDate };
 }
 
+function copyAttendee(item, changes) {
+  return Object.assign({}, item, changes || {});
+}
+
+function attendeePayload(item) {
+  const result = Object.assign({}, item);
+  delete result.sameCompany;
+  return result;
+}
+
 Page({
   data: {
     inviteCode: '',
@@ -44,16 +54,18 @@ Page({
       position: applyProfile.position || '',
       reason: applyProfile.reason || '',
     });
+    const shouldLoadRecord = options.ticket === '1' || options.record === '1';
     if (this.data.inviteCode) {
       app.request(`/api/apply/check-invitation?code=${encodeURIComponent(this.data.inviteCode)}`, 'GET', {}, {}, { silent: true }).then((context) => {
         const eventCity = context.eventCity || '';
         const checkinDate = EVENT_DATES[eventCity] || '';
-        const attendees = this.data.attendees.map((item) => ({ ...item, checkinDate }));
-        attendees[0] = { ...attendees[0], name: this.data.name, phone: this.data.phone, company: this.data.company, position: this.data.position };
+        const attendees = this.data.attendees.map((item) => copyAttendee(item, { checkinDate }));
+        attendees[0] = copyAttendee(attendees[0], { name: this.data.name, phone: this.data.phone, company: this.data.company, position: this.data.position });
         this.setData({ eventCity, eventStayLabel: EVENT_STAY_LABELS[eventCity] || '活动当晚', attendees });
-      }).catch(() => {});
-    }
-    if (options.ticket === '1' || options.record === '1') {
+      }).catch(() => {}).finally(() => {
+        if (shouldLoadRecord) this.loadApplication();
+      });
+    } else if (shouldLoadRecord) {
       this.loadApplication();
     }
   },
@@ -80,9 +92,10 @@ Page({
     const index = Number(e.currentTarget.dataset.index);
     const field = e.currentTarget.dataset.field;
     const attendees = this.data.attendees.slice();
-    attendees[index] = { ...attendees[index], [field]: e.detail.value };
+    attendees[index] = copyAttendee(attendees[index]);
+    attendees[index][field] = e.detail.value;
     if (index === 0 && field === 'company') {
-      attendees.forEach((item, i) => { if (i > 0 && item.sameCompany) attendees[i] = { ...item, company: e.detail.value }; });
+      attendees.forEach((item, i) => { if (i > 0 && item.sameCompany) attendees[i] = copyAttendee(item, { company: e.detail.value }); });
     }
     this.setData({ attendees });
   },
@@ -100,12 +113,25 @@ Page({
     const index = Number(e.currentTarget.dataset.index);
     const attendees = this.data.attendees.slice();
     const sameCompany = e.detail.value.length > 0;
-    attendees[index] = { ...attendees[index], sameCompany, company: sameCompany ? attendees[0].company : '' };
+    attendees[index] = copyAttendee(attendees[index], { sameCompany, company: sameCompany ? attendees[0].company : '' });
     this.setData({ attendees });
   },
   submit() {
+    if (!wx.getStorageSync('bochuPrivacyAccepted')) {
+      wx.showModal({
+        title: '请先同意相关协议',
+        content: '请返回首页阅读并同意《用户服务协议》和《隐私政策》后再提交登记。',
+        showCancel: false,
+      });
+      return;
+    }
     if (this.data.submitting) return;
-    const attendees = this.data.attendees.map((item) => ({ ...item, name: item.name.trim(), company: item.company.trim(), phone: item.phone.trim(), position: item.position.trim() }));
+    const attendees = this.data.attendees.map((item) => copyAttendee(item, {
+      name: item.name.trim(),
+      company: item.company.trim(),
+      phone: item.phone.trim(),
+      position: item.position.trim(),
+    }));
     for (let i = 0; i < attendees.length; i += 1) {
       if (!attendees[i].name) return wx.showToast({ title: `请填写第${i + 1}位姓名`, icon: 'none' });
       if (!/^1\d{10}$/.test(attendees[i].phone)) return wx.showToast({ title: `第${i + 1}位手机号有误`, icon: 'none' });
@@ -123,7 +149,7 @@ Page({
       position: this.data.position,
       reason: this.data.reason,
       attendeeCount: attendees.length,
-      attendees: attendees.map(({ sameCompany, ...item }) => item),
+      attendees: attendees.map(attendeePayload),
     };
     app.ensureLogin().then(() => app.request('/api/apply', this.data.editMode ? 'PUT' : 'POST', payload)).then(() => {
       wx.setStorageSync('lastApplyPhone', phone);
@@ -147,11 +173,14 @@ Page({
     });
   },
   applyRecord(record) {
-    const eventCity = record.eventCity || this.data.eventCity;
-    const attendees = (record.attendees || []).map((guest) => ({
-      ...guest,
+    const inviteOverride = record.status === 'REJECTED'
+      && !!this.data.inviteCode
+      && !!this.data.eventCity
+      && this.data.inviteCode !== record.invitationCode;
+    const eventCity = inviteOverride ? this.data.eventCity : (record.eventCity || this.data.eventCity);
+    const attendees = (record.attendees || []).map((guest) => copyAttendee(guest, {
       sameCompany: false,
-      checkinDate: guest.checkinDate || EVENT_DATES[eventCity] || '',
+      checkinDate: inviteOverride ? (EVENT_DATES[eventCity] || '') : (guest.checkinDate || EVENT_DATES[eventCity] || ''),
     }));
     const editCount = Number(record.editCount || 0);
     this.setData({
@@ -166,7 +195,7 @@ Page({
       attendees: attendees.length ? attendees : this.data.attendees,
       attendeeCount: attendees.length || 1,
       eventCity,
-      inviteCode: record.invitationCode || this.data.inviteCode,
+      inviteCode: inviteOverride ? this.data.inviteCode : (record.invitationCode || this.data.inviteCode),
       eventStayLabel: EVENT_STAY_LABELS[eventCity] || '活动当晚',
       editCount,
       editRemaining: Math.max(0, 2 - editCount),

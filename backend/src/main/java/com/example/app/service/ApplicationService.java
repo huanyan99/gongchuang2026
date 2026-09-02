@@ -30,6 +30,7 @@ public class ApplicationService {
 
     private final ApplicationMapper applicationMapper;
     private final InvitationService invitationService;
+    private final com.example.app.mapper.InvitationMapper invitationMapper;
     private final CheckinTokenService checkinTokenService;
     private final QrCodeService qrCodeService;
     private final ApplicationGuestMapper applicationGuestMapper;
@@ -105,10 +106,23 @@ public class ApplicationService {
         }
         GuestRequest primary = guests.get(0);
         String phone = trimToEmpty(primary.getPhone());
+        String requestedInvitationCode = trimToEmpty(req.getInvitationCode()).toUpperCase();
+        String currentInvitationCode = trimToEmpty(current.getInvitationCode()).toUpperCase();
+        String effectiveInvitationCode = currentInvitationCode;
+        if (!requestedInvitationCode.equals(currentInvitationCode)) {
+            if (!ApplyStatus.REJECTED.name().equals(current.getStatus())) {
+                throw new BizException(ErrorCode.CONFLICT, "当前审核状态不允许切换受邀场次");
+            }
+            Invitation replacement = invitationService.consume(requestedInvitationCode);
+            Invitation previous = invitationService.getByCode(currentInvitationCode);
+            invitationMapper.releaseUse(previous.getId());
+            effectiveInvitationCode = replacement.getCode();
+        }
         Long duplicate = applicationMapper.selectCount(new LambdaQueryWrapper<Application>()
                 .eq(Application::getPhone, phone).ne(Application::getId, current.getId()));
         if (duplicate > 0) throw new BizException(ErrorCode.APPLY_DUPLICATED);
-        int updated = applicationMapper.resubmit(current.getId(), trimToEmpty(primary.getName()), phone,
+        int updated = applicationMapper.resubmit(current.getId(), effectiveInvitationCode,
+                trimToEmpty(primary.getName()), phone,
                 trimToEmpty(primary.getCompany()), trimToEmpty(primary.getPosition()), trimToEmpty(req.getReason()));
         if (updated == 0) throw new BizException(ErrorCode.CONFLICT, "登记信息最多修改两次");
         applicationGuestMapper.delete(new LambdaQueryWrapper<ApplicationGuest>()

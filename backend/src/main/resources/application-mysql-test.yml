@@ -17,7 +17,7 @@ weather:
   qweather:
     enabled: ${QWEATHER_ENABLED:false}
     host: ${QWEATHER_HOST:}
-    key: ${QWEATHER_KEY:}
+    api-key: ${QWEATHER_API_KEY:}
 
 logging:
   level:

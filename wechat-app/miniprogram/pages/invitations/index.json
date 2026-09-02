@@ -1,5 +1,8 @@
 {
   "navigationBarTitleText": "我的邀请",
   "navigationBarBackgroundColor": "#0d214d",
-  "navigationBarTextStyle": "white"
+  "navigationBarTextStyle": "white",
+  "usingComponents": {
+    "page-stage": "/components/page-stage/index"
+  }
 }

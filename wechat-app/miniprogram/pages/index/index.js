@@ -10,39 +10,45 @@ Page({
   data: {
     inviteCode: '',
     valid: null,
-    showInviteDialog: false,
     weatherIndex: 0,
     weatherStops: WEATHER_STOPS,
     currentWeather: WEATHER_STOPS[0],
-    homeBannerUrl: '/images/banner.png',
+    homeBannerUrl: '/images/banner.jpg',
     pageScrollTop: 0,
     registrationStatus: '未登记',
     registrationStatusClass: 'unregistered',
+    lotteryEligible: false,
+    showPrivacyConsent: false,
+    privacyChecked: false,
     invitationContext: null,
     canManageInvitations: false,
     lockedCity: '',
     hasServiceAccess: false,
+    hasRegistrationRecord: false,
+    registrationEventCity: '',
+    invitationCanOverride: false,
   },
   onLoad(options) {
+    const privacyAccepted = !!wx.getStorageSync('bochuPrivacyAccepted');
+    this.setData({ showPrivacyConsent: !privacyAccepted });
     let sceneCode = '';
     if (options.scene) {
       const scene = decodeURIComponent(options.scene);
       sceneCode = scene.indexOf('i=') === 0 ? scene.substring(2) : scene;
     }
-    const inviteCode = options.code || options.inviteCode || sceneCode || wx.getStorageSync('activeInviteCode') || '';
+    // 邀请码只能来自本次打开参数；旧缓存不能自行恢复受邀场次。
+    const inviteCode = options.code || options.inviteCode || sceneCode || '';
+    this._launchInviteCode = inviteCode;
     this.setData({ inviteCode });
+    if (!inviteCode) wx.removeStorageSync('activeInviteCode');
     this.loadEventWeather();
-    if (inviteCode) {
-      app.request(`/api/apply/check-invitation?code=${encodeURIComponent(inviteCode)}`).then((context) => {
-        wx.setStorageSync('activeInviteCode', inviteCode);
-        this.applyInvitationContext(context || {});
-        this.setData({ valid: true, invitationContext: context || {}, hasServiceAccess: true });
-      }).catch(() => {
-        wx.removeStorageSync('activeInviteCode');
-        this.setData({ valid: false });
-      });
-    }
-    this.syncApplyFlag().then(() => this.prepareInviteDialog());
+    // 必须先查询数据库登记；只有明确未登记时，当前邀请链接才有权锁定场次。
+    this.syncApplyFlag()
+      .then((record) => {
+        if ((!record || record.status === 'REJECTED') && inviteCode) return this.validateInvitation(inviteCode);
+        return null;
+      })
+      .catch(() => {});
   },
   onShow() {
     this.syncApplyFlag();
@@ -62,9 +68,40 @@ Page({
         weatherIndex,
         currentWeather: this.data.weatherStops[weatherIndex],
         lockedCity: context.eventCity,
-        hasServiceAccess: true,
       });
     }
+  },
+  validateInvitation(inviteCode) {
+    return app.request(`/api/apply/check-invitation?code=${encodeURIComponent(inviteCode)}`)
+      .then((context) => {
+        // 查询邀请期间若登记状态发生变化，仍以数据库登记为最高优先级。
+        if (this.data.hasRegistrationRecord && !this.data.invitationCanOverride) return;
+        wx.setStorageSync('activeInviteCode', inviteCode);
+        this.setData({
+          inviteCode,
+          valid: true,
+          invitationContext: context || {},
+          hasServiceAccess: true,
+        });
+        this.applyInvitationContext(context || {});
+      })
+      .catch(() => {
+        if (this.data.hasRegistrationRecord && !this.data.invitationCanOverride) return;
+        wx.removeStorageSync('activeInviteCode');
+        this.setData({
+          valid: false,
+          invitationContext: null,
+          lockedCity: '',
+          hasServiceAccess: false,
+        });
+        if (this.data.hasRegistrationRecord && this._databaseInvitationContext) {
+          this.setData({
+            inviteCode: this._databaseInviteCode || '',
+            invitationContext: this._databaseInvitationContext,
+          });
+          this.applyInvitationContext(this._databaseInvitationContext);
+        }
+      });
   },
   loadEventWeather() {
     app.request('/api/events', 'GET', {}, {}, { silent: true }).then((rows) => {
@@ -101,47 +138,66 @@ Page({
         const checkedIn = !!(record && record.checkedInAt);
         const approved = record && record.status === 'APPROVED';
         const pending = record && record.status === 'PENDING';
+        const rejected = record && record.status === 'REJECTED';
+        const eventCity = record && record.eventCity ? record.eventCity : '';
         this.setData({
           registrationStatus: checkedIn ? '已入场' : (approved ? '已审核' : (pending ? '审核中' : '未登记')),
           registrationStatusClass: checkedIn ? 'checked-in' : (approved ? 'approved' : (pending ? 'pending' : 'unregistered')),
+          lotteryEligible: !!approved,
+          hasRegistrationRecord: !!record,
+          registrationEventCity: eventCity,
+          // 参会服务仅对审核通过（含已入场）的登记场次开放。
+          hasServiceAccess: !!approved,
+          invitationCanOverride: !!rejected,
         });
         if (record && record.phone) {
           wx.setStorageSync('lastApplyPhone', record.phone);
         }
         if (record && record.eventCity) {
-          this.setData({ hasServiceAccess: true });
-          if (record.invitationCode) wx.setStorageSync('activeInviteCode', record.invitationCode);
-          if (!this.data.lockedCity) {
-            const context = { eventCity: record.eventCity };
-            this.setData({ valid: true, invitationContext: context });
+          const context = { eventCity: record.eventCity };
+          this._databaseInvitationContext = context;
+          this._databaseInviteCode = record.invitationCode || '';
+          const waitingForRejectedInvite = rejected && !!this._launchInviteCode;
+          if (!waitingForRejectedInvite) {
+            if (record.invitationCode) wx.setStorageSync('activeInviteCode', record.invitationCode);
+            else wx.removeStorageSync('activeInviteCode');
+            this.setData({
+              inviteCode: record.invitationCode || '',
+              valid: true,
+              invitationContext: context,
+            });
             this.applyInvitationContext(context);
           }
         }
+        return record;
       })
       .catch((err) => {
         if (err && err.code === 3002) {
           wx.removeStorageSync('lastApplyPhone');
-          this.setData({ registrationStatus: '未登记', registrationStatusClass: 'unregistered' });
-          if (!this.data.valid) this.setData({ hasServiceAccess: false, lockedCity: '' });
+          this.setData({
+            registrationStatus: '未登记',
+            registrationStatusClass: 'unregistered',
+            lotteryEligible: false,
+            hasRegistrationRecord: false,
+            registrationEventCity: '',
+            hasServiceAccess: false,
+            invitationCanOverride: false,
+          });
+          if (!this.data.valid) this.setData({ lockedCity: '', invitationContext: null });
+          return null;
         }
+        return Promise.reject(err);
       });
   },
-  prepareInviteDialog() {
-    const hasApplied = wx.getStorageSync('lastApplyPhone');
-    if (hasApplied || this.inviteDialogShownInPage) return;
-    this.inviteDialogShownInPage = true;
-    setTimeout(() => {
-      this.setData({ showInviteDialog: true });
-    }, 360);
-  },
-  closeInviteDialog() {
-    this.setData({ showInviteDialog: false });
-  },
-  enterInviteApply() {
-    this.setData({ showInviteDialog: false });
-    this.goRegister();
-  },
   goRegister() {
+    // 微信身份已由 ensureLogin 建立；已有登记时直接读取数据库记录，
+    // 不再把本地姓名性别缓存当作第二套登录状态。
+    if (this.data.hasRegistrationRecord) {
+      wx.navigateTo({
+        url: `/pages/apply/index?record=1&inviteCode=${encodeURIComponent(this.data.inviteCode || '')}`,
+      });
+      return;
+    }
     if (!this.data.inviteCode) {
       wx.showModal({
         title: '定向邀请活动',
@@ -158,19 +214,33 @@ Page({
       wx.showToast({ title: '正在校验邀请码', icon: 'none' });
       return;
     }
-    const memberProfile = wx.getStorageSync('bochuMemberProfile');
     const target = `/pages/apply/index?inviteCode=${encodeURIComponent(this.data.inviteCode || '')}`;
-    if (!memberProfile || !memberProfile.name || !memberProfile.gender) {
-      wx.navigateTo({ url: `/pages/login/index?redirect=${encodeURIComponent(target)}` });
-      return;
-    }
-    if (wx.getStorageSync('lastApplyPhone')) {
-      this.showTicket();
-      return;
-    }
     wx.navigateTo({ url: target });
   },
   noop() {},
+  togglePrivacyConsent() {
+    this.setData({ privacyChecked: !this.data.privacyChecked });
+  },
+  openAgreement() {
+    wx.navigateTo({ url: '/pages/agreement/index' });
+  },
+  openPrivacy() {
+    wx.navigateTo({ url: '/pages/privacy/index' });
+  },
+  openLotteryRules() {
+    wx.navigateTo({ url: '/pages/lottery-rules/index' });
+  },
+  confirmPrivacyConsent() {
+    if (!this.data.privacyChecked) {
+      wx.showToast({ title: '请先阅读并勾选同意', icon: 'none' });
+      return;
+    }
+    wx.setStorageSync('bochuPrivacyAccepted', {
+      version: '2026-09-01',
+      acceptedAt: Date.now(),
+    });
+    this.setData({ showPrivacyConsent: false });
+  },
   onPageScrollView(e) {
     this._pageScrollTop = (e && e.detail && e.detail.scrollTop) || 0;
   },
@@ -225,6 +295,16 @@ Page({
     wx.navigateTo({ url: `/pages/${page}/index?city=${encodeURIComponent(city)}` });
   },
   goLottery() {
+    if (!this.data.lotteryEligible) {
+      wx.showModal({
+        title: '暂不可领取',
+        content: this.data.registrationStatus === '审核中'
+          ? '您的参会登记正在审核中，审核通过后可领取抽奖码。'
+          : '请先完成参会登记并等待审核通过，之后即可领取抽奖码。',
+        showCancel: false,
+      });
+      return;
+    }
     wx.navigateTo({ url: '/pages/lottery/index' });
   },
   // 入场码：查询自己的审核状态
