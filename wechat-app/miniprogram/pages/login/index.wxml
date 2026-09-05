@@ -29,8 +29,8 @@
 
   <view class="login-panel">
     <block wx:if="{{!wxLogged}}">
-      <button class="login-btn primary" loading="{{logging}}" bindtap="handleLogin">微信登录</button>
-      <view class="hint">用于确认参会身份，登录后仅需补充姓名与性别。</view>
+      <button class="login-btn primary" open-type="getPhoneNumber" bindgetphonenumber="handleLogin" loading="{{logging}}" disabled="{{logging}}">微信登录</button>
+      <view class="hint">点击登录后，微信将询问是否允许提供手机号，用于会务联络及登记预填。仅在您同意后获取；拒绝仍可登录并手动填写。</view>
     </block>
 
     <block wx:elif="{{!profileReady}}">
@@ -81,7 +81,6 @@
         <view wx:else class="empty-record">暂无参会登记记录</view>
       </view>
 
-      <button wx:if="{{!applyRecord}}" class="login-btn primary" bindtap="goApply">前往登记</button>
     </block>
   </view>
   <view class="agreement-footer">

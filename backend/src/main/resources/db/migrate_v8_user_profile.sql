@@ -1,0 +1,3 @@
+ALTER TABLE gonghcuang_user
+    ADD COLUMN name VARCHAR(64) NULL,
+    ADD COLUMN gender VARCHAR(8) NULL;

@@ -2,7 +2,10 @@ package com.example.app.service;
 
 import com.example.app.common.BizException;
 import com.example.app.common.ErrorCode;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -13,9 +16,11 @@ import java.util.Base64;
 import java.util.Map;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class WechatMiniCodeService {
     private final RestClient wxRestClient;
+    private final ObjectMapper objectMapper;
     @Value("${wechat.appid}") private String appid;
     @Value("${wechat.secret}") private String secret;
     private String accessToken;
@@ -32,15 +37,24 @@ public class WechatMiniCodeService {
         return Map.of("imageBase64", Base64.getEncoder().encodeToString(image));
     }
 
-    @SuppressWarnings("unchecked")
-    private synchronized String token() {
+    synchronized String token() {
         if (accessToken != null && tokenExpiresAt != null && tokenExpiresAt.isAfter(LocalDateTime.now())) return accessToken;
         String url = UriComponentsBuilder.fromUriString("https://api.weixin.qq.com/cgi-bin/token")
                 .queryParam("grant_type", "client_credential").queryParam("appid", appid).queryParam("secret", secret)
                 .build().toUriString();
-        Map<String, Object> body = wxRestClient.get().uri(url).retrieve().body(Map.class);
+        Map<String, Object> body;
+        try {
+            String response = wxRestClient.get().uri(url).retrieve().body(String.class);
+            body = objectMapper.readValue(response, new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            log.warn("微信接口凭证异常: type={}", e.getClass().getSimpleName());
+            throw new BizException(ErrorCode.WECHAT_API_ERROR, "微信接口凭证获取或解析失败（阶段：获取 access_token）");
+        }
         if (body == null || body.get("access_token") == null) {
-            throw new BizException(ErrorCode.WECHAT_API_ERROR, "无法获取微信接口凭证");
+            int wxCode = body != null && body.get("errcode") instanceof Number
+                    ? ((Number) body.get("errcode")).intValue() : -1;
+            log.warn("微信接口凭证失败: errcode={}", wxCode);
+            throw new BizException(ErrorCode.WECHAT_API_ERROR, "无法获取微信接口凭证（微信错误码：" + wxCode + "）");
         }
         accessToken = String.valueOf(body.get("access_token"));
         int expires = body.get("expires_in") instanceof Number ? ((Number) body.get("expires_in")).intValue() : 7200;

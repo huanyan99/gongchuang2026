@@ -1,8 +1,9 @@
 <scroll-view class="policy-scroll" scroll-y enhanced="{{true}}" show-scrollbar="{{false}}">
 <view class="page">
-  <view class="title">隐私政策</view><view class="updated">更新日期：2026年9月1日</view>
+  <view class="title">隐私政策</view><view class="updated">更新日期：2026年9月3日</view>
   <view class="intro">我们尊重并保护您的个人信息。本政策说明本小程序如何收集、使用、保存和保护相关信息。</view>
   <view class="section"><view class="heading">一、我们收集的信息</view><view class="text">为提供活动服务，我们可能收集微信登录标识，以及您主动提交的姓名、性别、手机号、公司、职位、参会场次、住宿要求、房型、入住日期和同行人员信息。</view></view>
+  <view class="section"><view class="heading">手机号主动授权</view><view class="text">您点击“微信登录”后，微信会询问是否允许提供手机号。仅在您同意后，我们才会获取您选择授权的手机号，并关联至当前微信登录身份，用于会务联络及预填主要联系人的参会登记信息。您可以拒绝授权，仍可正常登录并在登记时手动填写手机号。授权不会自动修改已提交的登记信息。</view></view>
   <view class="section"><view class="heading">二、信息使用目的</view><view class="text">相关信息仅用于身份确认、邀请管理、参会审核、会务联络、同行人员管理、住宿安排、现场服务、抽奖活动及必要的活动统计。</view></view>
   <view class="section"><view class="heading">三、同行人员信息</view><view class="text">当您代同行人员填写信息时，请确保已向其说明使用目的并取得同意。我们将按照本政策保护同行人员信息。</view></view>
   <view class="section"><view class="heading">四、运营主体</view><view class="text">本小程序由上海柏楚电子科技股份有限公司运营。如对个人信息处理存在疑问，可通过邮箱 it@bochu.com 联系我们。</view></view>

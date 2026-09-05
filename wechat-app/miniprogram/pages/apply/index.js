@@ -55,6 +55,16 @@ Page({
       reason: applyProfile.reason || '',
     });
     const shouldLoadRecord = options.ticket === '1' || options.record === '1';
+    if (!shouldLoadRecord) {
+      app.ensureLogin().then(() => app.request('/api/auth/me', 'GET', {}, {}, { silent: true }))
+        .then((user) => {
+          // 只预填空白的主要联系人号码；不覆盖手动输入、同行人或已有登记。
+          if (user.phoneCountryCode === '86' && /^1\d{10}$/.test(user.phone || '')
+              && !this.data.phone && !this.data.attendees[0].phone && !this._phoneEdited) {
+            this.setData({ phone: user.phone, 'attendees[0].phone': user.phone });
+          }
+        }).catch(() => {});
+    }
     if (this.data.inviteCode) {
       app.request(`/api/apply/check-invitation?code=${encodeURIComponent(this.data.inviteCode)}`, 'GET', {}, {}, { silent: true }).then((context) => {
         const eventCity = context.eventCity || '';
@@ -92,6 +102,7 @@ Page({
     const index = Number(e.currentTarget.dataset.index);
     const field = e.currentTarget.dataset.field;
     const attendees = this.data.attendees.slice();
+    if (index === 0 && field === 'phone') this._phoneEdited = true;
     attendees[index] = copyAttendee(attendees[index]);
     attendees[index][field] = e.detail.value;
     if (index === 0 && field === 'company') {

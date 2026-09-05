@@ -47,7 +47,7 @@ App({
       wx.login({
         success: (res) => {
           if (!res.code) {
-            reject({ code: -1, message: '微信登录失败' });
+            reject({ code: -1, stage: 'wx.login', message: '微信未返回登录凭证，请重新编译后重试' });
             return;
           }
           this.request('/api/auth/login', 'POST', { code: res.code }, {}, { skipRetry: true })
@@ -55,9 +55,9 @@ App({
               this.applyLoginSession(data);
               resolve(data.token);
             })
-            .catch(reject);
+            .catch((err) => reject(Object.assign({}, err, { stage: '后端登录接口' })));
         },
-        fail: () => reject({ code: -1, message: '微信登录失败' }),
+        fail: () => reject({ code: -1, stage: 'wx.login', message: '微信登录凭证获取失败，请确认微信网络及小程序 AppID' }),
       });
     }).finally(() => {
       this._loginPromise = null;
@@ -114,8 +114,14 @@ App({
           }
           reject(err);
         },
-        fail: () => {
-          const err = { code: -1, message: '网络异常，请稍后重试' };
+        fail: (failure) => {
+          const detail = (failure && failure.errMsg) || '';
+          const message = /domain list|url not in domain/i.test(detail)
+            ? '请求域名未获允许，请检查合法域名或本地调试设置'
+            : (/timeout/i.test(detail)
+              ? '连接后端超时，请检查手机和电脑网络'
+              : '无法连接后端，请检查服务地址、网络和防火墙');
+          const err = { code: -1, stage: '网络请求', message };
           if (!silent) {
             wx.showToast({ title: err.message, icon: 'none' });
           }
@@ -209,7 +215,8 @@ App({
     return {};
   },
   globalData: {
-    baseUrl: 'http://localhost:8080',
+    // 本机局域网联调地址；正式发布前必须替换为已配置的 HTTPS API 域名。
+    baseUrl: 'http://10.147.201.20:8080',
     mockApi: false,
     token: null,
     userInfo: null,

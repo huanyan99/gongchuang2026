@@ -1,5 +1,5 @@
 {
-  "appid": "wxb289cf90a061402a",
+  "appid": "wx03e06c206cd1a25a",
   "compileType": "miniprogram",
   "miniprogramRoot": "miniprogram/",
   "libVersion": "3.4.0",
@@ -32,5 +32,6 @@
     "ignore": [],
     "include": []
   },
-  "editorSetting": {}
+  "editorSetting": {},
+  "isGameTourist": false
 }

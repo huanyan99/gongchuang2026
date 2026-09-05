@@ -22,6 +22,14 @@ public class User {
 
     private String avatarUrl;
 
+    private String name;
+    private String gender;
+
+    /** 用户主动通过微信授权的手机号，不等同于手动登记手机号 */
+    private String phone;
+    private String phoneCountryCode;
+    private LocalDateTime phoneVerifiedAt;
+
     /** 是否可以创建并管理自己的定向邀请 */
     private Boolean canInvite;
 
