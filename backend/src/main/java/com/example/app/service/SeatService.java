@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -36,7 +35,6 @@ public class SeatService {
     public static final int MAX_IMPORT_ROWS = 2000;
 
     private static final Pattern PHONE = Pattern.compile("^1\\d{10}$");
-    private static final Pattern LEADING_DIGITS = Pattern.compile("^(\\d+)");
 
     private final SeatMapper seatMapper;
     private final ApplicationService applicationService;
@@ -61,8 +59,8 @@ public class SeatService {
             if (guest.getPhone() != null) myPhones.add(guest.getPhone());
         }
 
+        // 只返回本人及同行人的桌号，不下发其他嘉宾信息，也不下发同桌人数
         List<Map<String, Object>> mySeats = new ArrayList<>();
-        Set<String> myTables = new LinkedHashSet<>();
         for (Seat seat : citySeats) {
             if (!myPhones.contains(seat.getPhone())) continue;
             Map<String, Object> row = new LinkedHashMap<>();
@@ -70,29 +68,12 @@ public class SeatService {
             row.put("tableNo", seat.getTableNo());
             row.put("seatNo", seat.getSeatNo());
             mySeats.add(row);
-            myTables.add(seat.getTableNo());
         }
-
-        Map<String, Integer> countByTable = new LinkedHashMap<>();
-        for (Seat seat : citySeats) {
-            countByTable.merge(seat.getTableNo(), 1, Integer::sum);
-        }
-
-        List<Map<String, Object>> tables = new ArrayList<>();
-        countByTable.keySet().stream().sorted(tableOrder()).forEach((tableNo) -> {
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("tableNo", tableNo);
-            row.put("guestCount", countByTable.get(tableNo));
-            row.put("mine", myTables.contains(tableNo));
-            tables.add(row);
-        });
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("eventCity", eventCity);
         body.put("published", !citySeats.isEmpty());
-        body.put("tables", tables);
         body.put("mySeats", mySeats);
-        body.put("myTables", new ArrayList<>(myTables));
         return body;
     }
 
@@ -221,21 +202,6 @@ public class SeatService {
         return seatMapper.selectList(new LambdaQueryWrapper<Seat>()
                 .eq(Seat::getEventCity, eventCity)
                 .orderByAsc(Seat::getId));
-    }
-
-    /** 桌号排序：纯数字按数值，其余按字典序排在数字之后 */
-    private Comparator<String> tableOrder() {
-        return Comparator
-                .comparingInt((String tableNo) -> {
-                    var matcher = LEADING_DIGITS.matcher(tableNo);
-                    if (!matcher.find()) return Integer.MAX_VALUE;
-                    try {
-                        return Integer.parseInt(matcher.group(1));
-                    } catch (NumberFormatException e) {
-                        return Integer.MAX_VALUE;
-                    }
-                })
-                .thenComparing(Comparator.naturalOrder());
     }
 
     private Map<String, Object> error(int line, String message) {

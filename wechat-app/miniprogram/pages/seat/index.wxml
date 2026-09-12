@@ -15,11 +15,11 @@
       <view class="eyebrow">SEATING MAP</view>
       <view class="title">桌位图</view>
       <view class="gold-line"></view>
-      <view class="sub">{{eventCity}}场 · 现场桌位安排</view>
+      <view class="sub">{{eventCity}}场</view>
     </view>
   </view>
 
-  <view wx:if="{{loading}}" class="state-card">正在加载桌位安排 ···</view>
+  <view wx:if="{{loading}}" class="state-card">正在加载 ···</view>
 
   <block wx:else>
     <view wx:if="{{primarySeat}}" class="seat-card">
@@ -29,7 +29,6 @@
         <text class="seat-unit">桌</text>
       </view>
       <view class="seat-name">{{primarySeat.name}}{{primarySeat.seatLabel}}</view>
-      <view class="seat-meta">同桌 {{myTableCount}} 人 · 请按桌号就座</view>
       <view wx:if="{{mySeats.length > 1}}" class="seat-party">
         <view wx:for="{{mySeats}}" wx:key="index" class="party-row">
           <text>{{item.name}}</text>
@@ -37,52 +36,11 @@
         </view>
       </view>
     </view>
-    <view wx:elif="{{published}}" class="state-card">桌位安排已发布，但未查询到您的桌号，请联系现场会务人员。</view>
-    <view wx:else class="state-card">桌位安排尚未发布，请在活动当天留意会务通知。</view>
+    <view wx:elif="{{published}}" class="state-card">未查询到您的桌号，请联系现场会务人员</view>
+    <view wx:else class="state-card">桌位安排尚未发布</view>
 
-    <view wx:if="{{tables.length}}" class="hall">
-      <view class="hall-head">
-        <text>全场桌位图</text>
-        <text>共 {{tables.length}} 桌</text>
-      </view>
-      <view class="hall-stage">舞　台</view>
-      <view class="tables">
-        <view
-          wx:for="{{tables}}"
-          wx:key="tableNo"
-          class="table {{item.mine ? 'mine' : ''}}"
-          data-index="{{index}}"
-          bindtap="selectTable"
-        >
-          <view class="table-round">
-            <text class="table-no">{{item.tableNo}}</text>
-            <text class="table-count">{{item.guestCount}}人</text>
-          </view>
-        </view>
-      </view>
-      <view class="legend">
-        <view class="legend-item"><view class="dot mine"></view><text>我的桌位</text></view>
-        <view class="legend-item"><view class="dot"></view><text>其他桌位</text></view>
-      </view>
-    </view>
+    <image wx:if="{{hallImage}}" class="hall-image" src="{{hallImage}}" mode="widthFix" bindtap="previewHall" />
+    <view wx:else class="hall-placeholder">全场位置图待发布</view>
   </block>
 </view>
 </scroll-view>
-
-<view wx:if="{{selected}}" class="detail-mask" bindtap="closeDetail" catchtouchmove="noop">
-  <view class="detail-card" catchtap="noop">
-    <view class="detail-head">
-      <view class="detail-no">{{selected.tableNo}} 桌</view>
-      <view wx:if="{{selected.mine}}" class="detail-tag">我的桌位</view>
-    </view>
-    <view class="detail-line">本桌就座 {{selected.guestCount}} 人</view>
-    <view wx:if="{{selected.mine}}" class="detail-guests">
-      <view wx:for="{{mySeats}}" wx:key="index" wx:if="{{item.tableNo === selected.tableNo}}" class="detail-guest">
-        <text>{{item.name}}</text>
-        <text>{{item.seatNo ? item.seatNo + ' 号座' : '不指定座位'}}</text>
-      </view>
-    </view>
-    <view wx:else class="detail-note">为保护嘉宾个人信息，仅显示本桌就座人数。</view>
-    <button class="detail-close" bindtap="closeDetail">知道了</button>
-  </view>
-</view>

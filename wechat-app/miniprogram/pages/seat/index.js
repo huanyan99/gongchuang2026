@@ -1,5 +1,12 @@
 const app = getApp();
 
+// 全场位置图：把图片放进 /images/ 后填写路径，或填写已配置域名的 https 图片地址。
+const HALL_IMAGES = {
+  上海: '',
+  济南: '',
+  佛山: '',
+};
+
 function seatLabel(seatNo) {
   return seatNo ? ` · ${seatNo} 号座` : '';
 }
@@ -9,14 +16,13 @@ Page({
     loading: true,
     eventCity: '',
     published: false,
-    tables: [],
     mySeats: [],
     primarySeat: null,
-    myTableCount: 0,
-    selected: null,
+    hallImage: '',
   },
   onLoad(options) {
-    this.setData({ eventCity: decodeURIComponent(options.city || '') });
+    const eventCity = decodeURIComponent(options.city || '');
+    this.setData({ eventCity, hallImage: HALL_IMAGES[eventCity] || '' });
     this.loadSeat();
   },
   onShow() {
@@ -37,30 +43,22 @@ Page({
       });
   },
   applySeat(data) {
-    const tables = (data.tables || []).map((item) => Object.assign({}, item, {
-      tableNo: String(item.tableNo),
-    }));
     const mySeats = (data.mySeats || []).map((item) => Object.assign({}, item, {
       tableNo: String(item.tableNo),
       seatLabel: seatLabel(item.seatNo),
     }));
-    const primarySeat = mySeats.length ? mySeats[0] : null;
-    const myTable = primarySeat ? tables.find((item) => item.tableNo === primarySeat.tableNo) : null;
+    const eventCity = data.eventCity || this.data.eventCity;
     this.setData({
       loading: false,
-      eventCity: data.eventCity || this.data.eventCity,
+      eventCity,
       published: !!data.published,
-      tables,
       mySeats,
-      primarySeat,
-      myTableCount: myTable ? myTable.guestCount : 0,
+      primarySeat: mySeats.length ? mySeats[0] : null,
+      hallImage: HALL_IMAGES[eventCity] || '',
     });
   },
-  selectTable(e) {
-    this.setData({ selected: this.data.tables[Number(e.currentTarget.dataset.index)] });
+  previewHall() {
+    if (!this.data.hallImage) return;
+    wx.previewImage({ urls: [this.data.hallImage] });
   },
-  closeDetail() {
-    this.setData({ selected: null });
-  },
-  noop() {},
 });

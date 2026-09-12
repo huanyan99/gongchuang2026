@@ -1,12 +1,17 @@
 /** 桌位图，对应 wechat-app/miniprogram/pages/seat/index.js */
 
 import { View } from '../core/view.js';
-import { html, when, cx } from '../core/dom.js';
-import { request, ensureLogin } from '../core/api.js';
-import { showModal } from '../core/ui.js';
+import { html, when } from '../core/dom.js';
+import { request, ensureLogin, config } from '../core/api.js';
+import { showImage, showModal } from '../core/ui.js';
 
 function seatLabel(seatNo) {
   return seatNo ? ` · ${seatNo} 号座` : '';
+}
+
+/** 全场位置图：把图片放进 assets/ 后在 config.js 的 hallImages 中填写路径 */
+function hallImage(eventCity) {
+  return (config.hallImages && config.hallImages[eventCity]) || '';
 }
 
 export class SeatView extends View {
@@ -18,16 +23,15 @@ export class SeatView extends View {
       loading: true,
       eventCity: '',
       published: false,
-      tables: [],
       mySeats: [],
       primarySeat: null,
-      myTableCount: 0,
-      selected: null,
+      hallImage: '',
     };
   }
 
   onLoad(options) {
-    this.setData({ eventCity: decodeURIComponent(options.city || '') });
+    const eventCity = decodeURIComponent(options.city || '');
+    this.setData({ eventCity, hallImage: hallImage(eventCity) });
     this.loadSeat();
   }
 
@@ -46,32 +50,25 @@ export class SeatView extends View {
   }
 
   applySeat(data) {
-    const tables = (data.tables || []).map((item) => ({ ...item, tableNo: String(item.tableNo) }));
     const mySeats = (data.mySeats || []).map((item) => ({
       ...item,
       tableNo: String(item.tableNo),
       seatLabel: seatLabel(item.seatNo),
     }));
-    const primarySeat = mySeats.length ? mySeats[0] : null;
-    const myTable = primarySeat ? tables.find((item) => item.tableNo === primarySeat.tableNo) : null;
+    const eventCity = data.eventCity || this.data.eventCity;
 
     this.setData({
       loading: false,
-      eventCity: data.eventCity || this.data.eventCity,
+      eventCity,
       published: !!data.published,
-      tables,
       mySeats,
-      primarySeat,
-      myTableCount: myTable ? myTable.guestCount : 0,
+      primarySeat: mySeats.length ? mySeats[0] : null,
+      hallImage: hallImage(eventCity),
     });
   }
 
-  selectTable(event, dataset) {
-    this.setData({ selected: this.data.tables[Number(dataset.index)] });
-  }
-
-  closeDetail() {
-    this.setData({ selected: null });
+  previewHall() {
+    if (this.data.hallImage) showImage(this.data.hallImage);
   }
 
   seatCard() {
@@ -84,7 +81,6 @@ export class SeatView extends View {
           <span class="seat-unit">桌</span>
         </div>
         <div class="seat-name">${seat.name}${seat.seatLabel}</div>
-        <div class="seat-meta">同桌 ${this.data.myTableCount} 人 · 请按桌号就座</div>
         ${when(this.data.mySeats.length > 1, () => html`
           <div class="seat-party">
             ${this.data.mySeats.map((item) => html`
@@ -95,60 +91,6 @@ export class SeatView extends View {
             `)}
           </div>
         `)}
-      </div>
-    `;
-  }
-
-  hall() {
-    return html`
-      <div class="hall">
-        <div class="hall-head">
-          <span>全场桌位图</span>
-          <span>共 ${this.data.tables.length} 桌</span>
-        </div>
-        <div class="hall-stage">舞　台</div>
-        <div class="tables">
-          ${this.data.tables.map((item, index) => html`
-            <div class="table tap ${cx({ mine: item.mine })}" data-index="${index}" data-tap="selectTable">
-              <div class="table-round">
-                <span class="table-no">${item.tableNo}</span>
-                <span class="table-count">${item.guestCount}人</span>
-              </div>
-            </div>
-          `)}
-        </div>
-        <div class="legend">
-          <div class="legend-item"><div class="dot mine"></div><span>我的桌位</span></div>
-          <div class="legend-item"><div class="dot"></div><span>其他桌位</span></div>
-        </div>
-      </div>
-    `;
-  }
-
-  detail() {
-    const table = this.data.selected;
-    return html`
-      <div class="detail-mask" data-tap="closeDetail">
-        <div class="detail-card">
-          <div class="detail-head">
-            <div class="detail-no">${table.tableNo} 桌</div>
-            ${when(table.mine, html`<div class="detail-tag">我的桌位</div>`)}
-          </div>
-          <div class="detail-line">本桌就座 ${table.guestCount} 人</div>
-          ${table.mine ? html`
-            <div class="detail-guests">
-              ${this.data.mySeats.filter((item) => item.tableNo === table.tableNo).map((item) => html`
-                <div class="detail-guest">
-                  <span>${item.name}</span>
-                  <span>${item.seatNo ? `${item.seatNo} 号座` : '不指定座位'}</span>
-                </div>
-              `)}
-            </div>
-          ` : html`
-            <div class="detail-note">为保护嘉宾个人信息，仅显示本桌就座人数。</div>
-          `}
-          <button type="button" class="detail-close" data-tap="closeDetail">知道了</button>
-        </div>
       </div>
     `;
   }
@@ -164,24 +106,25 @@ export class SeatView extends View {
               <div class="eyebrow">SEATING MAP</div>
               <div class="title">桌位图</div>
               <div class="gold-line"></div>
-              <div class="sub">${this.data.eventCity}场 · 现场桌位安排</div>
+              <div class="sub">${this.data.eventCity}场</div>
             </div>
           </div>
 
           ${this.data.loading
-            ? html`<div class="state-card">正在加载桌位安排 ···</div>`
+            ? html`<div class="state-card">正在加载 ···</div>`
             : html`
               ${this.data.primarySeat
                 ? this.seatCard()
                 : html`<div class="state-card">${this.data.published
-                    ? '桌位安排已发布，但未查询到您的桌号，请联系现场会务人员。'
-                    : '桌位安排尚未发布，请在活动当天留意会务通知。'}</div>`}
-              ${when(this.data.tables.length, () => this.hall())}
+                    ? '未查询到您的桌号，请联系现场会务人员'
+                    : '桌位安排尚未发布'}</div>`}
+
+              ${this.data.hallImage
+                ? html`<img class="hall-image tap" src="${this.data.hallImage}" alt="全场位置图" data-tap="previewHall" />`
+                : html`<div class="hall-placeholder">全场位置图待发布</div>`}
             `}
         </div>
       </div>
-
-      ${when(this.data.selected, () => this.detail())}
     `;
   }
 }

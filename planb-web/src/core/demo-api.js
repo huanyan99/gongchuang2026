@@ -192,14 +192,6 @@ function seatsOfCity(db, eventCity) {
   return (db.seats || []).filter((item) => item.eventCity === eventCity);
 }
 
-function tableOrder(a, b) {
-  const digits = (value) => {
-    const matched = /^(\d+)/.exec(value);
-    return matched ? Number(matched[1]) : Number.MAX_SAFE_INTEGER;
-  };
-  return digits(a) - digits(b) || a.localeCompare(b);
-}
-
 function seatSummary(db, eventCity) {
   const seats = seatsOfCity(db, eventCity);
   return {
@@ -218,26 +210,15 @@ function mySeat(db) {
   const citySeats = seatsOfCity(db, eventCity);
   const myPhones = new Set([application.phone, ...(application.attendees || []).map((guest) => guest.phone)]);
 
+  // 只返回本人及同行人的桌号，不下发其他嘉宾信息，也不下发同桌人数
   const mySeats = citySeats
     .filter((seat) => myPhones.has(seat.phone))
     .map((seat) => ({ name: seat.name, tableNo: seat.tableNo, seatNo: seat.seatNo || '' }));
-  const myTables = [...new Set(mySeats.map((seat) => seat.tableNo))];
-
-  const countByTable = {};
-  citySeats.forEach((seat) => {
-    countByTable[seat.tableNo] = (countByTable[seat.tableNo] || 0) + 1;
-  });
 
   return {
     eventCity,
     published: citySeats.length > 0,
-    tables: Object.keys(countByTable).sort(tableOrder).map((tableNo) => ({
-      tableNo,
-      guestCount: countByTable[tableNo],
-      mine: myTables.includes(tableNo),
-    })),
     mySeats,
-    myTables,
   };
 }
 

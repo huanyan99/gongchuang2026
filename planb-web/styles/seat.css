@@ -1,6 +1,6 @@
 /*
  * 桌位图，对应 wechat-app/miniprogram/pages/seat/index.wxss。
- * 作用域 .view--seat；1px === 1rpx；fixed 弹层改为页面内 absolute。
+ * 作用域 .view--seat；1px === 1rpx。
  */
 
 .view--seat {
@@ -87,8 +87,9 @@
 .view--seat .seat-card {
   position: relative;
   margin: -28px 28px 0;
-  padding: 40px 36px 36px;
+  padding: 48px 36px 44px;
   overflow: hidden;
+  text-align: center;
   color: #10244f;
   background: linear-gradient(135deg, #f7e8bc 0%, #d9b86f 48%, #f3dda5 100%);
   border: 1px solid rgba(168, 125, 49, 0.72);
@@ -109,6 +110,7 @@
 }
 
 .view--seat .seat-eyebrow {
+  position: relative;
   color: rgba(52, 42, 25, 0.62);
   font-size: 18px;
   line-height: 1;
@@ -118,45 +120,39 @@
 
 .view--seat .seat-no-row {
   position: relative;
-  margin-top: 22px;
+  margin-top: 24px;
   display: flex;
   align-items: baseline;
+  justify-content: center;
 }
 
 .view--seat .seat-no {
   color: #10244f;
-  font-size: 96px;
+  font-size: 150px;
   line-height: 1;
   font-weight: 800;
   letter-spacing: 2px;
 }
 
 .view--seat .seat-unit {
-  margin-left: 12px;
+  margin-left: 14px;
   color: #10244f;
-  font-size: 30px;
+  font-size: 40px;
   font-weight: 700;
 }
 
 .view--seat .seat-name {
   position: relative;
-  margin-top: 20px;
+  margin-top: 24px;
   color: #17284f;
   font-size: 30px;
   font-weight: 700;
 }
 
-.view--seat .seat-meta {
-  position: relative;
-  margin-top: 12px;
-  color: rgba(52, 42, 25, 0.7);
-  font-size: 22px;
-}
-
 .view--seat .seat-party {
   position: relative;
-  margin-top: 26px;
-  padding-top: 20px;
+  margin-top: 28px;
+  padding-top: 22px;
   border-top: 1px solid rgba(93, 64, 20, 0.2);
 }
 
@@ -168,219 +164,26 @@
   font-size: 24px;
 }
 
-.view--seat .hall {
+.view--seat .hall-image {
+  display: block;
+  width: calc(100% - 56px);
+  height: auto;
   margin: 28px;
-  padding: 30px 28px 34px;
-  background: linear-gradient(160deg, #102557, #26397b 54%, #0d214f);
-  border: 1px solid rgba(210, 176, 105, 0.3);
-  border-radius: 24px;
-  box-shadow: 0 22px 50px rgba(15, 31, 69, 0.24);
-}
-
-.view--seat .hall-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  color: #ffffff;
-}
-
-.view--seat .hall-head span:first-child {
-  font-size: 28px;
-  font-weight: 700;
-}
-
-.view--seat .hall-head span:last-child {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 21px;
-}
-
-.view--seat .hall-stage {
-  margin-top: 26px;
-  height: 72px;
-  line-height: 72px;
-  text-align: center;
-  color: #f4e3b8;
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: 8px;
-  background: linear-gradient(180deg, rgba(212, 176, 105, 0.3), rgba(212, 176, 105, 0.08));
-  border: 1px solid rgba(226, 194, 124, 0.5);
-  border-radius: 12px 12px 40px 40px;
-}
-
-.view--seat .tables {
-  display: flex;
-  flex-wrap: wrap;
-  margin-top: 28px;
-}
-
-.view--seat .table {
-  width: 25%;
-  padding: 12px 0;
-  display: flex;
-  justify-content: center;
-}
-
-.view--seat .table-round {
-  width: 130px;
-  height: 130px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 50%;
-  box-sizing: border-box;
-  transition: transform 160ms ease;
-}
-
-.view--seat .table:active .table-round {
-  transform: scale(0.94);
-}
-
-.view--seat .table.mine .table-round {
-  color: #10244f;
-  background: linear-gradient(135deg, #f7e8bc, #d9b86f);
-  border-color: rgba(255, 250, 231, 0.9);
-  box-shadow: 0 10px 24px rgba(8, 18, 48, 0.32), 0 0 0 6px rgba(226, 194, 124, 0.18);
-}
-
-.view--seat .table-no {
-  font-size: 34px;
-  line-height: 1;
-  font-weight: 800;
-}
-
-.view--seat .table-count {
-  margin-top: 10px;
-  font-size: 19px;
-  line-height: 1;
-  opacity: 0.72;
-}
-
-.view--seat .legend {
-  display: flex;
-  justify-content: center;
-  margin-top: 26px;
-  padding-top: 22px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.view--seat .legend-item {
-  display: flex;
-  align-items: center;
-  margin: 0 22px;
-  color: rgba(255, 255, 255, 0.68);
-  font-size: 21px;
-}
-
-.view--seat .dot {
-  width: 20px;
-  height: 20px;
-  margin-right: 10px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 50%;
-}
-
-.view--seat .dot.mine {
-  background: linear-gradient(135deg, #f7e8bc, #d9b86f);
-  border-color: rgba(255, 250, 231, 0.9);
-}
-
-.view--seat .detail-mask {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  z-index: 99;
-  display: flex;
-  align-items: flex-end;
-  background: rgba(5, 12, 32, 0.58);
-  animation: seatMaskFade 260ms ease both;
-}
-
-.view--seat .detail-card {
-  width: 100%;
-  padding: 40px 40px calc(40px + var(--safe-bottom));
-  background: #ffffff;
-  border-radius: 28px 28px 0 0;
-  box-sizing: border-box;
-  animation: seatSheetUp 300ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
-}
-
-.view--seat .detail-head {
-  display: flex;
-  align-items: center;
-}
-
-.view--seat .detail-no {
-  color: #132653;
-  font-size: 40px;
-  font-weight: 800;
-}
-
-.view--seat .detail-tag {
-  margin-left: 18px;
-  padding: 7px 16px;
-  color: #8a6a20;
-  font-size: 20px;
-  line-height: 1;
-  font-weight: 700;
-  background: rgba(214, 181, 109, 0.18);
-  border: 1px solid rgba(168, 125, 49, 0.5);
   border-radius: 20px;
+  background: #ffffff;
+  object-fit: contain;
+  box-shadow: 0 18px 40px rgba(13, 31, 76, 0.1);
 }
 
-.view--seat .detail-line {
-  margin-top: 16px;
-  color: #6f7788;
-  font-size: 24px;
-}
-
-.view--seat .detail-guests {
-  margin-top: 24px;
-  padding-top: 18px;
-  border-top: 1px solid #edf0f6;
-}
-
-.view--seat .detail-guest {
+.view--seat .hall-placeholder {
   display: flex;
-  justify-content: space-between;
-  margin-top: 14px;
-  color: #24345c;
-  font-size: 25px;
-}
-
-.view--seat .detail-note {
-  margin-top: 24px;
-  padding-top: 18px;
-  color: #9aa0a8;
-  font-size: 21px;
-  line-height: 1.6;
-  border-top: 1px solid #edf0f6;
-}
-
-.view--seat .detail-close {
-  margin-top: 32px;
-  height: 86px;
-  line-height: 86px;
-  color: #ffffff;
-  font-size: 27px;
-  font-weight: 700;
-  background: #26397b;
-  border-radius: 44px;
-}
-
-@keyframes seatMaskFade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes seatSheetUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  align-items: center;
+  justify-content: center;
+  height: 420px;
+  margin: 28px;
+  color: #a8afbd;
+  font-size: 24px;
+  background: #ffffff;
+  border: 2px dashed #d4d9e4;
+  border-radius: 20px;
 }
