@@ -1,0 +1,440 @@
+/*
+ * 抽奖码，对应 wechat-app/miniprogram/pages/lottery/index.wxss。
+ * 作用域 .view--lottery；1px === 1rpx；动画关键帧与小程序逐条一致。
+ */
+
+.view--lottery {
+  background: #142b68;
+}
+
+.view--lottery .page {
+  position: relative;
+  min-height: 100%;
+  padding: 24px 28px calc(70px + var(--safe-bottom));
+  box-sizing: border-box;
+  overflow: hidden;
+  color: #f8f2e6;
+  background:
+    linear-gradient(155deg, rgba(85, 124, 203, 0.34), transparent 42%),
+    linear-gradient(180deg, #26397b 0%, #13265c 52%, #091634 100%);
+}
+
+.view--lottery .page::before {
+  content: '';
+  position: absolute;
+  inset: 22px;
+  border: 1px solid rgba(210, 176, 105, 0.22);
+  pointer-events: none;
+}
+
+.view--lottery .ambient {
+  position: absolute;
+  width: 430px;
+  height: 430px;
+  border-radius: 50%;
+  filter: blur(5px);
+  opacity: 0.5;
+}
+
+.view--lottery .ambient-one {
+  right: -260px;
+  top: 80px;
+  background: radial-gradient(circle, rgba(190, 148, 69, 0.28), transparent 66%);
+}
+
+.view--lottery .ambient-two {
+  left: -280px;
+  bottom: 100px;
+  background: radial-gradient(circle, rgba(57, 84, 143, 0.38), transparent 66%);
+}
+
+.view--lottery .marine-hero {
+  position: relative;
+  z-index: 2;
+  height: 282px;
+  margin: 0 -6px;
+  overflow: hidden;
+  border-radius: 24px 24px 8px 8px;
+  border: 1px solid rgba(231, 215, 177, 0.26);
+  box-shadow: 0 20px 46px rgba(4, 16, 48, 0.25);
+  animation: heroReveal 1100ms ease-out both;
+}
+
+.view--lottery .ship-visual,
+.view--lottery .ship-shade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.view--lottery .ship-shade {
+  background: linear-gradient(180deg, rgba(18, 51, 117, 0.08), rgba(5, 21, 61, 0.58));
+}
+
+.view--lottery .spotlight {
+  position: absolute;
+  top: -100px;
+  left: -45%;
+  width: 46%;
+  height: 500px;
+  opacity: 0;
+  transform: rotate(15deg);
+  background: linear-gradient(90deg, transparent, rgba(240, 224, 190, 0.16), transparent);
+  animation: spotlightSweep 2600ms 500ms ease-in-out both;
+}
+
+.view--lottery .masthead {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 28px;
+  text-align: center;
+  text-shadow: 0 4px 18px rgba(3, 16, 50, 0.4);
+  animation: titleFade 900ms 220ms ease-out both;
+}
+
+.view--lottery .title {
+  font-size: 48px;
+  font-weight: 500;
+  letter-spacing: 10px;
+}
+
+.view--lottery .title-gem {
+  width: 10px;
+  height: 10px;
+  margin: 13px auto 0;
+  background: #d7b66d;
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 rgba(231, 203, 143, 0);
+  animation: gemFlash 700ms 850ms ease-out both;
+}
+
+.view--lottery .subtitle {
+  margin-top: 12px;
+  color: rgba(255, 255, 255, 0.62);
+  font: 18px Georgia, serif;
+  letter-spacing: 5px;
+}
+
+.view--lottery .ticket {
+  position: relative;
+  z-index: 2;
+  margin-top: 26px;
+  padding: 54px 38px 44px;
+  text-align: center;
+  color: #16213a;
+  border-radius: 8px;
+  border: 1px solid #d3b575;
+  background: linear-gradient(145deg, #fffdf8 0%, #f5eddc 100%);
+  box-shadow: 0 38px 90px rgba(0, 0, 0, 0.36), inset 0 0 0 10px rgba(255, 255, 255, 0.52);
+}
+
+.view--lottery .ticket::before,
+.view--lottery .ticket::after {
+  content: '';
+  position: absolute;
+  top: 52%;
+  width: 30px;
+  height: 60px;
+  margin-top: -30px;
+  background: #091329;
+}
+
+.view--lottery .ticket::before {
+  left: -1px;
+  border-radius: 0 34px 34px 0;
+}
+
+.view--lottery .ticket::after {
+  right: -1px;
+  border-radius: 34px 0 0 34px;
+}
+
+.view--lottery .ticket-line {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #b99650, transparent);
+}
+
+.view--lottery .ticket-line.top { top: 18px; }
+.view--lottery .ticket-line.bottom { bottom: 18px; }
+
+.view--lottery .ticket-kicker {
+  color: #a17d3d;
+  font: 18px Georgia, serif;
+  letter-spacing: 5px;
+}
+
+.view--lottery .ticket-title {
+  margin-top: 16px;
+  color: #102042;
+  font-size: 42px;
+  font-weight: 600;
+  letter-spacing: 8px;
+}
+
+.view--lottery .ticket-rule {
+  width: 150px;
+  height: 20px;
+  margin: 22px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid rgba(161, 125, 61, 0.4);
+}
+
+.view--lottery .ticket-rule div {
+  width: 8px;
+  height: 8px;
+  margin-top: -20px;
+  background: #b68e46;
+  transform: rotate(45deg);
+}
+
+.view--lottery .slot-machine {
+  position: relative;
+  z-index: 3;
+  margin: 28px auto 24px;
+  padding: 24px 20px 22px;
+  border-radius: 22px;
+  border: 1px solid #b38b46;
+  background: linear-gradient(160deg, #102557, #263f7d 54%, #0d214f);
+  box-shadow: 0 20px 42px rgba(15, 31, 69, 0.28), inset 0 0 0 5px rgba(230, 204, 150, 0.09);
+}
+
+.view--lottery .slot-machine.is-revealing::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 24px;
+  border: 2px solid transparent;
+  box-shadow: 0 0 0 2px rgba(226, 194, 124, 0.9), 0 0 28px rgba(226, 194, 124, 0.42);
+  animation: goldTrace 700ms ease-out both;
+}
+
+.view--lottery .slot-machine.is-focused {
+  animation: numberFocus 650ms ease-out both;
+}
+
+.view--lottery .slot-topline,
+.view--lottery .slot-baseline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: rgba(237, 217, 175, 0.58);
+  font: 15px Georgia, serif;
+  letter-spacing: 3px;
+}
+
+.view--lottery .slot-bolt {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #d1ae69;
+  box-shadow: inset 0 0 0 2px #87672f, 0 0 10px rgba(219, 185, 117, 0.45);
+}
+
+.view--lottery .reels {
+  margin: 18px 0;
+  display: flex;
+  gap: 12px;
+}
+
+.view--lottery .reel {
+  position: relative;
+  flex: 1;
+  height: 126px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 2px solid #c9a45b;
+  background: linear-gradient(180deg, #d9dbe1 0%, #fffefa 35%, #fffefa 65%, #c7cad2 100%);
+  box-shadow: inset 0 10px 18px rgba(16, 31, 66, 0.18), 0 8px 14px rgba(4, 15, 38, 0.26);
+}
+
+.view--lottery .reel-lamp {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 7px;
+  width: 7px;
+  height: 7px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: #9d8a65;
+}
+
+.view--lottery .reel.locked .reel-lamp {
+  animation: lampFlash 420ms ease-out both;
+}
+
+.view--lottery .reel-glass {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.54), transparent 35%, rgba(255, 255, 255, 0.2) 70%, transparent);
+}
+
+.view--lottery .reel-number {
+  position: relative;
+  z-index: 1;
+  height: 126px;
+  color: #142b68;
+  font: 700 74px/126px Georgia, "Times New Roman", serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.view--lottery .reel-tick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  height: 1px;
+  background: rgba(172, 131, 57, 0.42);
+}
+
+.view--lottery .reel-tick.top { top: 20px; }
+.view--lottery .reel-tick.bottom { bottom: 20px; }
+
+.view--lottery .slot-baseline div {
+  flex: 1;
+  height: 1px;
+  margin: 0 18px;
+  background: linear-gradient(90deg, transparent, #c9a45b, transparent);
+}
+
+.view--lottery .result-seal {
+  margin-top: 16px;
+  color: #e4c989;
+  font: 17px Georgia, serif;
+  letter-spacing: 5px;
+}
+
+.view--lottery .status-copy {
+  min-height: 68px;
+  color: #72798a;
+  font-size: 24px;
+  line-height: 1.55;
+}
+
+.view--lottery .status-copy.success {
+  color: #80612f;
+  opacity: 0;
+  transition: opacity 520ms ease;
+}
+
+.view--lottery .status-copy.success.visible {
+  opacity: 1;
+}
+
+.view--lottery .draw-button {
+  margin-top: 26px;
+  height: 92px;
+  line-height: 92px;
+  color: #fff9eb;
+  font-size: 29px;
+  font-weight: 600;
+  letter-spacing: 6px;
+  border-radius: 46px;
+  background: linear-gradient(100deg, #101d3c, #253b68);
+  box-shadow: 0 16px 30px rgba(16, 29, 60, 0.22);
+}
+
+.view--lottery .draw-button[disabled] {
+  color: #fff9eb;
+  opacity: 1;
+  background: linear-gradient(100deg, #1b2949, #3b4b6b);
+}
+
+.view--lottery .draw-button.pressed {
+  transform: translateY(5px) scale(0.995);
+  animation: buttonAura 620ms ease-out both;
+}
+
+.view--lottery .one-chance {
+  margin-top: 18px;
+  color: #a29b8e;
+  font-size: 19px;
+  letter-spacing: 2px;
+}
+
+.view--lottery .rules-link {
+  margin-top: 18px;
+  color: #8a6a31;
+  font-size: 21px;
+  line-height: 1.6;
+  text-decoration: underline;
+  text-align: center;
+}
+
+.view--lottery .reel.active .reel-number { animation: reelRoll 135ms cubic-bezier(0.2, 0.72, 0.25, 1) infinite; }
+.view--lottery .reel.locked .reel-number { animation: reelLock 360ms cubic-bezier(0.16, 0.84, 0.28, 1.2) both; }
+.view--lottery .reel.locked { animation: edgeSweep 520ms ease-out both; }
+.view--lottery .is-running .slot-machine { animation: machineGlow 780ms ease-in-out infinite alternate; }
+
+@keyframes reelRoll {
+  0% { transform: translateY(-24px); filter: blur(1px); opacity: 0.45; }
+  45% { transform: translateY(2px); opacity: 1; }
+  100% { transform: translateY(25px); filter: blur(1px); opacity: 0.45; }
+}
+
+@keyframes machineGlow {
+  to { box-shadow: 0 20px 50px rgba(15, 31, 69, 0.34), 0 0 34px rgba(201, 164, 91, 0.34), inset 0 0 0 5px rgba(230, 204, 150, 0.15); }
+}
+
+@keyframes reelLock {
+  0% { transform: translateY(-18px); opacity: 0.45; }
+  68% { transform: translateY(6px); opacity: 1; }
+  100% { transform: translateY(0); }
+}
+
+@keyframes heroReveal {
+  from { opacity: 0.2; filter: brightness(0.45); }
+  to { opacity: 1; filter: brightness(1); }
+}
+
+@keyframes spotlightSweep {
+  0% { opacity: 0; transform: translateX(0) rotate(15deg); }
+  35% { opacity: 0.7; }
+  100% { opacity: 0; transform: translateX(310%) rotate(15deg); }
+}
+
+@keyframes titleFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes gemFlash {
+  0% { opacity: 0; }
+  45% { opacity: 1; box-shadow: 0 0 20px #edd79f; }
+  100% { opacity: 0.8; box-shadow: none; }
+}
+
+@keyframes buttonAura {
+  0% { box-shadow: 0 16px 30px rgba(16, 29, 60, 0.22), 0 0 0 0 rgba(208, 174, 101, 0.55); }
+  100% { box-shadow: 0 10px 22px rgba(16, 29, 60, 0.2), 0 0 0 22px rgba(208, 174, 101, 0); }
+}
+
+@keyframes edgeSweep {
+  45% { box-shadow: inset 0 10px 18px rgba(16, 31, 66, 0.18), 0 0 18px rgba(224, 192, 124, 0.8); }
+}
+
+@keyframes lampFlash {
+  0% { background: #9d8a65; }
+  40% { background: #fff0bd; box-shadow: 0 0 16px #e1b95f; }
+  100% { background: #c8a45e; }
+}
+
+@keyframes goldTrace {
+  0% { opacity: 0; clip-path: inset(0 100% 100% 0); }
+  45% { opacity: 1; clip-path: inset(0 0 45% 0); }
+  100% { opacity: 0; clip-path: inset(0); }
+}
+
+@keyframes numberFocus {
+  0% { transform: scale(1); }
+  55% { transform: scale(1.015); }
+  100% { transform: scale(1); }
+}

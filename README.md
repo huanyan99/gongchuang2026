@@ -20,6 +20,7 @@ backend/             Spring Boot 3.2 后端（Java 17 + Maven + MyBatis + MySQL�
   src/main/resources/
     application.yml   配置（数据库、微信 appid/secret）
     db/schema.sql     建库建表脚本
+planb-web/           Plan B 网页版（小程序的一比一网页复刻，无构建依赖，见 planb-web/README.md）
 ```
 
 ## 后端启动
@@ -46,3 +47,19 @@ backend/             Spring Boot 3.2 后端（Java 17 + Maven + MyBatis + MySQL�
 |---|---|---|
 | GET | /api/hello | 联调示例 |
 | POST | /api/auth/login | 小程序登录（body: { code }） |
+| GET | /api/seat/me | 我的桌位与本场桌位图（需登录且登记已审核通过） |
+| POST | /api/admin/seats/import | 批量导入桌位（需 X-Admin-Key） |
+| GET | /api/admin/seats | 桌位分页列表与桌数统计（需 X-Admin-Key） |
+
+## 桌位图
+
+嘉宾在「参会服务 → 桌位图」查看自己的桌号与全场桌位图，自己的桌位高亮；
+其他桌位只显示就座人数，不展示他人姓名和手机号。
+
+会务在「审核后台 → 桌位批量导入」导入桌号：
+
+- 格式：每行 `姓名,手机号,桌号[,座位号]`，首行表头自动跳过，支持逗号/分号/制表符/空白分隔
+- 网页版还支持直接选择 CSV / TXT 文件（UTF-8 解析失败时自动按 GBK 重试）
+- 导入方式：`合并更新`（按手机号更新或新增）或 `覆盖该场次`（先清空再导入）
+- 按「场次 + 手机号」与参会登记的同行人匹配，单次最多 2000 条，不合法的行会跳过并回传行号
+- 数据表 `gonghcuang_seat`，新库见 `db/schema.sql`，老库执行 `db/migrate_v9_seat.sql`

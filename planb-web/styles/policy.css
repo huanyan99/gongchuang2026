@@ -1,0 +1,64 @@
+/*
+ * 协议类页面（用户服务协议 / 隐私政策 / 抽奖活动说明），
+ * 对应 pages/agreement、pages/privacy、pages/lottery-rules 的 wxss（三者样式一致）。
+ * 1px === 1rpx。
+ */
+
+.view--agreement,
+.view--privacy,
+.view--lottery-rules {
+  background: #ffffff;
+  color: #222222;
+}
+
+.policy-page {
+  min-height: 100%;
+  padding: 40px 34px calc(100px + var(--safe-bottom));
+  box-sizing: border-box;
+}
+
+.policy-page .title {
+  font-size: 40px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.policy-page .updated {
+  margin-top: 12px;
+  color: #888888;
+  font-size: 22px;
+  line-height: 1.6;
+}
+
+.policy-page .intro {
+  margin-top: 32px;
+  color: #444444;
+  font-size: 26px;
+  line-height: 1.9;
+  text-align: justify;
+}
+
+.policy-page .section {
+  margin-top: 38px;
+}
+
+.policy-page .heading {
+  font-size: 28px;
+  line-height: 1.6;
+  font-weight: 700;
+}
+
+.policy-page .text {
+  margin-top: 12px;
+  color: #444444;
+  font-size: 26px;
+  line-height: 1.9;
+  text-align: justify;
+}
+
+.policy-page .notice {
+  margin-top: 44px;
+  color: #666666;
+  font-size: 24px;
+  line-height: 1.8;
+}

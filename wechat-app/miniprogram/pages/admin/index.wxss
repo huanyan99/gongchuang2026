@@ -227,3 +227,78 @@ page {
   font-size: 22rpx;
   padding: 24rpx 0 12rpx;
 }
+
+.seat-panel {
+  margin: 24rpx 24rpx 0;
+  padding: 30rpx 32rpx 34rpx;
+  background: #ffffff;
+  border: 1rpx solid #eceef1;
+  border-radius: 16rpx;
+}
+
+.seat-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 22rpx;
+  border-bottom: 1rpx solid #eceef1;
+}
+
+.seat-head text:first-child {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #111111;
+}
+
+.seat-head text:last-child {
+  color: #8a7447;
+  font-size: 21rpx;
+}
+
+.seat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 88rpx;
+  border-bottom: 1rpx solid #f2f4f7;
+}
+
+.seat-label {
+  color: #6f747c;
+  font-size: 26rpx;
+}
+
+.seat-value {
+  color: #26397b;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.seat-input {
+  width: 100%;
+  min-height: 220rpx;
+  margin-top: 24rpx;
+  padding: 22rpx;
+  color: #111111;
+  font-size: 24rpx;
+  line-height: 1.7;
+  background: #f7f9fd;
+  border: 1rpx solid #e3e7f0;
+  border-radius: 12rpx;
+  box-sizing: border-box;
+}
+
+.seat-ph {
+  color: #b8bec9;
+}
+
+.seat-tip {
+  margin-top: 16rpx;
+  color: #8c94a3;
+  font-size: 21rpx;
+  line-height: 1.6;
+}
+
+.seat-btn {
+  margin-top: 24rpx;
+}

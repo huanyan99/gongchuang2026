@@ -1,0 +1,355 @@
+/*
+ * 审核后台，对应 wechat-app/miniprogram/pages/admin/index.wxss。
+ * 作用域 .view--admin；1px === 1rpx。
+ */
+
+.view--admin {
+  background: #f5f7ff;
+}
+
+.view--admin .container {
+  min-height: 100%;
+  color: #111111;
+  padding-bottom: calc(24px + var(--safe-bottom));
+  box-sizing: border-box;
+}
+
+.view--admin .login-box {
+  margin: 24px;
+  background: #ffffff;
+  padding: 52px 40px 42px;
+  border: 1px solid #eceef1;
+  border-radius: 16px;
+}
+
+.view--admin .admin-head {
+  background: #ffffff;
+  padding: 58px 40px 42px;
+  border-bottom: 1px solid #eceef1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.view--admin .eyebrow {
+  color: #26397b;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 3px;
+}
+
+.view--admin .page-title {
+  margin-top: 20px;
+  font-size: 52px;
+  line-height: 1.1;
+  font-weight: 800;
+  color: #111111;
+  margin-bottom: 40px;
+}
+
+.view--admin .admin-head .page-title {
+  margin-bottom: 0;
+}
+
+.view--admin .count {
+  min-width: 72px;
+  height: 72px;
+  line-height: 72px;
+  text-align: center;
+  background: #26397b;
+  color: #ffffff;
+  font-size: 30px;
+  font-weight: 700;
+  border-radius: 12px;
+}
+
+.view--admin .key-input {
+  height: 92px;
+  border: 1px solid #d9dce1;
+  border-radius: 12px;
+  padding: 0 24px;
+  margin-bottom: 32px;
+  font-size: 28px;
+  box-sizing: border-box;
+}
+
+.view--admin .tabs {
+  display: flex;
+  background: #ffffff;
+  margin: 24px 24px 0;
+  border: 1px solid #eceef1;
+  border-bottom: none;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  overflow: hidden;
+}
+
+.view--admin .tab {
+  flex: 1;
+  text-align: center;
+  height: 88px;
+  line-height: 88px;
+  font-size: 26px;
+  color: #6f747c;
+  position: relative;
+  border-right: 1px solid #eceef1;
+  box-sizing: border-box;
+}
+
+.view--admin .tab:last-child {
+  border-right: none;
+}
+
+.view--admin .tab.active {
+  color: #ffffff;
+  background: #26397b;
+  font-weight: 700;
+}
+
+.view--admin .card {
+  background: #ffffff;
+  padding: 30px 32px;
+  margin: 0 24px;
+  border: 1px solid #eceef1;
+  border-top: none;
+}
+
+.view--admin .card:last-of-type {
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.view--admin .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.view--admin .name {
+  font-size: 32px;
+  font-weight: 700;
+  color: #111111;
+}
+
+.view--admin .status {
+  font-size: 22px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border: 1px solid currentColor;
+}
+
+.view--admin .status.PENDING { color: #8a6200; }
+.view--admin .status.APPROVED { color: #17663a; }
+.view--admin .status.REJECTED { color: #b42318; }
+
+.view--admin .info {
+  margin-top: 18px;
+  color: #5f646c;
+  font-size: 24px;
+}
+
+.view--admin .reason {
+  margin-top: 14px;
+  color: #6f747c;
+  font-size: 24px;
+  line-height: 1.6;
+}
+
+.view--admin .remark {
+  margin-top: 14px;
+  color: #b42318;
+  font-size: 22px;
+}
+
+.view--admin .actions {
+  margin-top: 28px;
+  display: flex;
+  border-top: 1px solid #eceef1;
+  padding-top: 24px;
+}
+
+.view--admin .mini-btn {
+  flex: 1;
+  height: 72px;
+  line-height: 72px;
+  border-radius: 8px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.view--admin .mini-btn + .mini-btn {
+  margin-left: 16px;
+}
+
+.view--admin .mini-btn.approve {
+  background: #26397b;
+  color: #ffffff;
+}
+
+.view--admin .mini-btn.reject {
+  background: #ffffff;
+  color: #26397b;
+  border: 1px solid #26397b;
+}
+
+.view--admin .empty {
+  margin: 0 24px;
+  background: #ffffff;
+  border: 1px solid #eceef1;
+  border-top: none;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+  text-align: center;
+  color: #9aa0a8;
+  padding: 100px 0;
+  font-size: 26px;
+}
+
+.view--admin .btn {
+  height: 92px;
+  line-height: 92px;
+  background: #26397b;
+  color: #ffffff;
+  border-radius: 12px;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.view--admin .checkin-bar {
+  margin: 24px 24px 0;
+}
+
+.view--admin .more-hint {
+  text-align: center;
+  color: #9aa0a8;
+  font-size: 22px;
+  padding: 24px 0 12px;
+}
+
+/* ---------- 桌位批量导入 ---------- */
+
+.view--admin .seat-panel {
+  margin: 24px 24px 0;
+  padding: 30px 32px 34px;
+  background: #ffffff;
+  border: 1px solid #eceef1;
+  border-radius: 16px;
+}
+
+.view--admin .seat-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #eceef1;
+}
+
+.view--admin .seat-head span:first-child {
+  font-size: 30px;
+  font-weight: 700;
+  color: #111111;
+}
+
+.view--admin .seat-head span:last-child {
+  color: #8a7447;
+  font-size: 21px;
+}
+
+.view--admin .seat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 88px;
+  border-bottom: 1px solid #f2f4f7;
+}
+
+.view--admin .seat-label {
+  color: #6f747c;
+  font-size: 26px;
+}
+
+.view--admin .seat-value {
+  color: #26397b;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.view--admin .seat-actions {
+  margin-top: 24px;
+}
+
+.view--admin .seat-file-btn {
+  height: 80px;
+  line-height: 80px;
+  color: #26397b;
+  background: #f2f5fb;
+  border: 1px solid rgba(38, 57, 123, 0.18);
+  border-radius: 12px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.view--admin .seat-input {
+  width: 100%;
+  min-height: 220px;
+  margin-top: 20px;
+  padding: 22px;
+  color: #111111;
+  font-size: 24px;
+  line-height: 1.7;
+  background: #f7f9fd;
+  border: 1px solid #e3e7f0;
+  border-radius: 12px;
+  box-sizing: border-box;
+  overflow: auto;
+  resize: none;
+}
+
+.view--admin .seat-input::placeholder {
+  color: #b8bec9;
+}
+
+.view--admin .seat-tip {
+  margin-top: 16px;
+  color: #8c94a3;
+  font-size: 21px;
+  line-height: 1.6;
+}
+
+.view--admin .seat-preview {
+  margin-top: 18px;
+  padding: 18px 20px;
+  background: #f7f9fd;
+  border: 1px solid #e7eaf1;
+  border-radius: 12px;
+}
+
+.view--admin .seat-preview-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 10px;
+  color: #24345c;
+  font-size: 22px;
+}
+
+.view--admin .seat-preview-row:first-child {
+  margin-top: 0;
+}
+
+.view--admin .seat-preview-row span:nth-child(2) {
+  color: #8c94a3;
+}
+
+.view--admin .seat-preview-more {
+  margin-top: 14px;
+  padding-top: 12px;
+  color: #9aa0a8;
+  font-size: 20px;
+  text-align: center;
+  border-top: 1px solid #e7eaf1;
+}
+
+.view--admin .seat-btn {
+  margin-top: 24px;
+}

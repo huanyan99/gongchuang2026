@@ -6,12 +6,15 @@ import com.example.app.common.Result;
 import com.example.app.config.AdminAuth;
 import com.example.app.dto.CheckinRequest;
 import com.example.app.dto.ReviewRequest;
+import com.example.app.dto.SeatImportRequest;
 import com.example.app.entity.Application;
 import com.example.app.entity.Invitation;
+import com.example.app.entity.Seat;
 import com.example.app.entity.User;
 import com.example.app.mapper.UserMapper;
 import com.example.app.service.ApplicationService;
 import com.example.app.service.InvitationService;
+import com.example.app.service.SeatService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -37,6 +40,7 @@ public class AdminController {
     private final InvitationService invitationService;
     private final AdminAuth adminAuth;
     private final UserMapper userMapper;
+    private final SeatService seatService;
 
     /** 可授权用户列表（openid、token 等敏感字段由实体注解隐藏） */
     @GetMapping("/users")
@@ -106,6 +110,34 @@ public class AdminController {
                                        @RequestHeader("X-Admin-Key") String adminKey) {
         adminAuth.verify(adminKey);
         return Result.ok(applicationService.checkIn(req.getToken()));
+    }
+
+    /** 批量导入桌位；mode=REPLACE 时先清空该场次 */
+    @PostMapping("/seats/import")
+    public Result<Map<String, Object>> importSeats(@Valid @RequestBody SeatImportRequest req,
+                                                   @RequestHeader("X-Admin-Key") String adminKey) {
+        adminAuth.verify(adminKey);
+        List<Seat> rows = req.getRows().stream().map((row) -> {
+            Seat seat = new Seat();
+            seat.setName(row.getName());
+            seat.setPhone(row.getPhone());
+            seat.setTableNo(row.getTableNo());
+            seat.setSeatNo(row.getSeatNo());
+            seat.setRemark(row.getRemark());
+            return seat;
+        }).toList();
+        return Result.ok(seatService.importSeats(req.getEventCity(), req.getMode(), rows));
+    }
+
+    /** 桌位分页列表，city 为空查全部 */
+    @GetMapping("/seats")
+    public Result<Map<String, Object>> seats(
+            @RequestParam(required = false) String city,
+            @RequestParam(defaultValue = "1") @Min(1) long page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) long size,
+            @RequestHeader("X-Admin-Key") String adminKey) {
+        adminAuth.verify(adminKey);
+        return Result.ok(seatService.page(city, page, size));
     }
 
     /** 按状态统计数量 */

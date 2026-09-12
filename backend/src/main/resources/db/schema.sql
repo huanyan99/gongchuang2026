@@ -81,3 +81,17 @@ CREATE TABLE IF NOT EXISTS gonghcuang_event_weather (
     tip VARCHAR(128),
     updated_at DATETIME
 ) ENGINE=InnoDB DEFAULT CHARSET utf8mb4;
+
+CREATE TABLE IF NOT EXISTS gonghcuang_seat (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    event_city VARCHAR(32) NOT NULL,
+    name VARCHAR(64) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    table_no VARCHAR(32) NOT NULL,
+    seat_no VARCHAR(16),
+    remark VARCHAR(255),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_city_phone (event_city, phone),
+    KEY idx_city_table (event_city, table_no)
+) ENGINE=InnoDB DEFAULT CHARSET utf8mb4;

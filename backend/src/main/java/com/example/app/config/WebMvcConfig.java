@@ -22,5 +22,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addPathPatterns("/api/lottery/**");
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/api/invitations/**");
+        registry.addInterceptor(authInterceptor)
+                .addPathPatterns("/api/seat/**");
     }
 }

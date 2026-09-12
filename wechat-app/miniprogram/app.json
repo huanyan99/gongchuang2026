@@ -10,6 +10,7 @@
     "pages/invitation-letter/index",
     "pages/agenda/index",
     "pages/route/index",
+    "pages/seat/index",
     "pages/apply/index",
     "pages/admin/index",
     "pages/login/index"

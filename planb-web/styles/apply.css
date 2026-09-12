@@ -1,0 +1,371 @@
+/*
+ * 参会登记，对应 wechat-app/miniprogram/pages/apply/index.wxss。
+ * 作用域 .view--apply；1px === 1rpx；picker 由底部选择器替代，触发器样式保持一致。
+ */
+
+.view--apply {
+  background: #f4f6fb;
+}
+
+.view--apply .page {
+  min-height: 100%;
+  color: #111827;
+  padding-bottom: calc(190px + var(--safe-bottom));
+  box-sizing: border-box;
+}
+
+.view--apply .page.done {
+  padding-bottom: calc(48px + var(--safe-bottom));
+}
+
+.view--apply .head {
+  position: relative;
+  height: 338px;
+  overflow: hidden;
+  border-bottom-left-radius: 46px;
+  border-bottom-right-radius: 46px;
+  background: #0b1b47;
+}
+
+.view--apply .head-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.view--apply .head-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 16, 45, 0.1), rgba(6, 16, 45, 0.78));
+}
+
+.view--apply .head-copy {
+  position: absolute;
+  left: 48px;
+  right: 48px;
+  bottom: 42px;
+  color: #ffffff;
+}
+
+.view--apply .eyebrow,
+.view--apply .card-kicker,
+.view--apply .result-eyebrow {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 4px;
+}
+
+.view--apply .title {
+  margin-top: 14px;
+  font-size: 48px;
+  line-height: 1.08;
+  font-weight: 800;
+}
+
+.view--apply .gold-line {
+  margin-top: 18px;
+  width: 82px;
+  height: 3px;
+  background: #d6b56d;
+}
+
+.view--apply .sub {
+  margin-top: 16px;
+  font-size: 25px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.view--apply .form-card,
+.view--apply .result-card {
+  position: relative;
+  margin: -28px 28px 0;
+  padding: 26px 30px 30px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(214, 181, 109, 0.22);
+  border-radius: 34px;
+  box-shadow: 0 26px 56px rgba(13, 31, 76, 0.12);
+}
+
+.view--apply .card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #edf0f6;
+}
+
+.view--apply .card-kicker,
+.view--apply .result-eyebrow {
+  color: #8a7447;
+}
+
+.view--apply .result-title {
+  margin-top: 12px;
+  font-size: 36px;
+  line-height: 1.15;
+  color: #132653;
+  font-weight: 800;
+}
+
+.view--apply .invite-ribbon {
+  position: relative;
+  width: 92px;
+  height: 68px;
+}
+
+.view--apply .ribbon-wing,
+.view--apply .ribbon-knot,
+.view--apply .ribbon-tail {
+  position: absolute;
+  background: linear-gradient(145deg, #f4d98d, #c8a25d);
+  box-shadow: 0 8px 18px rgba(160, 125, 52, 0.24);
+}
+
+.view--apply .ribbon-wing {
+  top: 8px;
+  width: 42px;
+  height: 34px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+}
+
+.view--apply .ribbon-wing.left {
+  left: 4px;
+  border-radius: 26px 8px 26px 10px;
+  transform: rotate(-18deg);
+}
+
+.view--apply .ribbon-wing.right {
+  right: 4px;
+  border-radius: 8px 26px 10px 26px;
+  transform: rotate(18deg);
+}
+
+.view--apply .ribbon-knot {
+  left: 36px;
+  top: 18px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #132653;
+  box-shadow: 0 5px 12px rgba(19, 38, 83, 0.2);
+}
+
+.view--apply .ribbon-tail {
+  top: 40px;
+  width: 22px;
+  height: 28px;
+  border-radius: 4px 4px 10px 10px;
+}
+
+.view--apply .ribbon-tail.left {
+  left: 34px;
+  transform: rotate(9deg);
+}
+
+.view--apply .ribbon-tail.right {
+  right: 30px;
+  transform: rotate(-9deg);
+}
+
+.view--apply .guest-card {
+  margin-top: 24px;
+  padding: 20px 22px;
+  border: 1px solid #e3e7f0;
+  border-radius: 18px;
+  background: #fbfcff;
+}
+
+.view--apply .guest-title {
+  padding-bottom: 14px;
+  color: #1b3269;
+  font-size: 28px;
+  font-weight: 800;
+  border-bottom: 1px solid #e7eaf1;
+}
+
+.view--apply .form-row {
+  display: flex;
+  gap: 24px;
+}
+
+.view--apply .form-row .half {
+  flex: 1;
+  min-width: 0;
+}
+
+.view--apply .picker-value,
+.view--apply .fixed-value {
+  margin-top: 12px;
+  color: #18264a;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.view--apply .same-company {
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
+  color: #687083;
+  font-size: 22px;
+}
+
+.view--apply .same-company .wx-checkbox {
+  transform: scale(0.75);
+  transform-origin: left center;
+  margin-right: 6px;
+}
+
+.view--apply .stay-info {
+  padding: 0 18px;
+  background: #f5f1e8;
+  border-radius: 12px;
+}
+
+.view--apply .form-item {
+  padding: 22px 0;
+  border-bottom: 1px solid #edf0f6;
+  display: flex;
+  flex-direction: column;
+}
+
+.view--apply .form-item.last {
+  border-bottom: none;
+}
+
+.view--apply .label {
+  font-size: 22px;
+  color: #8c94a3;
+  letter-spacing: 2px;
+  font-weight: 700;
+}
+
+.view--apply .req {
+  color: #b42318;
+}
+
+.view--apply input::placeholder,
+.view--apply textarea::placeholder {
+  color: #b8bec9;
+}
+
+.view--apply input {
+  margin-top: 10px;
+  height: 46px;
+  color: #111827;
+  font-size: 30px;
+  font-weight: 600;
+}
+
+.view--apply input[disabled] {
+  color: #8c94a3;
+}
+
+.view--apply .textarea {
+  margin-top: 10px;
+  width: 100%;
+  min-height: 86px;
+  color: #111827;
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.view--apply .cta-wrap {
+  padding-top: 10px;
+}
+
+.view--apply .cta-wrap.fixed {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 22px 32px calc(42px + var(--safe-bottom));
+  background: linear-gradient(180deg, rgba(244, 246, 251, 0), rgba(244, 246, 251, 0.96) 28%, #f4f6fb);
+}
+
+.view--apply .cta {
+  height: 92px;
+  line-height: 92px;
+  padding: 0;
+  background: #26397b;
+  color: #ffffff;
+  border-radius: 46px;
+  font-size: 28px;
+  font-weight: 800;
+  box-shadow: 0 14px 26px rgba(38, 57, 123, 0.18);
+}
+
+.view--apply .cta.secondary {
+  margin-top: 34px;
+  background: #ffffff;
+  color: #26397b;
+  border: 2px solid #26397b;
+  box-shadow: none;
+}
+
+.view--apply .privacy-tip {
+  margin-top: 22px;
+  font-size: 20px;
+  line-height: 1.6;
+  color: #9aa0a8;
+  text-align: center;
+}
+
+.view--apply .result-card {
+  text-align: center;
+  padding-top: 46px;
+}
+
+.view--apply .result-sub {
+  margin: 18px auto 0;
+  max-width: 540px;
+  color: #6f7788;
+  font-size: 24px;
+  line-height: 1.7;
+}
+
+.view--apply .guest-badge {
+  margin: 34px auto 0;
+  padding: 22px 30px;
+  color: #173064;
+  font-size: 27px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #f8eac0, #d9b76d, #f3dda5);
+  border: 1px solid rgba(166, 123, 47, 0.55);
+  border-radius: 12px;
+  box-shadow: 0 12px 26px rgba(143, 104, 39, 0.13);
+}
+
+.view--apply .approved-actions {
+  margin-top: 30px;
+}
+
+.view--apply .approved-actions .cta + .cta {
+  margin-top: 18px;
+}
+
+.view--apply .lottery-action {
+  background: linear-gradient(135deg, #142b61, #294785);
+}
+
+.view--apply .edit-action {
+  color: #20386f;
+  background: #ffffff;
+  border: 2px solid #b9954d;
+  box-shadow: none;
+}
+
+.view--apply .edit-action[disabled] {
+  color: #a8adb7;
+  border-color: #d7dae1;
+  background: #f3f4f7;
+}
+
+.view--apply .edit-chance {
+  margin-top: 18px;
+  color: #8a7447;
+  font-size: 21px;
+}

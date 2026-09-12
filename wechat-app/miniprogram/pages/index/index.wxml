@@ -114,6 +114,11 @@
       <text class="menu-name">交通路线</text>
       <text class="arrow">›</text>
     </view>
+    <view class="menu-row" data-key="seat" bindtap="onMenu">
+      <text class="no">06</text>
+      <text class="menu-name">桌位图</text>
+      <text class="arrow">›</text>
+    </view>
   </view>
   </view>
 </scroll-view>

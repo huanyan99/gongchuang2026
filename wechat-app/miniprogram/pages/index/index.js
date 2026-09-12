@@ -266,7 +266,7 @@ Page({
   // 宫格菜单
   onMenu(e) {
     const key = e.currentTarget.dataset.key;
-    if (!this.data.hasServiceAccess && ['letter', 'agenda', 'route'].includes(key)) {
+    if (!this.data.hasServiceAccess && ['letter', 'agenda', 'route', 'seat'].includes(key)) {
       wx.showModal({
         title: '提示',
         content: '您好，无法查看',
@@ -286,6 +286,8 @@ Page({
       this.openServicePage('agenda');
     } else if (key === 'route') {
       this.openServicePage('route');
+    } else if (key === 'seat') {
+      this.openServicePage('seat');
     } else {
       wx.showToast({ title: '敬请期待', icon: 'none' });
     }

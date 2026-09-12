@@ -2,7 +2,7 @@ package com.example.app.common;
 
 import lombok.Getter;
 
-/** 全局错误码：0 成功；1xxx 通用；2xxx 邀请码；3xxx 申报；9xxx 系统 */
+/** 全局错误码：0 成功；1xxx 通用；2xxx 邀请码；3xxx 申报；4xxx 抽奖；5xxx 桌位；9xxx 系统 */
 @Getter
 public enum ErrorCode {
 
@@ -31,6 +31,9 @@ public enum ErrorCode {
     // 抽奖
     LOTTERY_NOT_DRAWN(4001, "尚未抽取号码"),
     LOTTERY_NOT_APPROVED(4002, "参会登记审核通过后方可领取抽奖码"),
+
+    // 桌位
+    SEAT_NOT_APPROVED(5001, "参会登记审核通过后可查看桌位"),
 
     // 系统
     INTERNAL_ERROR(9000, "服务器内部错误"),

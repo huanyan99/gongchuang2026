@@ -3,14 +3,43 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
-  <meta name="theme-color" content="#13265c" />
-  <title>柏楚2026价值共创峰会</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="description" content="柏楚2026价值共创峰会 · 邀请登记与会务服务" />
+  <title>共创会 · 柏楚2026价值共创峰会</title>
+
+  <link rel="stylesheet" href="styles/base.css" />
+  <link rel="stylesheet" href="styles/ui.css" />
+  <link rel="stylesheet" href="styles/bottom-nav.css" />
+  <link rel="stylesheet" href="styles/home.css" />
+  <link rel="stylesheet" href="styles/apply.css" />
+  <link rel="stylesheet" href="styles/lottery.css" />
+  <link rel="stylesheet" href="styles/login.css" />
+  <link rel="stylesheet" href="styles/invitations.css" />
+  <link rel="stylesheet" href="styles/service.css" />
+  <link rel="stylesheet" href="styles/seat.css" />
+  <link rel="stylesheet" href="styles/policy.css" />
+  <link rel="stylesheet" href="styles/admin.css" />
+
 </head>
 <body>
-  <main id="app"></main>
-  <div id="modal"></div>
+  <!-- 设备框：网页版固定视口，页面内部滚动，与小程序 page + scroll-view 结构一致 -->
+  <div class="device" id="device">
+    <!-- 设计稿画布：内部所有尺寸单位 1px === 小程序 1rpx，由 zoom 统一缩放 -->
+    <div class="stage" id="stage">
+      <header class="nav-bar" id="navBar">
+        <button class="nav-back" id="navBack" type="button" aria-label="返回"><i></i></button>
+        <h1 class="nav-title" id="navTitle">共创会</h1>
+      </header>
+      <main class="stage-body" id="stageBody"></main>
+      <div class="stage-layer" id="stageLayer"></div>
+    </div>
+  </div>
+
+  <!-- 安全区探针：置于 zoom 之外，用于换算 env(safe-area-inset-bottom) -->
+  <div class="safe-probe" id="safeProbe" aria-hidden="true"></div>
+
   <script src="config.js"></script>
-  <script src="app.js"></script>
+  <script type="module" src="src/main.js"></script>
 </body>
 </html>

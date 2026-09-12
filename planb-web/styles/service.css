@@ -1,0 +1,276 @@
+/*
+ * 参会服务三页（电子邀请函 / 大会议程 / 交通路线），
+ * 对应 pages/invitation-letter、pages/agenda、pages/route 的 wxss。1px === 1rpx。
+ */
+
+/* ---------- 电子邀请函 ---------- */
+
+.view--invitation-letter {
+  background: #071738;
+}
+
+.view--invitation-letter .page {
+  min-height: 100%;
+  padding: 56px 30px calc(56px + var(--safe-bottom));
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #071738, #17356d);
+}
+
+.view--invitation-letter .letter-card {
+  padding: 58px 42px;
+  color: #17284f;
+  background: linear-gradient(145deg, #fffdf7, #f7edda);
+  border: 2px solid #d5b66f;
+  border-radius: 18px;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.25);
+}
+
+.view--invitation-letter .eyebrow {
+  text-align: center;
+  color: #98752e;
+  font-size: 18px;
+  letter-spacing: 5px;
+}
+
+.view--invitation-letter .title {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 48px;
+  font-weight: 800;
+}
+
+.view--invitation-letter .gem {
+  margin: 24px auto 42px;
+  width: 12px;
+  height: 12px;
+  background: #bd9548;
+  transform: rotate(45deg);
+}
+
+.view--invitation-letter .body {
+  margin-top: 24px;
+  font-size: 27px;
+  line-height: 1.9;
+}
+
+.view--invitation-letter .event {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 48px;
+  padding: 28px;
+  color: #ffffff;
+  background: #17356d;
+  border-radius: 10px;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.view--invitation-letter .note {
+  margin-top: 28px;
+  color: #8c8373;
+  font-size: 21px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* ---------- 大会议程 ---------- */
+
+.view--agenda {
+  background: #f4f6fb;
+  color: #152750;
+}
+
+.view--agenda .page {
+  min-height: 100%;
+  padding-bottom: calc(60px + var(--safe-bottom));
+}
+
+.view--agenda .hero {
+  padding: 48px 32px;
+  color: #ffffff;
+  background: linear-gradient(145deg, #081a40, #294681);
+}
+
+.view--agenda .hero span {
+  display: block;
+}
+
+.view--agenda .hero span:first-child {
+  color: #d8bb76;
+  font-size: 18px;
+  letter-spacing: 5px;
+}
+
+.view--agenda .hero span:nth-child(2) {
+  margin-top: 18px;
+  font-size: 42px;
+  font-weight: 800;
+}
+
+.view--agenda .hero span:last-child {
+  margin-top: 14px;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 23px;
+}
+
+.view--agenda .timeline {
+  margin: 28px;
+}
+
+.view--agenda .item {
+  display: flex;
+  padding: 30px 0;
+  border-bottom: 1px solid #dfe3eb;
+}
+
+.view--agenda .item > span {
+  width: 116px;
+  color: #a67e32;
+  font-size: 27px;
+  font-weight: 800;
+}
+
+.view--agenda .item div {
+  flex: 1;
+}
+
+.view--agenda .item div span {
+  display: block;
+}
+
+.view--agenda .item div span:first-child {
+  font-size: 29px;
+  font-weight: 700;
+}
+
+.view--agenda .item div span:last-child {
+  margin-top: 10px;
+  color: #7b8290;
+  font-size: 23px;
+}
+
+.view--agenda .notice {
+  margin: 36px 28px;
+  padding: 24px;
+  color: #8a7447;
+  background: #fff9eb;
+  border-radius: 10px;
+  font-size: 22px;
+  text-align: center;
+}
+
+/* ---------- 交通路线 ---------- */
+
+.view--route {
+  background: #f4f6fb;
+  color: #17284f;
+}
+
+.view--route .page {
+  min-height: 100%;
+  padding-bottom: calc(60px + var(--safe-bottom));
+}
+
+.view--route .hero {
+  padding: 48px 32px;
+  color: #ffffff;
+  background: linear-gradient(145deg, #081a40, #294681);
+}
+
+.view--route .hero span {
+  display: block;
+}
+
+.view--route .hero span:first-child {
+  color: #d8bb76;
+  font-size: 18px;
+  letter-spacing: 5px;
+}
+
+.view--route .hero span:last-child {
+  margin-top: 18px;
+  font-size: 40px;
+  font-weight: 800;
+}
+
+.view--route .venue,
+.view--route .section {
+  margin: 26px;
+  padding: 30px;
+  background: #ffffff;
+  border: 1px solid rgba(190, 158, 91, 0.28);
+  border-radius: 14px;
+}
+
+.view--route .venue span {
+  display: block;
+}
+
+.view--route .venue span:first-child {
+  color: #a67e32;
+  font-size: 20px;
+  letter-spacing: 3px;
+}
+
+.view--route .venue span:nth-child(2) {
+  margin-top: 16px;
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.view--route .venue span:nth-child(3) {
+  margin-top: 12px;
+  color: #858b97;
+  font-size: 23px;
+}
+
+.view--route .venue button {
+  margin-top: 24px;
+  color: #ffffff;
+  background: #203b78;
+  font-size: 24px;
+}
+
+.view--route .title {
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.view--route .row {
+  display: flex;
+  padding: 26px 0;
+  border-bottom: 1px solid #e5e8ef;
+}
+
+.view--route .row > span {
+  width: 70px;
+  color: #b18a3d;
+  font-weight: 800;
+}
+
+.view--route .row div {
+  flex: 1;
+}
+
+.view--route .row div span {
+  display: block;
+}
+
+.view--route .row div span:first-child {
+  font-size: 27px;
+  font-weight: 700;
+}
+
+.view--route .row div span:last-child {
+  margin-top: 9px;
+  color: #777f8d;
+  font-size: 23px;
+  line-height: 1.7;
+}
+
+.view--route .notice {
+  margin: 34px 26px;
+  color: #8a7447;
+  font-size: 22px;
+  text-align: center;
+}

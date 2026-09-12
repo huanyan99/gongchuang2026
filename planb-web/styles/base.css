@@ -1,0 +1,313 @@
+/*
+ * 基础层：设备框、设计稿缩放、导航栏、页面滚动容器、小程序组件默认样式对齐。
+ *
+ * 尺寸约定：.stage 内部所有长度单位使用 px，且 1px === 小程序 1rpx。
+ * 750 设计宽度由 JS 计算的 --scale 通过 CSS zoom 整体缩放到设备宽度，
+ * 因此页面样式可以与 wxss 逐行对应，不需要任何换算。
+ */
+
+:root {
+  --brand-navy: #26397b;
+  --brand-deep: #17233f;
+  --brand-gold: #c7a86a;
+  --page-bg: #f5f7ff;
+
+  /* 由 src/core/viewport.js 写入 */
+  --device-width: 375px;
+  --device-height: 100dvh;
+  --scale: 0.5;
+  --safe-bottom: 0px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #0a1430;
+  color: #111111;
+  font-family: -apple-system, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* 桌面端居中展示为手机画幅，移动端铺满视口 */
+.device {
+  position: relative;
+  width: var(--device-width);
+  height: var(--device-height);
+  overflow: hidden;
+  background: var(--page-bg);
+}
+
+@media (min-width: 480px) {
+  body {
+    background:
+      radial-gradient(120% 80% at 50% 0%, #16255a 0%, #0a1430 60%, #060d20 100%);
+  }
+
+  .device {
+    border-radius: 28px;
+    box-shadow: 0 40px 90px rgba(2, 8, 26, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+}
+
+.stage {
+  position: relative;
+  zoom: var(--scale);
+  width: 750px;
+  height: 100%;
+  font-size: 28px;
+  line-height: 1.45;
+  color: #111111;
+}
+
+.safe-probe {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  height: env(safe-area-inset-bottom, 0px);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* ---------- 导航栏：对齐小程序 navigationBar（44pt = 88rpx） ---------- */
+
+.nav-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 60;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  background: #ffffff;
+  color: #000000;
+  transition: background-color 220ms ease, color 220ms ease;
+}
+
+.nav-title {
+  margin: 0;
+  max-width: 460px;
+  overflow: hidden;
+  color: inherit;
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-back {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 96px;
+  height: 88px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.nav-bar.has-back .nav-back {
+  display: flex;
+}
+
+.nav-back i {
+  width: 22px;
+  height: 22px;
+  border-left: 4px solid currentColor;
+  border-bottom: 4px solid currentColor;
+  border-radius: 2px;
+  transform: rotate(45deg) translate(2px, -2px);
+}
+
+.nav-back:active {
+  opacity: 0.5;
+}
+
+/* ---------- 页面容器与滚动区 ---------- */
+
+.stage-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 88px;
+  bottom: 0;
+  overflow: hidden;
+}
+
+.view {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--page-bg);
+}
+
+.view.is-hidden {
+  visibility: hidden;
+}
+
+/* 对应 app.wxss 的 .page-scroll */
+.page-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+.page-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* 页面切换动效，对齐小程序 navigateTo 的右侧推入 */
+.view.is-entering {
+  animation: viewPush 300ms cubic-bezier(0.22, 0.72, 0.24, 1) both;
+}
+
+.view.is-leaving {
+  animation: viewPop 260ms cubic-bezier(0.32, 0.08, 0.78, 0.4) both;
+  z-index: 2;
+}
+
+.view.is-behind {
+  animation: viewBehind 300ms cubic-bezier(0.22, 0.72, 0.24, 1) both;
+}
+
+@keyframes viewPush {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes viewPop {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes viewBehind {
+  from { transform: translateX(0); filter: brightness(1); }
+  to { transform: translateX(-9%); filter: brightness(0.93); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view.is-entering,
+  .view.is-leaving,
+  .view.is-behind {
+    animation-duration: 1ms;
+  }
+}
+
+/* ---------- 小程序内置组件默认样式对齐 ----------
+ * 用 :where() 把这些"浏览器默认值修正"降到元素选择器级别，
+ * 页面样式里的任意类名都能直接覆盖，不需要 !important。
+ */
+
+:where(.stage) img {
+  display: block;
+  max-width: none;
+  object-fit: cover;
+}
+
+:where(.stage) h1,
+:where(.stage) h2,
+:where(.stage) h3,
+:where(.stage) p {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+:where(.stage) button {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0 28px;
+  overflow: hidden;
+  color: #000000;
+  background-color: #f8f8f8;
+  border: 0;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 36px;
+  line-height: 2.5555;
+  text-align: center;
+  cursor: pointer;
+}
+
+:where(.stage) button:not([disabled]):active {
+  filter: brightness(0.94);
+}
+
+:where(.stage) button[disabled] {
+  color: rgba(0, 0, 0, 0.3);
+  background-color: #f7f7f7;
+  cursor: default;
+}
+
+:where(.stage) input,
+:where(.stage) textarea {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  color: #111111;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  font-family: inherit;
+  font-size: 32px;
+  line-height: 1.4;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+:where(.stage) textarea {
+  resize: none;
+  overflow: hidden;
+}
+
+:where(.stage) a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.tap {
+  cursor: pointer;
+}
+
+.tap:active {
+  opacity: 0.82;
+}
+
+[hidden] {
+  display: none !important;
+}
