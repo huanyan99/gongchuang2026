@@ -216,7 +216,7 @@ App({
   },
   globalData: {
     // 本机局域网联调地址；正式发布前必须替换为已配置的 HTTPS API 域名。
-    baseUrl: 'http://10.147.201.20:8080',
+    baseUrl: 'http://10.1.101.250:8080',
     mockApi: false,
     token: null,
     userInfo: null,
