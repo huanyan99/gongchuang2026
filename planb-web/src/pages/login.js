@@ -169,7 +169,7 @@ export class LoginView extends View {
   onLoginPhoneInput(event) {
     const digits = event.target.value.replace(/\D/g, '').slice(0, 11);
     event.target.value = digits;
-    this.setData({ loginPhone: digits });
+    this.assign({ loginPhone: digits });
   }
 
   onLoginNameInput(event) {
@@ -335,25 +335,17 @@ export class LoginView extends View {
   }
 
   phoneStep() {
-    const digits = String(this.data.loginPhone || '');
     return html`
       <div class="panel-card">
-        <div class="label">手机号</div>
-        <div class="phone-boxes" data-tap="focusPhone">
-          <input class="phone-catcher" name="loginPhone" type="tel" inputmode="numeric" maxlength="11"
-                 autocomplete="tel" value="${digits}" data-input="onLoginPhoneInput" />
-          ${Array.from({ length: 11 }, (unused, index) => html`
-            <span class="phone-cell ${cx({ active: index === digits.length })}">${digits[index] || ''}</span>
-          `)}
+        <div class="form-item">
+          <div class="label">手机号</div>
+          <input class="login-input" name="loginPhone" type="tel" inputmode="numeric" maxlength="11"
+                 autocomplete="tel" value="${this.data.loginPhone}" placeholder="请输入手机号"
+                 data-input="onLoginPhoneInput" />
         </div>
       </div>
       <button type="button" class="login-btn primary" data-tap="handlePhoneNext">下一步</button>
     `;
-  }
-
-  focusPhone() {
-    const input = this.$('.phone-catcher');
-    if (input) input.focus();
   }
 
   /** 手机号已登记：只补全姓名中隐藏的字，性别由登记信息带出 */
