@@ -26,6 +26,7 @@ const IDENTITY_KEYS = [
   'bochuApplyProfile',
   'bochuLuckyNumber',
   'authUserId',
+  'passScoped',
   'oauthState',
   'oauthHash',
 ];
@@ -44,6 +45,18 @@ export function deviceId() {
     setStorage('deviceId', id);
   }
   return id;
+}
+
+/**
+ * 当前登录状态：
+ * - full 正常登录，可用全部功能
+ * - pass 现场通道会话，只能看抽奖码与桌位
+ * - none 未登录
+ */
+export function authState() {
+  const token = session.token || getStorage('token') || config.token;
+  if (!token) return 'none';
+  return getStorage('passScoped') ? 'pass' : 'full';
 }
 
 export function clearIdentityCache() {
@@ -236,4 +249,19 @@ export function loginWithPhone(phone, name) {
     });
 }
 
-export const api = { config, session, request, ensureLogin, relogin, clearIdentityCache, deviceId };
+/**
+ * 现场通道：扫码带 pass 参数，只验证姓名换取查看抽奖码与桌位的会话。
+ * 同名多人时后端返回 needPhoneTail，让嘉宾补手机号后四位。
+ */
+export function passLogin(pass, name, phoneTail) {
+  return request('/api/pass/session', 'POST', { pass, name, phoneTail }, {}, { skipRetry: true })
+    .then((data) => {
+      if (data && data.needPhoneTail) return data;
+      session.token = data.token;
+      setStorage('token', data.token);
+      setStorage('passScoped', true);
+      return data;
+    });
+}
+
+export const api = { config, session, request, ensureLogin, relogin, clearIdentityCache, deviceId, authState };

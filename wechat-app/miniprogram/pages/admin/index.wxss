@@ -302,3 +302,15 @@ page {
 .seat-btn {
   margin-top: 24rpx;
 }
+
+.admin-head-right {
+  display: flex;
+  align-items: center;
+}
+
+.logout {
+  margin-left: 20rpx;
+  color: #6f747c;
+  font-size: 24rpx;
+  text-decoration: underline;
+}

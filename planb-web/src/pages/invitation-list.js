@@ -18,6 +18,8 @@ function statusText(item) {
 }
 
 export class InvitationListView extends View {
+  static auth = 'full';
+
   static meta = { title: '邀请列表', background: '#0d214d', textStyle: 'white' };
 
   constructor(options) {

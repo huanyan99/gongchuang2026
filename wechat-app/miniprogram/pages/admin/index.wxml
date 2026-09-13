@@ -13,8 +13,9 @@
   <view wx:if="{{!logged}}" class="login-box">
     <view class="eyebrow">ADMIN CONSOLE</view>
     <view class="page-title">审核后台</view>
-    <input class="key-input" password placeholder="请输入管理密钥" value="{{adminKey}}" bindinput="onInputKey" />
-    <button class="btn" bindtap="login">进入审核后台</button>
+    <input class="key-input" placeholder="账号" value="{{username}}" bindinput="onInputUsername" />
+    <input class="key-input" password placeholder="口令" value="{{password}}" bindinput="onInputPassword" />
+    <button class="btn" loading="{{logging}}" bindtap="login">登录</button>
   </view>
 
   <block wx:else>
@@ -23,7 +24,10 @@
         <view class="eyebrow">ADMIN CONSOLE</view>
         <view class="page-title">审核后台</view>
       </view>
-      <view class="count">{{total}}</view>
+      <view class="admin-head-right">
+        <view class="count">{{total}}</view>
+        <view class="logout" bindtap="logout">退出</view>
+      </view>
     </view>
 
     <view class="checkin-bar">

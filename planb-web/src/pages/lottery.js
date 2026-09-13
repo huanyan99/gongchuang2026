@@ -15,6 +15,9 @@ const LOCK_AT = [2400, 2900, 3400, 3900];
 const ROLL_INTERVAL = 56;
 
 export class LotteryView extends View {
+  /** 需要登录：full=正常登录，any=正常登录或现场通道 */
+  static auth = 'any';
+
   static meta = { title: '抽奖码', background: '#0b1530', textStyle: 'white' };
 
   constructor(options) {

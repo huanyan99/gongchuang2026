@@ -6,8 +6,8 @@
 import { View } from '../core/view.js';
 import { html, when, cx } from '../core/dom.js';
 import { request } from '../core/api.js';
-import { getStorage, setStorage } from '../core/storage.js';
-import { showModal, showSheet, toast } from '../core/ui.js';
+import { getStorage, setStorage, removeStorage } from '../core/storage.js';
+import { copyText, showModal, showSheet, toast } from '../core/ui.js';
 
 const STATUS_TEXT = { PENDING: '待审核', APPROVED: '已通过', REJECTED: '已驳回' };
 const PAGE_SIZE = 20;
@@ -68,7 +68,11 @@ export class AdminView extends View {
   constructor(options) {
     super(options);
     this.data = {
-      adminKey: '',
+      adminToken: '',
+      adminName: '',
+      username: '',
+      password: '',
+      logging: false,
       logged: false,
       statusFilter: '',
       list: [],
@@ -84,15 +88,32 @@ export class AdminView extends View {
       seatImporting: false,
       seatSummary: '',
       guestDeviceLimit: false,
+      passCityIndex: 0,
+      passNote: '',
+      passes: [],
+      passCreating: false,
+      lastPass: null,
     };
   }
 
   onShow() {
-    const saved = getStorage('adminKey');
+    const saved = getStorage('adminToken');
     if (saved && !this.data.logged) {
-      this.assign({ adminKey: saved });
-      this.fetchList(true);
+      this.assign({ adminToken: saved });
+      request('/api/admin/session', 'GET', {}, this.adminHeader(), { silent: true })
+        .then((admin) => {
+          this.setData({ adminName: (admin && admin.displayName) || '' });
+          this.fetchList(true);
+        })
+        .catch(() => {
+          removeStorage('adminToken');
+          this.setData({ adminToken: '', logged: false });
+        });
     }
+  }
+
+  adminHeader() {
+    return { 'X-Admin-Token': this.data.adminToken };
   }
 
   afterRender() {
@@ -107,16 +128,37 @@ export class AdminView extends View {
     }
   }
 
-  onInputKey(event) {
-    this.assign({ adminKey: event.target.value });
+  onInputUsername(event) {
+    this.assign({ username: event.target.value });
+  }
+
+  onInputPassword(event) {
+    this.assign({ password: event.target.value });
   }
 
   login() {
-    if (!String(this.data.adminKey || '').trim()) {
-      toast('请输入管理密钥');
+    if (this.data.logging) return;
+    const username = String(this.data.username || '').trim();
+    const password = String(this.data.password || '');
+    if (!username || !password) {
+      toast('请输入账号和口令');
       return;
     }
-    this.fetchList(true);
+    this.setData({ logging: true });
+    return request('/api/admin/login', 'POST', { username, password }, {}, { skipRetry: true })
+      .then((result) => {
+        setStorage('adminToken', result.token);
+        this.setData({ adminToken: result.token, adminName: result.displayName || username, password: '' });
+        this.fetchList(true);
+      })
+      .catch(() => {})
+      .finally(() => this.setData({ logging: false }));
+  }
+
+  logout() {
+    request('/api/admin/logout', 'POST', {}, this.adminHeader(), { silent: true }).catch(() => {});
+    removeStorage('adminToken');
+    this.setData({ adminToken: '', adminName: '', logged: false, list: [], total: 0 });
   }
 
   switchTab(event, dataset) {
@@ -132,9 +174,8 @@ export class AdminView extends View {
     const status = this.data.statusFilter;
     const query = `?page=${page}&size=${PAGE_SIZE}${status ? `&status=${encodeURIComponent(status)}` : ''}`;
 
-    return request(`/api/admin/applications${query}`, 'GET', {}, { 'X-Admin-Key': this.data.adminKey })
+    return request(`/api/admin/applications${query}`, 'GET', {}, this.adminHeader())
       .then((result) => {
-        setStorage('adminKey', this.data.adminKey);
         const records = ((result && result.records) || []).map((item) => ({
           ...item,
           statusText: STATUS_TEXT[item.status] || item.status,
@@ -146,16 +187,66 @@ export class AdminView extends View {
         if (reset) {
           this.loadSeatSummary();
           this.loadSettings();
+          this.loadPasses();
         }
       })
       .catch(() => {})
       .finally(() => this.setData({ loading: false }));
   }
 
+  /* ---------- 现场通道 ---------- */
+
+  loadPasses() {
+    return request('/api/admin/passes', 'GET', {}, this.adminHeader(), { silent: true })
+      .then((rows) => this.setData({ passes: rows || [] }))
+      .catch(() => {});
+  }
+
+  async onPassCityChange() {
+    const options = ['不限场次', ...CITY_OPTIONS];
+    const picked = await showSheet({ title: '适用场次', options, currentIndex: this.data.passCityIndex });
+    if (picked == null) return;
+    this.setData({ passCityIndex: picked });
+  }
+
+  onPassNoteInput(event) {
+    this.assign({ passNote: event.target.value });
+  }
+
+  createPass() {
+    if (this.data.passCreating) return;
+    const eventCity = this.data.passCityIndex === 0 ? '' : CITY_OPTIONS[this.data.passCityIndex - 1];
+    this.setData({ passCreating: true });
+    return request('/api/admin/passes', 'POST', { eventCity, note: this.data.passNote, validHours: 24 }, this.adminHeader())
+      .then((pass) => {
+        this.setData({ lastPass: pass, passNote: '' });
+        this.loadPasses();
+      })
+      .catch(() => {})
+      .finally(() => this.setData({ passCreating: false }));
+  }
+
+  async copyPassUrl(event, dataset) {
+    const copied = await copyText(dataset.url);
+    toast(copied ? '链接已复制' : dataset.url);
+  }
+
+  async disablePass(event, dataset) {
+    const confirmed = await showModal({ title: '停用该通道？', content: '停用后已扫码的会话立即失效。' });
+    if (!confirmed.confirm) return;
+    return request(`/api/admin/passes/${dataset.id}/disable`, 'POST', {}, this.adminHeader())
+      .then(() => {
+        toast('已停用');
+        this.setData({ lastPass: null });
+        this.loadPasses();
+      })
+      .catch(() => {});
+  }
+
   /* ---------- 安全设置 ---------- */
 
   loadSettings() {
-    return request('/api/admin/settings', 'GET', {}, { 'X-Admin-Key': this.data.adminKey }, { silent: true })
+    return request('/api/admin/settings', 'GET', {}, this.adminHeader(), { silent: true })
       .then((result) => this.setData({ guestDeviceLimit: !!(result && result.device_binding_guests) }))
       .catch(() => {});
   }
@@ -169,7 +260,7 @@ export class AdminView extends View {
         : '关闭后，普通嘉宾可在任意设备登录；邀请人始终受限。',
     });
     if (!confirmed.confirm) return;
-    return request(`/api/admin/settings/device_binding_guests?enabled=${enabled}`, 'POST', {}, { 'X-Admin-Key': this.data.adminKey })
+    return request(`/api/admin/settings/device_binding_guests?enabled=${enabled}`, 'POST', {}, this.adminHeader())
       .then((result) => {
         this.setData({ guestDeviceLimit: !!(result && result.device_binding_guests) });
         toast(enabled ? '已开启' : '已关闭');
@@ -262,7 +353,7 @@ export class AdminView extends View {
     if (!confirmed.confirm) return;
 
     this.setData({ seatImporting: true });
-    return request('/api/admin/seats/import', 'POST', { eventCity, mode, rows }, { 'X-Admin-Key': this.data.adminKey })
+    return request('/api/admin/seats/import', 'POST', { eventCity, mode, rows }, this.adminHeader())
       .then((result) => {
         const errors = (result.errors || []).slice(0, 5).map((item) => `第${item.line}行：${item.message}`);
         showModal({
@@ -279,7 +370,7 @@ export class AdminView extends View {
 
   loadSeatSummary() {
     const eventCity = CITY_OPTIONS[this.data.cityIndex];
-    return request(`/api/admin/seats?city=${encodeURIComponent(eventCity)}&size=1`, 'GET', {}, { 'X-Admin-Key': this.data.adminKey }, { silent: true })
+    return request(`/api/admin/seats?city=${encodeURIComponent(eventCity)}&size=1`, 'GET', {}, this.adminHeader(), { silent: true })
       .then((result) => this.setData({ seatSummary: `${eventCity}场 ${result.tableCount} 桌 / ${result.guestCount} 人` }))
       .catch(() => this.setData({ seatSummary: '' }));
   }
@@ -304,7 +395,7 @@ export class AdminView extends View {
   doCheckin(token) {
     if (this.checking) return;
     this.checking = true;
-    return request('/api/admin/checkin', 'POST', { token }, { 'X-Admin-Key': this.data.adminKey })
+    return request('/api/admin/checkin', 'POST', { token }, this.adminHeader())
       .then((guest) => {
         toast(`核验通过：${(guest && guest.name) || '嘉宾'}`);
         this.fetchList(true);
@@ -327,7 +418,7 @@ export class AdminView extends View {
   doReview(id, status, remark) {
     if (this.reviewing) return;
     this.reviewing = true;
-    return request(`/api/admin/applications/${id}/review`, 'POST', { status, remark }, { 'X-Admin-Key': this.data.adminKey })
+    return request(`/api/admin/applications/${id}/review`, 'POST', { status, remark }, this.adminHeader())
       .then(() => {
         toast('已处理', 'success');
         this.fetchList(true);
@@ -341,8 +432,13 @@ export class AdminView extends View {
       <div class="login-box">
         <div class="eyebrow">ADMIN CONSOLE</div>
         <div class="page-title">审核后台</div>
-        <input class="key-input" name="adminKey" type="password" placeholder="请输入管理密钥" value="${this.data.adminKey}" data-input="onInputKey" />
-        <button type="button" class="btn" data-tap="login">进入审核后台</button>
+        <input class="key-input" name="adminUsername" autocomplete="username" placeholder="账号"
+               value="${this.data.username}" data-input="onInputUsername" />
+        <input class="key-input" name="adminPassword" type="password" autocomplete="current-password"
+               placeholder="口令" value="${this.data.password}" data-input="onInputPassword" />
+        <button type="button" class="btn" ${this.data.logging ? 'disabled' : ''} data-tap="login">
+          ${this.data.logging ? '登录中 ···' : '登录'}
+        </button>
       </div>
     `;
   }
@@ -354,7 +450,10 @@ export class AdminView extends View {
           <div class="eyebrow">ADMIN CONSOLE</div>
           <div class="page-title">审核后台</div>
         </div>
-        <div class="count">${this.data.total}</div>
+        <div class="admin-head-right">
+          <div class="count">${this.data.total}</div>
+          <div class="logout tap" data-tap="logout">退出</div>
+        </div>
       </div>
 
       <div class="checkin-bar">
@@ -362,6 +461,7 @@ export class AdminView extends View {
       </div>
 
       ${this.seatPanel()}
+      ${this.passPanel()}
       ${this.securityPanel()}
 
       <div class="tabs">
@@ -408,6 +508,49 @@ export class AdminView extends View {
         `)}
         ${when(this.data.seatRows.length > rows.length, html`
           <div class="seat-preview-more">共 ${this.data.seatRows.length} 行，仅预览前 5 行</div>
+        `)}
+      </div>
+    `;
+  }
+
+  passPanel() {
+    const pass = this.data.lastPass;
+    return html`
+      <div class="seat-panel">
+        <div class="seat-head">
+          <span>现场通道二维码</span>
+          <span>扫码只验证姓名</span>
+        </div>
+        <div class="seat-row">
+          <span class="seat-label">适用场次</span>
+          <span class="seat-value tap" data-tap="onPassCityChange">
+            ${this.data.passCityIndex === 0 ? '不限场次' : CITY_OPTIONS[this.data.passCityIndex - 1]} ›
+          </span>
+        </div>
+        <div class="seat-row">
+          <span class="seat-label">备注</span>
+          <input class="pass-note" name="passNote" maxlength="32" value="${this.data.passNote}"
+                 placeholder="如：上海场签到台" data-input="onPassNoteInput" />
+        </div>
+        <button type="button" class="btn seat-btn" ${this.data.passCreating ? 'disabled' : ''} data-tap="createPass">
+          ${this.data.passCreating ? '生成中 ···' : '生成通道二维码（24 小时有效）'}
+        </button>
+
+        ${when(pass, () => html`
+          <div class="pass-result">
+            ${when(pass.qrBase64, html`<img class="pass-qr" src="data:image/png;base64,${pass.qrBase64}" alt="现场通道二维码" />`)}
+            <div class="pass-url">${pass.url || '未配置网页地址（app.web-base-url）'}</div>
+            ${when(pass.url, html`
+              <button type="button" class="pass-copy" data-url="${pass.url}" data-tap="copyPassUrl">复制链接</button>
+            `)}
+          </div>
+        `)}
+
+        ${this.data.passes.filter((item) => item.enabled).map((item) => html`
+          <div class="pass-row">
+            <span>${item.eventCity || '不限场次'}${item.note ? ` · ${item.note}` : ''}</span>
+            <span class="pass-disable tap" data-id="${item.id}" data-tap="disablePass">停用</span>
+          </div>
         `)}
       </div>
     `;

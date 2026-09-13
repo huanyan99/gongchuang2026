@@ -16,6 +16,8 @@ function inviteUrl(code) {
 }
 
 export class InvitationsView extends View {
+  static auth = 'full';
+
   static meta = { title: '我的邀请', background: '#0d214d', textStyle: 'white' };
 
   constructor(options) {

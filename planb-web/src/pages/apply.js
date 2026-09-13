@@ -2,7 +2,7 @@
 
 import { View } from '../core/view.js';
 import { html, when, cx } from '../core/dom.js';
-import { request, ensureLogin } from '../core/api.js';
+import { request, ensureLogin, config } from '../core/api.js';
 import { getStorage, setStorage } from '../core/storage.js';
 import { showModal, showSheet, toast } from '../core/ui.js';
 
@@ -37,6 +37,8 @@ function attendeePayload(item) {
 }
 
 export class ApplyView extends View {
+  static auth = 'full';
+
   static meta = { title: '参会登记', background: '#ffffff', textStyle: 'black' };
 
   constructor(options) {
@@ -205,7 +207,7 @@ export class ApplyView extends View {
   /* ---------- 提交与记录 ---------- */
 
   submit() {
-    if (!getStorage('bochuPrivacyAccepted')) {
+    if (config.privacyPopup && !getStorage('bochuPrivacyAccepted')) {
       showModal({
         title: '请先同意相关协议',
         content: '请返回首页阅读并同意《用户服务协议》和《隐私政策》后再提交登记。',

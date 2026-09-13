@@ -18,11 +18,11 @@ public class LotteryController {
 
     @GetMapping("/me")
     public Result<LuckyCodeResponse> me() {
-        return Result.ok(lotteryService.get(UserContext.require().getId()));
+        return Result.ok(lotteryService.get(UserContext.require()));
     }
 
     @PostMapping("/draw")
     public Result<LuckyCodeResponse> draw() {
-        return Result.ok(lotteryService.draw(UserContext.require().getId()));
+        return Result.ok(lotteryService.draw(UserContext.require()));
     }
 }

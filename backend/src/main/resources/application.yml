@@ -47,10 +47,14 @@ app:
   # 网页版部署来源（CORS 放通），逗号分隔
   cors:
     allowed-origins: http://localhost:4173,http://127.0.0.1:4173
+  # 网页版访问地址，用于生成现场通道二维码链接
+  web-base-url: http://127.0.0.1:4173
 
 admin:
-  # 生产环境（--spring.profiles.active=prod）要求 >=16 位且非默认值，否则启动失败
-  key: change-me-admin-key
+  # 首次启动且后台没有任何账号时，用这里的账号建一个管理员；建完请立即登录改密。
+  # 口令要求 >=12 位且含字母、数字、符号。正式环境建议改为环境变量注入，并在建号后清空。
+  bootstrap-username: bochuadmin
+  bootstrap-password: Bochu#2026Admin
 
 logging:
   level:

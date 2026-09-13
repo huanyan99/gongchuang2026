@@ -55,6 +55,7 @@ function seedDb() {
     applications: [],
     seats: [],
     settings: { device_binding_guests: false },
+    passes: [],
     lottery: {},
   };
 }
@@ -449,6 +450,72 @@ export function demoRequest(path, method = 'GET', data = {}) {
 
   if (segments[1] === 'invitations' && segments[3] === 'mini-code') {
     throw fail(9001, '网页版无法生成小程序码');
+  }
+
+  if (pathname === '/api/admin/login' && method === 'POST') {
+    // 演示模式不校验口令强度，正式环境由后端 PBKDF2 校验
+    if (!String(data.username || '').trim() || !String(data.password || '')) {
+      throw fail(1001, '账号或口令不正确');
+    }
+    return { token: 'demo-admin-token', username: data.username, displayName: '演示管理员' };
+  }
+
+  if (pathname === '/api/admin/session' && method === 'GET') {
+    return { username: 'demo', displayName: '演示管理员' };
+  }
+
+  if (pathname === '/api/admin/logout' && method === 'POST') {
+    return null;
+  }
+
+  if (pathname === '/api/admin/passes' && method === 'POST') {
+    if (!db.passes) db.passes = [];
+    const pass = {
+      id: db.passes.length + 1,
+      token: `demo-pass-${Date.now().toString(36)}`,
+      eventCity: String(data.eventCity || '').trim() || null,
+      note: String(data.note || '').trim() || null,
+      enabled: true,
+      expiresAt: null,
+      createdAt: nowIso(),
+    };
+    db.passes.push(pass);
+    saveDb(db);
+    return { ...pass, url: `${location.origin}${location.pathname}?pass=${pass.token}#/pass`, qrBase64: '' };
+  }
+
+  if (pathname === '/api/admin/passes' && method === 'GET') {
+    return (db.passes || []).map((item) => ({ ...item, url: `${location.origin}${location.pathname}?pass=${item.token}#/pass` }));
+  }
+
+  if (segments[1] === 'admin' && segments[2] === 'passes' && segments[4] === 'disable') {
+    const pass = (db.passes || []).find((item) => String(item.id) === String(segments[3]));
+    if (!pass) throw fail(1002, '通道不存在');
+    pass.enabled = false;
+    saveDb(db);
+    return pass;
+  }
+
+  if (pathname === '/api/pass/session' && method === 'POST') {
+    const pass = (db.passes || []).find((item) => item.token === String(data.pass || '').trim() && item.enabled);
+    if (!pass) throw fail(1001, '通道无效');
+    const name = String(data.name || '').trim();
+    let matched = db.applications
+      .filter((item) => item.status === 'APPROVED')
+      .flatMap((item) => item.attendees || [])
+      .filter((guest) => guest.name === name);
+    if (!matched.length) throw fail(1002, '未找到该姓名的参会记录，请联系现场工作人员');
+    if (matched.length > 1) {
+      const tail = String(data.phoneTail || '').trim();
+      if (tail.length !== 4) return { needPhoneTail: true };
+      matched = matched.filter((guest) => String(guest.phone || '').endsWith(tail));
+      if (matched.length !== 1) throw fail(1002, '信息不匹配，请联系现场工作人员');
+    }
+    db.user.phone = matched[0].phone;
+    db.user.name = matched[0].name;
+    if (matched[0].gender) db.user.gender = matched[0].gender;
+    saveDb(db);
+    return { needPhoneTail: false, token: 'demo-pass-token', name: matched[0].name, eventCity: pass.eventCity };
   }
 
   if (pathname === '/api/admin/settings' && method === 'GET') {

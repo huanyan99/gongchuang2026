@@ -353,3 +353,86 @@
 .view--admin .seat-btn {
   margin-top: 24px;
 }
+
+/* ---------- 后台头部与现场通道 ---------- */
+
+.view--admin .admin-head-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.view--admin .logout {
+  color: #6f747c;
+  font-size: 24px;
+  text-decoration: underline;
+}
+
+.view--admin .key-input + .key-input {
+  margin-top: -8px;
+}
+
+.view--admin .pass-note {
+  width: 300px;
+  color: #26397b;
+  font-size: 26px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.view--admin .pass-note::placeholder {
+  color: #b8bec9;
+  font-weight: 400;
+}
+
+.view--admin .pass-result {
+  margin-top: 24px;
+  padding: 24px;
+  text-align: center;
+  background: #f7f9fd;
+  border: 1px solid #e3e7f0;
+  border-radius: 12px;
+}
+
+.view--admin .pass-qr {
+  width: 320px;
+  height: 320px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 10px;
+}
+
+.view--admin .pass-url {
+  margin-top: 18px;
+  color: #6f747c;
+  font-size: 21px;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.view--admin .pass-copy {
+  height: 72px;
+  line-height: 72px;
+  margin-top: 18px;
+  color: #26397b;
+  background: #ffffff;
+  border: 1px solid rgba(38, 57, 123, 0.2);
+  border-radius: 10px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.view--admin .pass-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  padding-top: 18px;
+  color: #5f646c;
+  font-size: 23px;
+  border-top: 1px solid #f2f4f7;
+}
+
+.view--admin .pass-disable {
+  color: #b42318;
+}

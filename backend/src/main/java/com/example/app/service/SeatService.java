@@ -42,7 +42,7 @@ public class SeatService {
 
     /** 当前登录嘉宾的桌位与本场桌位图 */
     public Map<String, Object> mySeat(User user) {
-        Application application = applicationService.getByUser(user);
+        Application application = applicationService.findForAttendee(user);
         if (application == null) {
             throw new BizException(ErrorCode.APPLY_NOT_FOUND);
         }

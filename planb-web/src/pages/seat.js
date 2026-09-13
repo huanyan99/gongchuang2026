@@ -11,6 +11,9 @@ function hallImage(eventCity) {
 }
 
 export class SeatView extends View {
+  /** 需要登录：full=正常登录，any=正常登录或现场通道 */
+  static auth = 'any';
+
   static meta = { title: '桌位图', background: '#0d214d', textStyle: 'white' };
 
   constructor(options) {

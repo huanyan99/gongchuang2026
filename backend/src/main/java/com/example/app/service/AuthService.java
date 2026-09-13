@@ -105,14 +105,8 @@ public class AuthService {
             throw new BizException(ErrorCode.BAD_REQUEST, "手机号和姓名不能为空");
         }
         // 该手机号已在参会登记中出现过时，姓名必须与登记一致，作为身份核验
-        List<ApplicationGuest> registered = applicationGuestMapper.selectList(
-                new LambdaQueryWrapper<ApplicationGuest>()
-                        .eq(ApplicationGuest::getPhone, normalizedPhone)
-                        .orderByAsc(ApplicationGuest::getId));
-        ApplicationGuest matched = registered.stream()
-                .filter((guest) -> trimmedName.equals(guest.getName() == null ? "" : guest.getName().trim()))
-                .findFirst()
-                .orElse(null);
+        List<ApplicationGuest> registered = guestsByPhone(normalizedPhone);
+        ApplicationGuest matched = matchByName(registered, trimmedName);
         if (!registered.isEmpty() && matched == null) {
             throw new BizException(ErrorCode.BAD_REQUEST, "姓名与登记信息不一致");
         }
@@ -211,14 +205,7 @@ public class AuthService {
             throw new BizException(ErrorCode.BAD_REQUEST, "请先完成手机号授权");
         }
         String trimmedName = name == null ? "" : name.trim();
-        ApplicationGuest matched = applicationGuestMapper.selectList(
-                        new LambdaQueryWrapper<ApplicationGuest>()
-                                .eq(ApplicationGuest::getPhone, phone)
-                                .orderByAsc(ApplicationGuest::getId))
-                .stream()
-                .filter((guest) -> trimmedName.equals(guest.getName() == null ? "" : guest.getName().trim()))
-                .findFirst()
-                .orElse(null);
+        ApplicationGuest matched = matchByName(guestsByPhone(phone), trimmedName);
         if (matched == null) {
             throw new BizException(ErrorCode.BAD_REQUEST, "姓名与登记信息不一致");
         }
@@ -246,6 +233,45 @@ public class AuthService {
         body.put("maskedName", maskedName);
         body.put("missingCount", missingCount(name));
         return body;
+    }
+
+    /** 按手机号找到或创建网页身份，不签发 token（现场通道等场景复用） */
+    @Transactional
+    public User ensureWebUser(String phone, String name) {
+        String normalizedPhone = phone == null ? "" : phone.trim();
+        if (normalizedPhone.isEmpty()) throw new BizException(ErrorCode.BAD_REQUEST, "手机号不能为空");
+        String openid = WEB_OPENID_PREFIX + normalizedPhone;
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getOpenid, openid));
+        if (user == null) {
+            user = new User();
+            user.setOpenid(openid);
+            try {
+                userMapper.insert(user);
+            } catch (DuplicateKeyException e) {
+                user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getOpenid, openid));
+                if (user == null) throw new BizException(ErrorCode.INTERNAL_ERROR);
+            }
+        }
+        user.setPhone(normalizedPhone);
+        if (name != null && !name.isBlank()) user.setName(name.trim());
+        userMapper.updateById(user);
+        return user;
+    }
+
+    /** 该手机号在参会登记中的全部记录（含同行人） */
+    public List<ApplicationGuest> guestsByPhone(String phone) {
+        String normalized = phone == null ? "" : phone.trim();
+        if (normalized.isEmpty()) return List.of();
+        return applicationGuestMapper.selectList(new LambdaQueryWrapper<ApplicationGuest>()
+                .eq(ApplicationGuest::getPhone, normalized)
+                .orderByAsc(ApplicationGuest::getId));
+    }
+
+    private ApplicationGuest matchByName(List<ApplicationGuest> guests, String name) {
+        return guests.stream()
+                .filter((guest) -> name.equals(guest.getName() == null ? "" : guest.getName().trim()))
+                .findFirst()
+                .orElse(null);
     }
 
     /** 姓名掩码：隐藏第二个字（两字姓名即末字，三字及以上即中间字），与银行转账核验一致 */
@@ -312,6 +338,10 @@ public class AuthService {
             log.warn("公众号网页授权调用或解析失败: {}", e.getClass().getSimpleName());
             throw new BizException(ErrorCode.WECHAT_API_ERROR);
         }
+    }
+
+    public User findById(Long id) {
+        return id == null ? null : userMapper.selectById(id);
     }
 
     public User findValidByToken(String token) {

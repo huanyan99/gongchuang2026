@@ -50,8 +50,11 @@ planb-web/           Plan B 网页版（小程序的一比一网页复刻，无�
 | POST | /api/auth/phone-hint | 手机号在登记中的姓名掩码（登录时补全姓名核验） |
 | POST | /api/auth/profile/verify | 已登录用户补全姓名核验并回填档案 |
 | GET | /api/seat/me | 我的桌位与本场桌位图（需登录且登记已审核通过） |
-| POST | /api/admin/users/{id}/reset-device | 解绑用户设备（需 X-Admin-Key） |
-| GET、POST | /api/admin/settings | 后台开关读取与修改（需 X-Admin-Key） |
+| POST | /api/admin/login | 后台账号口令登录，返回会话 token |
+| POST | /api/pass/session | 现场通道换会话（扫码 + 姓名） |
+| POST | /api/admin/passes | 生成现场通道二维码（需 X-Admin-Token） |
+| POST | /api/admin/users/{id}/reset-device | 解绑用户设备（需 X-Admin-Token） |
+| GET、POST | /api/admin/settings | 后台开关读取与修改（需 X-Admin-Token） |
 | POST | /api/admin/seats/import | 批量导入桌位（需 X-Admin-Key） |
 | GET | /api/admin/seats | 桌位分页列表与桌数统计（需 X-Admin-Key） |
 
@@ -81,3 +84,24 @@ planb-web/           Plan B 网页版（小程序的一比一网页复刻，无�
   换设备由管理员调用 `POST /api/admin/users/{id}/reset-device` 解绑。
 - 数据表变更：`gonghcuang_user.device_id` 与 `gonghcuang_setting`，
   新库见 `db/schema.sql`，老库执行 `db/migrate_v10_device_setting.sql`。
+
+## 管理后台账号
+
+- 后台改为账号口令登录：`POST /api/admin/login` 拿会话 token，其余管理接口放在请求头 `X-Admin-Token`。
+  原先的 `X-Admin-Key` 已移除。
+- 口令用 PBKDF2-HMAC-SHA256（21 万次迭代）加随机盐存储；会话 token 只存 SHA-256 摘要，
+  有效期 8 小时，登录成功会作废该账号的旧会话。
+- 连续 5 次口令错误锁定账号 15 分钟；同一 IP 10 分钟内超过 20 次尝试直接拒绝；
+  登录失败信息不区分「账号不存在」与「口令错误」。新口令要求 ≥12 位且含字母、数字、符号。
+- 首次启动且库里没有账号时，用 `application.yml` 的 `admin.bootstrap-username/password` 建一个管理员，
+  登录后请立刻改密（`POST /api/admin/password`），正式环境建议用环境变量注入并在建号后清空该配置。
+
+## 现场通道二维码
+
+会议当天才公布的扫码入口，给没有登录的嘉宾用：
+
+- 后台「现场通道二维码」生成，可限定场次、备注与有效期（默认 24 小时），接口直接返回二维码图片
+- 链接形如 `<网页地址>/?pass=<不可猜的随机串>#/pass`；`app.web-base-url` 配置网页地址
+- 嘉宾扫码后只核对姓名即可查看自己的抽奖码与桌位；同名多人时再补手机号后四位
+- 通道会话只能访问 `/api/lottery/**` 与 `/api/seat/**`，访问参会登记等接口会被拒绝，有效期 12 小时
+- 通道可随时停用，停用后已扫码的会话立即失效

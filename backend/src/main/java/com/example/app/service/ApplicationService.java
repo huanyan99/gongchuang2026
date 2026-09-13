@@ -199,6 +199,31 @@ public class ApplicationService {
         return application;
     }
 
+    /**
+     * 抽奖码、桌位等「按嘉宾身份」查询：user_id → 主要联系人手机号 → 同行人手机号。
+     * 同行人各自用手机号登录后没有独立登记记录，只能靠 guest 表反查所属登记。
+     * 只用于只读查询，修改登记仍走 getByUser，避免同行人改到别人的登记。
+     */
+    public Application findForAttendee(User user) {
+        Application application = getByUser(user);
+        if (application != null) return application;
+        String phone = user == null || user.getPhone() == null ? "" : user.getPhone().trim();
+        if (phone.isEmpty()) return null;
+
+        List<ApplicationGuest> guests = applicationGuestMapper.selectList(
+                new LambdaQueryWrapper<ApplicationGuest>()
+                        .eq(ApplicationGuest::getPhone, phone)
+                        .orderByDesc(ApplicationGuest::getId));
+        Application fallback = null;
+        for (ApplicationGuest guest : guests) {
+            Application candidate = applicationMapper.selectById(guest.getApplicationId());
+            if (candidate == null) continue;
+            if (ApplyStatus.APPROVED.name().equals(candidate.getStatus())) return candidate;
+            if (fallback == null) fallback = candidate;
+        }
+        return fallback;
+    }
+
     public Application getByUserId(Long userId) {
         if (userId == null) {
             return null;

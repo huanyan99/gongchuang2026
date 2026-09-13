@@ -11,6 +11,7 @@ import { InvitationsView } from './pages/invitations.js';
 import { InvitationListView } from './pages/invitation-list.js';
 import { AdminView } from './pages/admin.js';
 import { SeatView } from './pages/seat.js';
+import { PassView } from './pages/pass.js';
 import { AgreementView, PrivacyView, LotteryRulesView } from './pages/policy.js';
 import { InvitationLetterView, AgendaView, RouteView } from './pages/service.js';
 
@@ -27,6 +28,7 @@ const routes = {
   agenda: AgendaView,
   route: RouteView,
   seat: SeatView,
+  pass: PassView,
   login: LoginView,
   admin: AdminView,
 };

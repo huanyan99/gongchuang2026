@@ -3,19 +3,25 @@ package com.example.app.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.app.common.ApplyStatus;
 import com.example.app.common.Result;
-import com.example.app.config.AdminAuth;
+import com.example.app.dto.AdminLoginRequest;
+import com.example.app.dto.AdminPasswordRequest;
+import com.example.app.dto.AccessPassRequest;
 import com.example.app.dto.CheckinRequest;
 import com.example.app.dto.ReviewRequest;
 import com.example.app.dto.SeatImportRequest;
 import com.example.app.entity.Application;
 import com.example.app.entity.Invitation;
 import com.example.app.entity.Seat;
+import com.example.app.entity.AdminUser;
 import com.example.app.entity.User;
 import com.example.app.mapper.UserMapper;
 import com.example.app.service.ApplicationService;
 import com.example.app.service.InvitationService;
+import com.example.app.service.AdminAccountService;
+import com.example.app.service.PassService;
 import com.example.app.service.SeatService;
 import com.example.app.service.SettingService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -39,15 +45,73 @@ public class AdminController {
 
     private final ApplicationService applicationService;
     private final InvitationService invitationService;
-    private final AdminAuth adminAuth;
+    private final AdminAccountService adminAccountService;
+    private final PassService passService;
     private final UserMapper userMapper;
     private final SeatService seatService;
     private final SettingService settingService;
 
+    /** 账号口令登录，返回后台会话 token（后续请求放在 X-Admin-Token） */
+    @PostMapping("/login")
+    public Result<Map<String, Object>> login(@Valid @RequestBody AdminLoginRequest req, HttpServletRequest request) {
+        return Result.ok(adminAccountService.login(req.getUsername(), req.getPassword(), clientIp(request)));
+    }
+
+    @PostMapping("/logout")
+    public Result<Void> logout(@RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.logout(adminToken);
+        return Result.ok();
+    }
+
+    /** 校验会话是否仍然有效 */
+    @GetMapping("/session")
+    public Result<Map<String, Object>> session(@RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        AdminUser admin = adminAccountService.require(adminToken);
+        Map<String, Object> body = new HashMap<>();
+        body.put("username", admin.getUsername());
+        body.put("displayName", admin.getDisplayName());
+        return Result.ok(body);
+    }
+
+    @PostMapping("/password")
+    public Result<Void> changePassword(@Valid @RequestBody AdminPasswordRequest req,
+                                       @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        AdminUser admin = adminAccountService.require(adminToken);
+        adminAccountService.changePassword(admin, req.getCurrentPassword(), req.getNewPassword());
+        return Result.ok();
+    }
+
+    /** 现场通道：生成带二维码的扫码入口 */
+    @PostMapping("/passes")
+    public Result<Map<String, Object>> createPass(@Valid @RequestBody AccessPassRequest req,
+                                                  @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
+        return Result.ok(passService.create(req.getEventCity(), req.getNote(), req.getValidHours()));
+    }
+
+    @GetMapping("/passes")
+    public Result<List<Map<String, Object>>> passes(@RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
+        return Result.ok(passService.list());
+    }
+
+    @PostMapping("/passes/{id}/disable")
+    public Result<Map<String, Object>> disablePass(@PathVariable @Min(1) Long id,
+                                                   @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
+        return Result.ok(passService.disable(id));
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) return forwarded.split(",")[0].trim();
+        return request.getRemoteAddr();
+    }
+
     /** 可授权用户列表（openid、token 等敏感字段由实体注解隐藏） */
     @GetMapping("/users")
-    public Result<List<User>> users(@RequestHeader("X-Admin-Key") String adminKey) {
-        adminAuth.verify(adminKey);
+    public Result<List<User>> users(@RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
         return Result.ok(userMapper.selectList(new LambdaQueryWrapper<User>().orderByDesc(User::getId)));
     }
 
@@ -57,8 +121,8 @@ public class AdminController {
             @PathVariable @Min(1) Long id,
             @RequestParam boolean canInvite,
             @RequestParam(defaultValue = "false") boolean canReview,
-            @RequestHeader("X-Admin-Key") String adminKey) {
-        adminAuth.verify(adminKey);
+            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
         User user = userMapper.selectById(id);
         if (user == null) throw new com.example.app.common.BizException(com.example.app.common.ErrorCode.NOT_FOUND, "用户不存在");
         user.setCanInvite(canInvite);
@@ -71,8 +135,8 @@ public class AdminController {
     @PostMapping("/invitation")
     public Result<Invitation> createInvitation(
             @RequestParam(defaultValue = "100") @Min(1) @Max(100000) int maxUses,
-            @RequestHeader("X-Admin-Key") String adminKey) {
-        adminAuth.verify(adminKey);
+            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
         return Result.ok(invitationService.create(maxUses));
     }
 
@@ -82,8 +146,8 @@ public class AdminController {
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") @Min(1) long page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) long size,
-            @RequestHeader("X-Admin-Key") String adminKey) {
-        adminAuth.verify(adminKey);
+            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
         if (status != null && !status.isBlank()) {
             status = ApplyStatus.of(status).name();
         }
@@ -101,24 +165,24 @@ public class AdminController {
     @PostMapping("/applications/{id}/review")
     public Result<Application> review(@PathVariable @Min(1) Long id,
                                       @Valid @RequestBody ReviewRequest req,
-                                      @RequestHeader("X-Admin-Key") String adminKey) {
-        adminAuth.verify(adminKey);
+                                      @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
         return Result.ok(applicationService.review(id, ApplyStatus.of(req.getStatus()), req.getRemark()));
     }
 
     /** 扫码入场核验 */
     @PostMapping("/checkin")
     public Result<Application> checkin(@Valid @RequestBody CheckinRequest req,
-                                       @RequestHeader("X-Admin-Key") String adminKey) {
-        adminAuth.verify(adminKey);
+                                       @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
         return Result.ok(applicationService.checkIn(req.getToken()));
     }
 
     /** 批量导入桌位；mode=REPLACE 时先清空该场次 */
     @PostMapping("/seats/import")
     public Result<Map<String, Object>> importSeats(@Valid @RequestBody SeatImportRequest req,
-                                                   @RequestHeader("X-Admin-Key") String adminKey) {
-        adminAuth.verify(adminKey);
+                                                   @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
         List<Seat> rows = req.getRows().stream().map((row) -> {
             Seat seat = new Seat();
             seat.setName(row.getName());
@@ -136,28 +200,28 @@ public class AdminController {
             @RequestParam(required = false) String city,
             @RequestParam(defaultValue = "1") @Min(1) long page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) long size,
-            @RequestHeader("X-Admin-Key") String adminKey) {
-        adminAuth.verify(adminKey);
+            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
         return Result.ok(seatService.page(city, page, size));
     }
 
     /** 解绑用户设备：邀请人换手机后由管理员放行 */
     @PostMapping("/users/{id}/reset-device")
     public Result<User> resetDevice(@PathVariable @Min(1) Long id,
-                                    @RequestHeader("X-Admin-Key") String adminKey) {
-        adminAuth.verify(adminKey);
-        User user = userMapper.selectById(id);
-        if (user == null) throw new com.example.app.common.BizException(com.example.app.common.ErrorCode.NOT_FOUND, "用户不存在");
-        user.setDeviceId(null);
-        userMapper.update(user, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<User>()
+                                    @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
+        if (userMapper.selectById(id) == null) {
+            throw new com.example.app.common.BizException(com.example.app.common.ErrorCode.NOT_FOUND, "用户不存在");
+        }
+        userMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<User>()
                 .eq(User::getId, id).set(User::getDeviceId, null));
         return Result.ok(userMapper.selectById(id));
     }
 
     /** 读取后台开关 */
     @GetMapping("/settings")
-    public Result<Map<String, Boolean>> settings(@RequestHeader("X-Admin-Key") String adminKey) {
-        adminAuth.verify(adminKey);
+    public Result<Map<String, Boolean>> settings(@RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
         return Result.ok(settingService.all());
     }
 
@@ -165,8 +229,8 @@ public class AdminController {
     @PostMapping("/settings/{key}")
     public Result<Map<String, Boolean>> updateSetting(@PathVariable String key,
                                                       @RequestParam boolean enabled,
-                                                      @RequestHeader("X-Admin-Key") String adminKey) {
-        adminAuth.verify(adminKey);
+                                                      @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
         if (!SettingService.DEVICE_BINDING_GUESTS.equals(key)) {
             throw new com.example.app.common.BizException(com.example.app.common.ErrorCode.BAD_REQUEST, "未知开关");
         }
@@ -176,8 +240,8 @@ public class AdminController {
 
     /** 按状态统计数量 */
     @GetMapping("/stats")
-    public Result<Map<String, Long>> stats(@RequestHeader("X-Admin-Key") String adminKey) {
-        adminAuth.verify(adminKey);
+    public Result<Map<String, Long>> stats(@RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
         Map<String, Long> stats = new HashMap<>();
         applicationService.countByStatus().forEach((status, count) ->
                 stats.put(status.name().toLowerCase(), count));

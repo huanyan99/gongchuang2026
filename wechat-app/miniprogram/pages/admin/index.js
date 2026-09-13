@@ -39,7 +39,11 @@ function parseSeatRows(text) {
 
 Page({
   data: {
-    adminKey: '',
+    adminToken: '',
+    adminName: '',
+    username: '',
+    password: '',
+    logging: false,
     logged: false,
     statusFilter: '',
     list: [],
@@ -60,11 +64,18 @@ Page({
     guestDeviceLimit: false,
   },
   onShow() {
-    const saved = wx.getStorageSync('adminKey');
-    if (saved) {
-      this.setData({ adminKey: saved });
-      this.fetchList(true);
-      this.loadSeatSummary();
+    const saved = wx.getStorageSync('adminToken');
+    if (saved && !this.data.logged) {
+      this.setData({ adminToken: saved });
+      app.request('/api/admin/session', 'GET', {}, {
+        'X-Admin-Token': saved,
+      }, { silent: true }).then((admin) => {
+        this.setData({ adminName: (admin && admin.displayName) || '' });
+        this.fetchList(true);
+      }).catch(() => {
+        wx.removeStorageSync('adminToken');
+        this.setData({ adminToken: '', logged: false });
+      });
     }
   },
   onReachBottom() {
@@ -72,15 +83,36 @@ Page({
       this.fetchList(false);
     }
   },
-  onInputKey(e) {
-    this.setData({ adminKey: e.detail.value });
+  onInputUsername(e) {
+    this.setData({ username: e.detail.value });
+  },
+  onInputPassword(e) {
+    this.setData({ password: e.detail.value });
   },
   login() {
-    if (!String(this.data.adminKey || '').trim()) {
-      wx.showToast({ title: '请输入管理密钥', icon: 'none' });
+    if (this.data.logging) return;
+    const username = String(this.data.username || '').trim();
+    const password = String(this.data.password || '');
+    if (!username || !password) {
+      wx.showToast({ title: '请输入账号和口令', icon: 'none' });
       return;
     }
-    this.fetchList(true);
+    this.setData({ logging: true });
+    app.request('/api/admin/login', 'POST', { username, password })
+      .then((result) => {
+        wx.setStorageSync('adminToken', result.token);
+        this.setData({ adminToken: result.token, adminName: result.displayName || username, password: '' });
+        this.fetchList(true);
+      })
+      .catch(() => {})
+      .finally(() => this.setData({ logging: false }));
+  },
+  logout() {
+    app.request('/api/admin/logout', 'POST', {}, {
+      'X-Admin-Token': this.data.adminToken,
+    }, { silent: true }).catch(() => {});
+    wx.removeStorageSync('adminToken');
+    this.setData({ adminToken: '', adminName: '', logged: false, list: [], total: 0 });
   },
   switchTab(e) {
     this.setData({ statusFilter: e.currentTarget.dataset.status || '' });
@@ -93,9 +125,8 @@ Page({
     const status = this.data.statusFilter;
     const query = `?page=${page}&size=${PAGE_SIZE}${status ? `&status=${encodeURIComponent(status)}` : ''}`;
     app.request(`/api/admin/applications${query}`, 'GET', {}, {
-      'X-Admin-Key': this.data.adminKey,
+      'X-Admin-Token': this.data.adminToken,
     }).then((result) => {
-      wx.setStorageSync('adminKey', this.data.adminKey);
       const records = ((result && result.records) || []).map((item) => Object.assign({}, item, {
         statusText: STATUS_TEXT[item.status] || item.status,
         checkedIn: !!item.checkedInAt,
@@ -136,7 +167,7 @@ Page({
     if (this._checking) return;
     this._checking = true;
     app.request('/api/admin/checkin', 'POST', { token }, {
-      'X-Admin-Key': this.data.adminKey,
+      'X-Admin-Token': this.data.adminToken,
     }).then((guest) => {
       wx.showToast({ title: `核验通过：${(guest && guest.name) || '嘉宾'}`, icon: 'none' });
       this.setData({ checkinName: (guest && guest.name) || '' });
@@ -147,7 +178,7 @@ Page({
   },
   loadSettings() {
     app.request('/api/admin/settings', 'GET', {}, {
-      'X-Admin-Key': this.data.adminKey,
+      'X-Admin-Token': this.data.adminToken,
     }, { silent: true }).then((result) => {
       this.setData({ guestDeviceLimit: !!(result && result.device_binding_guests) });
     }).catch(() => {});
@@ -162,7 +193,7 @@ Page({
       success: (res) => {
         if (!res.confirm) return;
         app.request(`/api/admin/settings/device_binding_guests?enabled=${enabled}`, 'POST', {}, {
-          'X-Admin-Key': this.data.adminKey,
+          'X-Admin-Token': this.data.adminToken,
         }).then((result) => {
           this.setData({ guestDeviceLimit: !!(result && result.device_binding_guests) });
           wx.showToast({ title: enabled ? '已开启' : '已关闭', icon: 'none' });
@@ -208,7 +239,7 @@ Page({
         if (!res.confirm) return;
         this.setData({ seatImporting: true });
         app.request('/api/admin/seats/import', 'POST', { eventCity, mode, rows }, {
-          'X-Admin-Key': this.data.adminKey,
+          'X-Admin-Token': this.data.adminToken,
         }).then((result) => {
           const errors = (result.errors || []).map((item) => `第${item.line}行：${item.message}`);
           wx.showModal({
@@ -225,7 +256,7 @@ Page({
   loadSeatSummary() {
     const eventCity = CITY_OPTIONS[this.data.cityIndex];
     app.request(`/api/admin/seats?city=${encodeURIComponent(eventCity)}&size=1`, 'GET', {}, {
-      'X-Admin-Key': this.data.adminKey,
+      'X-Admin-Token': this.data.adminToken,
     }, { silent: true }).then((result) => {
       this.setData({ seatSummary: `${eventCity}场 ${result.tableCount} 桌 / ${result.guestCount} 人` });
     }).catch(() => this.setData({ seatSummary: '' }));
@@ -256,7 +287,7 @@ Page({
     if (this._reviewing) return;
     this._reviewing = true;
     app.request(`/api/admin/applications/${id}/review`, 'POST', { status, remark }, {
-      'X-Admin-Key': this.data.adminKey,
+      'X-Admin-Token': this.data.adminToken,
     }).then(() => {
       wx.showToast({ title: '已处理' });
       this.fetchList(true);

@@ -2,7 +2,7 @@
 
 import { View } from '../core/view.js';
 import { html, when, cx } from '../core/dom.js';
-import { request, ensureLogin } from '../core/api.js';
+import { request, ensureLogin, config } from '../core/api.js';
 import { getStorage, setStorage, removeStorage } from '../core/storage.js';
 import { showModal, toast } from '../core/ui.js';
 
@@ -44,8 +44,9 @@ export class HomeView extends View {
   }
 
   onLoad(options) {
+    // 隐私弹窗当前关闭（config.privacyPopup），协议入口保留在个人中心底部
     const privacyAccepted = !!getStorage('bochuPrivacyAccepted');
-    this.setData({ showPrivacyConsent: !privacyAccepted });
+    this.setData({ showPrivacyConsent: !!config.privacyPopup && !privacyAccepted });
 
     // 邀请码只能来自本次打开参数；旧缓存不能自行恢复受邀场次。
     const inviteCode = options.code || options.inviteCode || '';

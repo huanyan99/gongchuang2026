@@ -8,12 +8,22 @@ import com.example.app.entity.User;
 public final class UserContext {
 
     private static final ThreadLocal<User> HOLDER = new ThreadLocal<>();
+    /** 现场通道会话：只能访问抽奖码与桌位 */
+    private static final ThreadLocal<Boolean> PASS_SCOPED = new ThreadLocal<>();
 
     private UserContext() {
     }
 
     public static void set(User user) {
         HOLDER.set(user);
+    }
+
+    public static void setPassScoped(boolean passScoped) {
+        PASS_SCOPED.set(passScoped);
+    }
+
+    public static boolean isPassScoped() {
+        return Boolean.TRUE.equals(PASS_SCOPED.get());
     }
 
     public static User get() {
@@ -30,5 +40,6 @@ public final class UserContext {
 
     public static void clear() {
         HOLDER.remove();
+        PASS_SCOPED.remove();
     }
 }

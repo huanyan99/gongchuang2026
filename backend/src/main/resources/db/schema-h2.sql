@@ -106,3 +106,44 @@ CREATE TABLE IF NOT EXISTS gonghcuang_setting (
     setting_value VARCHAR(255),
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS gonghcuang_admin_user (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(64) NOT NULL UNIQUE,
+    password_hash VARCHAR(128) NOT NULL,
+    password_salt VARCHAR(64) NOT NULL,
+    display_name VARCHAR(64),
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    failed_count INT NOT NULL DEFAULT 0,
+    locked_until TIMESTAMP,
+    last_login_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS gonghcuang_admin_session (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    token_hash VARCHAR(64) NOT NULL UNIQUE,
+    admin_id BIGINT NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 现场通道：会议当天才公布的二维码参数，扫码后只验证姓名即可查看抽奖码与桌位
+CREATE TABLE IF NOT EXISTS gonghcuang_access_pass (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    token VARCHAR(64) NOT NULL UNIQUE,
+    event_city VARCHAR(32),
+    note VARCHAR(128),
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    expires_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS gonghcuang_pass_session (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    token_hash VARCHAR(64) NOT NULL UNIQUE,
+    user_id BIGINT NOT NULL,
+    pass_id BIGINT NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

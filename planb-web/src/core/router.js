@@ -3,6 +3,8 @@
  * 返回时保留上一页实例与滚动位置，并触发 onShow，与小程序行为一致。
  */
 
+import { authState } from './api.js';
+
 const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ANIMATION_MS = REDUCED_MOTION ? 1 : 300;
 
@@ -83,7 +85,22 @@ export class Router {
   }
 
   mount(route, query, { animate }) {
-    const PageView = this.routes[route] || this.routes.home;
+    let PageView = this.routes[route] || this.routes.home;
+    // 登录守卫：参会登记、抽奖码、桌位图等必须先登录
+    const required = PageView.auth;
+    if (required) {
+      const state = authState();
+      const allowed = state === 'full' || (required === 'any' && state === 'pass');
+      if (!allowed) {
+        const back = `${route}${Object.keys(query || {}).length
+          ? `?${new URLSearchParams(query)}`
+          : ''}`;
+        PageView = this.routes.login;
+        route = 'login';
+        query = { redirect: encodeURIComponent(`/${back}`) };
+        history.replaceState({ index: this.index }, '', '#/login');
+      }
+    }
     const view = new PageView({ route, query, router: this });
     const previous = this.current;
 
