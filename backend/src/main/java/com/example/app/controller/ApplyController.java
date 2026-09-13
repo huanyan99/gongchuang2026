@@ -55,7 +55,7 @@ public class ApplyController {
     /** 查询当前登录用户的申报与审核状态 */
     @GetMapping("/me")
     public Result<Application> me() {
-        Application application = applicationService.getByUserId(UserContext.require().getId());
+        Application application = applicationService.getByUser(UserContext.require());
         if (application == null) {
             throw new BizException(ErrorCode.APPLY_NOT_FOUND);
         }

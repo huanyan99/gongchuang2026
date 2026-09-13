@@ -47,7 +47,8 @@ class AuthServiceTest {
         User existing = new User();
         existing.setId(1L);
         when(mapper.selectOne(any(com.baomidou.mybatisplus.core.conditions.Wrapper.class))).thenReturn(existing);
-        AuthService service = new AuthService(mapper, builder.build(), new ObjectMapper());
+        AuthService service = new AuthService(mapper,
+                mock(com.example.app.mapper.ApplicationGuestMapper.class), builder.build(), new ObjectMapper());
         ReflectionTestUtils.setField(service, "appid", "test-app");
         ReflectionTestUtils.setField(service, "secret", "test-secret");
         return service;

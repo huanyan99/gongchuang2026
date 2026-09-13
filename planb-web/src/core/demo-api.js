@@ -317,6 +317,13 @@ export function demoRequest(path, method = 'GET', data = {}) {
     return { token: 'demo-token', user: db.user };
   }
 
+  if (pathname === '/api/auth/phone-login') {
+    db.user.phone = String(data.phone || '').trim() || db.user.phone || '13800000000';
+    if (!db.user.name) db.user.name = String(data.name || '').trim();
+    saveDb(db);
+    return { token: 'demo-token', user: db.user };
+  }
+
   if (pathname === '/api/auth/me') {
     return db.user;
   }

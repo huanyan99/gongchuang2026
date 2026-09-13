@@ -6,7 +6,7 @@
 
 import { View } from '../core/view.js';
 import { html, when, cx } from '../core/dom.js';
-import { request, ensureLogin } from '../core/api.js';
+import { request, ensureLogin, loginWithPhone } from '../core/api.js';
 import { getStorage, setStorage, removeStorage } from '../core/storage.js';
 import { showModal, showSheet, toast } from '../core/ui.js';
 
@@ -33,7 +33,10 @@ export class LoginView extends View {
       redirect: '',
       wxLogged: false,
       profileReady: false,
-      logging: false,
+      step: 1,
+      loginPhone: '',
+      loginName: '',
+      phoneLogging: false,
       name: '',
       gender: '',
       genderText: '',
@@ -50,6 +53,15 @@ export class LoginView extends View {
 
   onShow() {
     this.loadProfile();
+    if (!this.data.profileReady) this.focusLoginInput();
+  }
+
+  /** 极简登录向导：每步渲染后自动聚焦输入框（光标提示） */
+  focusLoginInput() {
+    this.later(() => {
+      const input = document.querySelector('.minimal-login input');
+      if (input) input.focus();
+    }, 150);
   }
 
   loadProfile() {
@@ -131,31 +143,48 @@ export class LoginView extends View {
 
   /* ---------- 交互 ---------- */
 
-  handleLogin() {
-    if (this.data.logging) return;
-    this.setData({ logging: true });
-
-    ensureLogin()
-      .then(() => {
-        setStorage('webLogged', true);
-        this.setData({ wxLogged: true });
-        toast('已登录，请完善贵宾信息');
-        return this.fetchApplyRecord();
-      })
-      .catch((err) => {
-        const stage = (err && err.stage) || '登录';
-        const code = err && err.code != null ? err.code : '未知';
-        showModal({
-          title: '登录失败',
-          content: `${(err && err.message) || '请稍后重试'}\n阶段：${stage}\n错误码：${code}`,
-          showCancel: false,
-        });
-      })
-      .finally(() => this.setData({ logging: false }));
+  onLoginPhoneInput(event) {
+    this.assign({ loginPhone: event.target.value });
   }
 
-  onNameInput(event) {
-    this.assign({ name: event.target.value });
+  onLoginNameInput(event) {
+    this.assign({ loginName: event.target.value });
+  }
+
+  handlePhoneNext() {
+    const phone = String(this.data.loginPhone || '').trim();
+    if (!/^1\d{10}$/.test(phone)) return toast('请输入 11 位手机号');
+    this.setData({ step: 2 });
+    this.focusLoginInput();
+  }
+
+  /** 一键登录：未登录走手机号+姓名登录；已登录仅补全档案。完成后进入首页 */
+  handleOneKeyLogin() {
+    if (this.data.phoneLogging) return;
+    const phone = String(this.data.loginPhone || '').trim();
+    const name = String(this.data.loginName || '').trim();
+    if (!this.data.wxLogged && !/^1\d{10}$/.test(phone)) {
+      this.setData({ step: 1 });
+      this.focusLoginInput();
+      return toast('请输入 11 位手机号');
+    }
+    if (!name) return toast('请输入贵宾姓名');
+    if (!this.data.gender) return toast('请选择性别');
+    this.setData({ phoneLogging: true });
+    const login = this.data.wxLogged ? Promise.resolve() : loginWithPhone(phone, name);
+    login
+      .then(() => request('/api/auth/profile', 'PUT', { name, gender: this.data.gender }))
+      .then(() => {
+        setStorage('webLogged', true);
+        this.setData({ wxLogged: true, profileReady: true, name, genderText: `${this.data.gender}士` });
+        toast('登录成功', 'success');
+        this.later(() => {
+          if (this.data.redirect) this.router.redirectTo(this.data.redirect);
+          else this.router.redirectTo('/home');
+        }, 620);
+      })
+      .catch(() => {})
+      .finally(() => this.setData({ phoneLogging: false }));
   }
 
   async onGenderChange() {
@@ -166,27 +195,6 @@ export class LoginView extends View {
     });
     if (picked == null) return;
     this.setData({ gender: GENDER_OPTIONS[picked] });
-  }
-
-  completeLogin() {
-    const name = String(this.data.name || '').trim();
-    if (!name) return toast('请填写姓名');
-    if (!this.data.gender) return toast('请选择性别');
-
-    return request('/api/auth/profile', 'PUT', { name, gender: this.data.gender })
-      .then(() => {
-        setStorage('bochuMemberProfile', { name, gender: this.data.gender });
-        this.setData({ profileReady: true, wxLogged: true, genderText: `${this.data.gender}士` });
-        toast('保存成功', 'success');
-        this.later(() => {
-          if (this.data.redirect) {
-            this.router.redirectTo(this.data.redirect);
-            return;
-          }
-          this.fetchApplyRecord();
-        }, 520);
-      })
-      .catch(() => {});
   }
 
   openAgreement() {
@@ -223,33 +231,8 @@ export class LoginView extends View {
 
   /* ---------- 视图 ---------- */
 
+  /** 已登录且档案完整时展示（未登录/缺档案由极简向导接管） */
   loginPanel() {
-    if (!this.data.wxLogged) {
-      return html`
-        <button type="button" class="login-btn primary" ${this.data.logging ? 'disabled' : ''} data-tap="handleLogin">
-          ${this.data.logging ? '登录中 ···' : '登录'}
-        </button>
-        <div class="hint">网页版不提供微信手机号授权，登录后请在参会登记中填写手机号，用于会务联络及签到核验。</div>
-      `;
-    }
-
-    if (!this.data.profileReady) {
-      return html`
-        <div class="panel-card">
-          <div class="panel-title">贵宾信息</div>
-          <div class="form-item">
-            <div class="label">姓名</div>
-            <input name="name" value="${this.data.name}" maxlength="32" placeholder="请输入姓名" data-input="onNameInput" />
-          </div>
-          <div class="form-item">
-            <div class="label">性别</div>
-            <div class="picker-value tap ${cx({ empty: !this.data.gender })}" data-tap="onGenderChange">${this.data.gender || '请选择性别'}</div>
-          </div>
-        </div>
-        <button type="button" class="login-btn primary" data-tap="completeLogin">完成登录</button>
-      `;
-    }
-
     const record = this.data.applyRecord;
     return html`
       <div class="panel-card record-card">
@@ -286,41 +269,93 @@ export class LoginView extends View {
     `;
   }
 
+  /* ---------- 极简登录向导（未登录或档案不全时的唯一身份入口） ---------- */
+
+  /** 已登录缺档案的贵宾直接从第二步补全，跳过手机号 */
+  effectiveStep() {
+    return this.data.wxLogged ? 2 : this.data.step;
+  }
+
+  wizardSteps() {
+    const step = this.effectiveStep();
+    return html`
+      <div class="wizard-steps">
+        <div class="wizard-step ${cx({ active: step === 1 })}">第一步</div>
+        <div class="wizard-step ${cx({ active: step === 2 })}">第二步</div>
+      </div>
+    `;
+  }
+
+  minimalWizard() {
+    if (this.effectiveStep() === 1) {
+      return html`
+        <div class="minimal-login">
+          <div class="wizard-title">贵宾登录</div>
+          ${this.wizardSteps()}
+          <input class="wizard-box" name="loginPhone" value="${this.data.loginPhone}" maxlength="11"
+                 inputmode="numeric" autocomplete="tel" placeholder="请输入手机号" data-input="onLoginPhoneInput" />
+          <button type="button" class="login-btn primary" data-tap="handlePhoneNext">下一步</button>
+        </div>
+      `;
+    }
+    const savedName = this.data.loginName || (this.data.wxLogged ? this.data.name : '');
+    return html`
+      <div class="minimal-login">
+        <div class="wizard-title">贵宾登录</div>
+        ${this.wizardSteps()}
+        <input class="wizard-box" name="loginName" value="${savedName}" maxlength="32"
+               placeholder="请输入姓名" data-input="onLoginNameInput" />
+        <div class="wizard-box gender tap ${cx({ empty: !this.data.gender })}" data-tap="onGenderChange">
+          ${this.data.gender || '请选择性别'}
+        </div>
+        <button type="button" class="login-btn primary" ${this.data.phoneLogging ? 'disabled' : ''} data-tap="handleOneKeyLogin">
+          ${this.data.phoneLogging ? '登录中' : '一键登录'}
+        </button>
+      </div>
+    `;
+  }
+
   template() {
     const { profileReady } = this.data;
+    // 已登录且档案完整 → 个人中心（档案/记录）；其余情况由极简向导接管（唯一身份入口）
+    const complete = this.data.wxLogged && this.data.profileReady;
+    const minimalWizard = !complete;
     return html`
       <div class="page-scroll">
         <div class="login-page">
-          <div class="login-hero">
-            <div class="eyebrow">BOCHU INVITATION</div>
-            <div class="title">${profileReady ? '个人中心' : '贵宾登录'}</div>
-            ${when(!profileReady, html`<div class="sub">柏楚2026价值共创峰会</div>`)}
-          </div>
-
-          <div class="member-card ${cx({ compact: profileReady })}">
-            <div class="card-shine"></div>
-            ${when(profileReady, html`<div class="profile-badge">贵宾档案</div>`)}
-            <div class="card-label">BOCHU</div>
-            <div class="card-title">${profileReady ? this.data.name : 'VALUE CO-CREATION'}</div>
-            <div class="card-sub">${profileReady ? this.data.genderText : '2026 VIP ACCESS'}</div>
-            <div class="card-lines">
-              <div></div>
-              <div></div>
-              <div></div>
+          ${when(minimalWizard, this.minimalWizard())}
+          ${when(complete, html`
+            <div class="login-hero">
+              <div class="eyebrow">BOCHU INVITATION</div>
+              <div class="title">${profileReady ? '个人中心' : '贵宾登录'}</div>
+              ${when(!profileReady, html`<div class="sub">柏楚2026价值共创峰会</div>`)}
             </div>
-          </div>
 
-          <div class="login-panel">${this.loginPanel()}</div>
-
-          <div class="agreement-footer">
-            <div>我们尊重并保护您的个人信息。</div>
-            <div class="agreement-links">
-              <span class="agreement-link tap" data-tap="openAgreement">《用户服务协议》</span>
-              <span>及</span>
-              <span class="agreement-link tap" data-tap="openPrivacy">《隐私政策》</span>
+            <div class="member-card ${cx({ compact: profileReady })}">
+              <div class="card-shine"></div>
+              ${when(profileReady, html`<div class="profile-badge">贵宾档案</div>`)}
+              <div class="card-label">BOCHU</div>
+              <div class="card-title">${profileReady ? this.data.name : 'VALUE CO-CREATION'}</div>
+              <div class="card-sub">${profileReady ? this.data.genderText : '2026 VIP ACCESS'}</div>
+              <div class="card-lines">
+                <div></div>
+                <div></div>
+                <div></div>
+              </div>
             </div>
-            <div class="delete-info-link tap" data-tap="requestPersonalInfoDeletion">注销并删除个人信息</div>
-          </div>
+
+            <div class="login-panel">${this.loginPanel()}</div>
+
+            <div class="agreement-footer">
+              <div>我们尊重并保护您的个人信息。</div>
+              <div class="agreement-links">
+                <span class="agreement-link tap" data-tap="openAgreement">《用户服务协议》</span>
+                <span>及</span>
+                <span class="agreement-link tap" data-tap="openPrivacy">《隐私政策》</span>
+              </div>
+              <div class="delete-info-link tap" data-tap="requestPersonalInfoDeletion">注销并删除个人信息</div>
+            </div>
+          `)}
         </div>
       </div>
 

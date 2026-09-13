@@ -2,8 +2,11 @@ package com.example.app.controller;
 
 import com.example.app.common.Result;
 import com.example.app.dto.LoginRequest;
+import com.example.app.dto.PhoneLoginRequest;
+import com.example.app.dto.TicketLoginRequest;
 import com.example.app.entity.User;
 import com.example.app.service.AuthService;
+import com.example.app.service.WechatLoginService;
 import com.example.app.service.WechatPhoneService;
 import com.example.app.dto.PhoneAuthorizationRequest;
 import com.example.app.dto.ProfileRequest;
@@ -21,6 +24,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final WechatPhoneService wechatPhoneService;
+    private final WechatLoginService wechatLoginService;
 
     @GetMapping("/me")
     public Result<User> me() {
@@ -41,6 +45,34 @@ public class AuthController {
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@Valid @RequestBody LoginRequest req) {
         User user = authService.login(req);
+        return Result.ok(Map.of("token", user.getToken(), "user", user));
+    }
+
+    /** 公众号网页授权登录（网页版）：前端传 OAuth2 的 code，后端换取 openid 并返回 token */
+    @PostMapping("/web-login")
+    public Result<Map<String, Object>> webLogin(@Valid @RequestBody LoginRequest req) {
+        User user = authService.webLogin(req);
+        return Result.ok(Map.of("token", user.getToken(), "user", user));
+    }
+
+    /** 网页版手机号+姓名登录（无验证码）：按手机号建立/认领身份并返回 token */
+    @PostMapping("/phone-login")
+    public Result<Map<String, Object>> phoneLogin(@Valid @RequestBody PhoneLoginRequest req) {
+        User user = authService.phoneLogin(req.getPhone(), req.getName());
+        return Result.ok(Map.of("token", user.getToken(), "user", user));
+    }
+
+    /** 公众号消息登录（网页版）：公众号回复的数字登录码换正式会话 */
+    @PostMapping("/code-login")
+    public Result<Map<String, Object>> codeLogin(@Valid @RequestBody LoginRequest req) {
+        User user = wechatLoginService.loginByCode(req.getCode());
+        return Result.ok(Map.of("token", user.getToken(), "user", user));
+    }
+
+    /** 公众号消息登录（网页版）：一键登录链接里的 ticket 换正式会话 */
+    @PostMapping("/ticket-login")
+    public Result<Map<String, Object>> ticketLogin(@Valid @RequestBody TicketLoginRequest req) {
+        User user = wechatLoginService.loginByTicket(req.getTicket());
         return Result.ok(Map.of("token", user.getToken(), "user", user));
     }
 }

@@ -27,6 +27,8 @@ const IDENTITY_KEYS = [
   'bochuLuckyNumber',
   'authUserId',
   'webLogged',
+  'oauthState',
+  'oauthHash',
 ];
 
 export const session = {
@@ -65,13 +67,80 @@ export function ensureLogin() {
     session.token = cached;
     return Promise.resolve(cached);
   }
-  // 浏览器没有 wx.login：正式环境需接入公众号 OAuth / 短信 / 企业统一身份认证，
-  // 由接入方把换取到的 token 写入 config.token 或 localStorage 的 bochu:token。
-  return Promise.reject({
-    code: 1001,
-    stage: '网页身份认证',
-    message: '网页版尚未接入身份认证，请配置 config.token 或开启演示模式',
-  });
+  // 页面加载后多个生命周期方法可能并发调用，只发起一次登录
+  if (!loginInFlight) {
+    loginInFlight = webLogin().finally(() => { loginInFlight = null; });
+  }
+  return loginInFlight;
+}
+
+let loginInFlight = null;
+
+/**
+ * 登录入口：
+ * - 生产环境：登录页用「手机号 + 姓名」调 loginWithPhone 显式登录，不静默
+ * - 公众号网页授权（snsapi_base）保留为备用通道，config.oauthAppid 配置后启用
+ * 注意：邀请链接也用 ?code= 传邀请码（见 main.js），OAuth 回调以是否带 state 区分。
+ */
+function webLogin() {
+  const params = new URLSearchParams(location.search);
+  const oauthCode = params.get('code') || '';
+  const oauthState = params.get('state') || '';
+
+  if (oauthCode && oauthState) {
+    const expected = String(getStorage('oauthState') || '');
+    if (!expected || oauthState !== expected) {
+      // state 不匹配（过期/伪造）：清理参数后按未登录处理，避免用过期 code 反复兑换
+      cleanOAuthQuery();
+      return Promise.reject(unauthorizedError('登录状态已过期，请重新打开页面'));
+    }
+    return request('/api/auth/web-login', 'POST', { code: oauthCode }, {}, { silent: true, skipRetry: true })
+      .then((data) => {
+        removeStorage('oauthState');
+        cleanOAuthQuery();
+        applyLoginSession(data);
+        return session.token;
+      })
+      .catch((err) => {
+        removeStorage('oauthState');
+        cleanOAuthQuery();
+        return Promise.reject(unauthorizedError((err && err.message) || '微信授权登录失败，请在微信中重新打开页面'));
+      });
+  }
+
+  if (config.oauthAppid) {
+    if (!/MicroMessenger/i.test(navigator.userAgent)) {
+      return Promise.reject(unauthorizedError('请使用微信打开本页面完成登录'));
+    }
+    return startOAuth();
+  }
+  // 未配置公众号授权：由登录页用手机号+姓名显式登录
+  return Promise.reject(unauthorizedError('请先使用手机号和姓名登录'));
+}
+
+function startOAuth() {
+  setStorage('oauthHash', location.hash || '#/');
+  const state = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  setStorage('oauthState', state);
+  const authorize = 'https://open.weixin.qq.com/connect/oauth2/authorize'
+    + '?appid=' + encodeURIComponent(config.oauthAppid)
+    + '&redirect_uri=' + encodeURIComponent(location.origin + location.pathname)
+    + '&response_type=code&scope=snsapi_base'
+    + '&state=' + state
+    + '#wechat_redirect';
+  location.href = authorize;
+  // 已跳离页面，promise 永不落定
+  return new Promise(() => {});
+}
+
+function cleanOAuthQuery() {
+  const hash = String(getStorage('oauthHash') || '') || location.hash || '#/';
+  removeStorage('oauthHash');
+  history.replaceState(null, '', location.origin + location.pathname + hash);
+}
+
+function unauthorizedError(message) {
+  return { code: 1001, stage: '微信授权', message };
 }
 
 export function relogin() {
@@ -127,7 +196,7 @@ export function request(path, method = 'GET', data = {}, extraHeader = {}, optio
       if (body && body.code === 0) return body.data;
 
       const error = body && typeof body === 'object' ? body : { code: -1, message: '请求失败' };
-      if (error.code === 1001 && !options.skipRetry && path !== '/api/auth/login') {
+      if (error.code === 1001 && !options.skipRetry && path !== '/api/auth/login' && path !== '/api/auth/web-login') {
         return relogin().then(() => request(path, method, data, extraHeader, { ...options, skipRetry: true }));
       }
       if (!options.silent && error.code !== 3002) toast(error.message || '请求失败');
@@ -140,6 +209,15 @@ export function request(path, method = 'GET', data = {}, extraHeader = {}, optio
       return Promise.reject(failure);
     })
     .finally(() => clearTimeout(timer));
+}
+
+/** 网页版登录：手机号 + 姓名（无验证码，后端按手机号建立/认领身份） */
+export function loginWithPhone(phone, name) {
+  return request('/api/auth/phone-login', 'POST', { phone: String(phone).trim(), name: String(name).trim() }, {}, { skipRetry: true })
+    .then((data) => {
+      applyLoginSession(data);
+      return session.token;
+    });
 }
 
 export const api = { config, session, request, ensureLogin, relogin, clearIdentityCache };

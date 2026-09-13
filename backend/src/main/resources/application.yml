@@ -31,6 +31,22 @@ mybatis-plus:
 wechat:
   appid: your-appid
   secret: your-secret
+  # 公众号消息回调（服务器配置）Token，须与公众号后台填写的一致
+  callback-token: ${WECHAT_CALLBACK_TOKEN:planb-callback-token}
+  # 登录码位数（公众号回复给用户的数字码）
+  login-code:
+    length: 4
+  # 公众号网页授权（网页版登录）：与小程序的 appid/secret 不同
+  official-account:
+    appid: ${WECHAT_OA_APPID:}
+    secret: ${WECHAT_OA_SECRET:}
+    # 一键登录链接的网页基地址（网页版部署地址）
+    web-base-url: ${WEB_BASE_URL:https://pmt.fscut.com}
+
+app:
+  # 网页版部署来源（CORS 放通），逗号分隔
+  cors:
+    allowed-origins: http://localhost:4173,http://127.0.0.1:4173
 
 admin:
   # 生产环境（--spring.profiles.active=prod）要求 >=16 位且非默认值，否则启动失败

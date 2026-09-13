@@ -52,7 +52,7 @@ public class ApplicationService {
         String phone = trimToEmpty(primary.getPhone());
         String invitationCode = trimToEmpty(req.getInvitationCode());
 
-        if (getByUserId(user.getId()) != null) {
+        if (getByUser(user) != null) {
             throw new BizException(ErrorCode.APPLY_DUPLICATED);
         }
 
@@ -95,7 +95,7 @@ public class ApplicationService {
     /** 嘉宾最多修改两次；修改后重置为待审核并替换全部同行人员信息。 */
     @Transactional
     public Application resubmit(ApplyRequest req, User user) {
-        Application current = getByUserId(user.getId());
+        Application current = getByUser(user);
         if (current == null) throw new BizException(ErrorCode.APPLY_NOT_FOUND);
         int editCount = current.getEditCount() == null ? 0 : current.getEditCount();
         if (editCount >= 2) throw new BizException(ErrorCode.CONFLICT, "登记信息最多修改两次");
@@ -181,6 +181,24 @@ public class ApplicationService {
         return stats;
     }
 
+    /**
+     * 按登录用户查参会登记：先按 user_id，查不到且用户带手机号时按手机号回退匹配。
+     * 网页版手机号登录是新建身份，手机号回退让老登记记录（小程序/其他渠道提交）同样可见。
+     */
+    public Application getByUser(User user) {
+        if (user == null) {
+            return null;
+        }
+        Application application = getByUserId(user.getId());
+        if (application == null && user.getPhone() != null && !user.getPhone().isBlank()) {
+            application = applicationMapper.selectOne(
+                    new LambdaQueryWrapper<Application>().eq(Application::getPhone, user.getPhone())
+                            .orderByDesc(Application::getId)
+                            .last("LIMIT 1"));
+        }
+        return application;
+    }
+
     public Application getByUserId(Long userId) {
         if (userId == null) {
             return null;
@@ -192,7 +210,7 @@ public class ApplicationService {
     }
 
     public TicketResponse issueTicket(User user) {
-        Application application = getByUserId(user.getId());
+        Application application = getByUser(user);
         if (application == null) {
             throw new BizException(ErrorCode.APPLY_NOT_FOUND);
         }

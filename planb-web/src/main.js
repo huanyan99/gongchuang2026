@@ -55,9 +55,13 @@ const router = new Router({
 
 navBack.addEventListener('click', () => router.navigateBack());
 
-// 邀请链接形如 index.html?code=XXXX，等价于小程序的启动参数
+// 邀请链接形如 index.html?code=XXXX，等价于小程序的启动参数；
+// 微信授权回调也带 ?code=...&state=...，以是否带 state 区分，避免把授权 code 当成邀请码
+const launchParams = new URLSearchParams(location.search);
+const isOAuthReturn = launchParams.has('state');
 const launchQuery = {};
-new URLSearchParams(location.search).forEach((value, key) => {
+launchParams.forEach((value, key) => {
+  if (isOAuthReturn && (key === 'code' || key === 'state')) return;
   launchQuery[key] = value;
 });
 

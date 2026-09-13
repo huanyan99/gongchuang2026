@@ -370,3 +370,82 @@
   color: #7f6736;
   text-decoration: underline;
 }
+
+/* 极简登录向导 */
+.view--login .minimal-login {
+  padding: 100px 80px 0;
+}
+
+.view--login .wizard-title {
+  text-align: center;
+  color: #17233f;
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: 10px;
+}
+
+.view--login .wizard-steps {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 34px;
+}
+
+.view--login .wizard-step {
+  min-width: 132px;
+  padding: 10px 30px;
+  border-radius: 26px;
+  background: rgba(38, 57, 123, 0.07);
+  color: #9aa3b5;
+  font-size: 22px;
+  letter-spacing: 4px;
+  text-align: center;
+}
+
+.view--login .wizard-step.active {
+  background: #26397b;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(38, 57, 123, 0.22);
+}
+
+.view--login .wizard-box {
+  display: block;
+  width: 100%;
+  margin-top: 52px;
+  padding: 28px 30px;
+  background: rgba(38, 57, 123, 0.06);
+  border: 2px solid transparent;
+  border-radius: 16px;
+  box-sizing: border-box;
+  color: #17233f;
+  font-size: 34px;
+  font-weight: 500;
+  text-align: center;
+  caret-color: #26397b;
+}
+
+.view--login .wizard-box::placeholder {
+  color: #b4bac7;
+  font-weight: 400;
+}
+
+.view--login input.wizard-box:focus {
+  outline: none;
+  border-color: #26397b;
+  background: #ffffff;
+}
+
+.view--login .wizard-box.gender {
+  margin-top: 28px;
+  line-height: 1.4;
+}
+
+.view--login .wizard-box.gender.empty {
+  color: #b4bac7;
+  font-weight: 400;
+}
+
+.view--login .minimal-login .login-btn {
+  margin-top: 76px;
+  width: 100%;
+}
