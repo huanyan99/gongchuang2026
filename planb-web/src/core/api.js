@@ -26,7 +26,6 @@ const IDENTITY_KEYS = [
   'bochuApplyProfile',
   'bochuLuckyNumber',
   'authUserId',
-  'webLogged',
   'oauthState',
   'oauthHash',
 ];
@@ -66,17 +65,16 @@ function applyLoginSession(data) {
 }
 
 export function ensureLogin() {
-  if (config.demoMode) {
-    const data = demoRequest('/api/auth/login', 'POST');
-    applyLoginSession(data);
-    return Promise.resolve(data.token);
-  }
+  // 演示模式同样要求先在登录页完成手机号+姓名登录，与正式环境流程一致
   if (session.token) return Promise.resolve(session.token);
 
   const cached = getStorage('token') || config.token;
   if (cached) {
     session.token = cached;
     return Promise.resolve(cached);
+  }
+  if (config.demoMode) {
+    return Promise.reject({ code: 1001, stage: '登录', message: '请先使用手机号和姓名登录' });
   }
   // 页面加载后多个生命周期方法可能并发调用，只发起一次登录
   if (!loginInFlight) {

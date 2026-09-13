@@ -248,19 +248,15 @@ public class AuthService {
         return body;
     }
 
-    /** 姓名掩码：两字隐藏末字，三字及以上隐藏中间 */
+    /** 姓名掩码：隐藏第二个字（两字姓名即末字，三字及以上即中间字），与银行转账核验一致 */
     public static String maskName(String name) {
         String value = name == null ? "" : name.trim();
-        int length = value.length();
-        if (length < 2) return "";
-        if (length == 2) return value.charAt(0) + "*";
-        return value.charAt(0) + "*".repeat(length - 2) + value.charAt(length - 1);
+        if (value.length() < 2) return "";
+        return value.charAt(0) + "*" + value.substring(2);
     }
 
     private static int missingCount(String name) {
-        int length = name == null ? 0 : name.trim().length();
-        if (length < 2) return 0;
-        return length == 2 ? 1 : length - 2;
+        return maskName(name).isEmpty() ? 0 : 1;
     }
 
     private String resolveOpenid(String code) {

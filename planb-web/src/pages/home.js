@@ -39,6 +39,7 @@ export class HomeView extends View {
       hasRegistrationRecord: false,
       registrationEventCity: '',
       invitationCanOverride: false,
+      authed: false,
     };
   }
 
@@ -150,7 +151,10 @@ export class HomeView extends View {
 
   syncApplyFlag() {
     return ensureLogin()
-      .then(() => request('/api/apply/me', 'GET', {}, {}, { silent: true }))
+      .then(() => {
+        this.assign({ authed: true });
+        return request('/api/apply/me', 'GET', {}, {}, { silent: true });
+      })
       .then((record) => {
         const checkedIn = !!(record && record.checkedInAt);
         const approved = record && record.status === 'APPROVED';
@@ -182,6 +186,20 @@ export class HomeView extends View {
         return record;
       })
       .catch((err) => {
+        // 未登录：首页不展示任何个人状态，点击功能入口再引导去登录
+        if (err && err.code === 1001) {
+          this.setData({
+            authed: false,
+            registrationStatus: '未登记',
+            registrationStatusClass: 'unregistered',
+            lotteryEligible: false,
+            hasRegistrationRecord: false,
+            registrationEventCity: '',
+            hasServiceAccess: false,
+            canManageInvitations: false,
+          });
+          return null;
+        }
         if (err && err.code === 3002) {
           removeStorage('lastApplyPhone');
           this.setData({
@@ -211,6 +229,10 @@ export class HomeView extends View {
 
   onMenu(event, dataset) {
     const key = dataset.key;
+    if (!this.data.authed) {
+      this.router.navigateTo('/login');
+      return;
+    }
     if (!this.data.hasServiceAccess && SERVICE_KEYS.includes(key)) {
       showModal({ title: '提示', content: '您好，无法查看', showCancel: false });
       return;
@@ -251,6 +273,10 @@ export class HomeView extends View {
   }
 
   goLottery() {
+    if (!this.data.authed) {
+      this.router.navigateTo('/login');
+      return;
+    }
     if (!this.data.lotteryEligible) {
       showModal({
         title: '暂不可领取',

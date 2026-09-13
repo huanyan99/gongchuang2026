@@ -41,7 +41,6 @@
           <input class="name-blank" type="text" value="{{nameBlank}}" maxlength="{{missingCount}}" bindinput="onNameBlankInput" cursor-spacing="48" />
           <text>{{maskedSuffix}}</text>
         </view>
-        <view class="verify-tip">请补全姓名中的 {{missingCount}} 个字</view>
       </view>
       <button class="login-btn primary" loading="{{verifying}}" bindtap="verifyName">进入</button>
     </block>

@@ -201,12 +201,11 @@ function seatSummary(db, eventCity) {
   };
 }
 
-/** 姓名掩码：两字隐藏末字，三字及以上隐藏中间，与后端 AuthService.maskName 一致 */
+/** 姓名掩码：隐藏第二个字，与后端 AuthService.maskName 一致 */
 function maskName(name) {
   const value = String(name || '').trim();
   if (value.length < 2) return '';
-  if (value.length === 2) return `${value[0]}*`;
-  return `${value[0]}${'*'.repeat(value.length - 2)}${value[value.length - 1]}`;
+  return `${value[0]}*${value.slice(2)}`;
 }
 
 function guestsByPhone(db, phone) {

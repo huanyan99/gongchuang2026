@@ -390,7 +390,7 @@ input,
 }
 
 .verify-card {
-  padding-bottom: 34rpx;
+  padding-bottom: 40rpx;
   text-align: center;
 }
 
@@ -427,10 +427,4 @@ input,
   border: 2rpx solid rgba(199, 168, 106, 0.7);
   border-radius: 14rpx;
   box-sizing: border-box;
-}
-
-.verify-tip {
-  margin-top: 26rpx;
-  color: #949aa7;
-  font-size: 22rpx;
 }

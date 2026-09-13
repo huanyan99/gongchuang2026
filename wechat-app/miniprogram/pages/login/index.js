@@ -171,7 +171,7 @@ Page({
     if (this.data.verifying) return;
     const blank = String(this.data.nameBlank || '').trim();
     if (blank.length !== this.data.missingCount) {
-      wx.showToast({ title: `请补全姓名中的 ${this.data.missingCount} 个字`, icon: 'none' });
+      wx.showToast({ title: '请补全姓名', icon: 'none' });
       return;
     }
     const name = `${this.data.maskedPrefix}${blank}${this.data.maskedSuffix}`;

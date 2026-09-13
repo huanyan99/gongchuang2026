@@ -1,7 +1,7 @@
 /**
  * 个人中心 / 登录，对应 wechat-app/miniprogram/pages/login/index.js。
- * 浏览器没有 open-type="getPhoneNumber"：登录按钮只建立会话，
- * 手机号改由参会登记表单手动填写，其余状态机与小程序一致。
+ * 浏览器没有 open-type="getPhoneNumber"：身份即手机号，
+ * 登录分两步（手机号 → 姓名），是全站唯一的登录入口。
  */
 
 import { View } from '../core/view.js';
@@ -31,7 +31,7 @@ export class LoginView extends View {
     super(options);
     this.data = {
       redirect: '',
-      wxLogged: false,
+      authed: false,
       profileReady: false,
       step: 1,
       loginPhone: '',
@@ -56,7 +56,7 @@ export class LoginView extends View {
   }
 
   navMeta() {
-    const complete = this.data.wxLogged && this.data.profileReady;
+    const complete = this.data.authed && this.data.profileReady;
     return { title: complete ? '个人中心' : '贵宾登录', background: '#ffffff', textStyle: 'black' };
   }
 
@@ -98,15 +98,21 @@ export class LoginView extends View {
           });
           setStorage('bochuMemberProfile', { name: user.name, gender: user.gender });
         }
-        // 静默建立身份不等于用户已点击登录；未登录时保留统一登录入口。
-        this.setData({ wxLogged: !!user.phone || this.data.wxLogged || !!getStorage('webLogged') });
+        // 网页身份就是手机号：拿到手机号才算完成登录
+        this.setData({ authed: !!user.phone });
         if (user.phone && !user.name) {
           this.assign({ loginPhone: user.phone });
           this.loadPhoneHint(user.phone);
         }
         return this.fetchApplyRecord();
       })
-      .catch(() => this.setData({ queryFailed: true }));
+      .catch((err) => {
+        if (err && err.code === 1001) {
+          this.setData({ authed: false, profileReady: false });
+          return;
+        }
+        this.setData({ queryFailed: true });
+      });
   }
 
   fetchApplyRecord() {
@@ -161,7 +167,9 @@ export class LoginView extends View {
   /* ---------- 交互 ---------- */
 
   onLoginPhoneInput(event) {
-    this.assign({ loginPhone: event.target.value });
+    const digits = event.target.value.replace(/\D/g, '').slice(0, 11);
+    event.target.value = digits;
+    this.setData({ loginPhone: digits });
   }
 
   onLoginNameInput(event) {
@@ -226,8 +234,7 @@ export class LoginView extends View {
     loginWithPhone(phone, name)
       .then(() => (verifying ? Promise.resolve() : request('/api/auth/profile', 'PUT', { name, gender: this.data.gender })))
       .then(() => {
-        setStorage('webLogged', true);
-        this.setData({ wxLogged: true, profileReady: true, name });
+        this.setData({ authed: true, profileReady: true, name });
         toast('登录成功', 'success');
         this.later(() => {
           if (this.data.redirect) this.router.redirectTo(this.data.redirect);
@@ -324,21 +331,29 @@ export class LoginView extends View {
 
   /** 已登录缺档案的贵宾直接从第二步补全，跳过手机号 */
   effectiveStep() {
-    return this.data.wxLogged ? 2 : this.data.step;
+    return this.data.authed ? 2 : this.data.step;
   }
 
   phoneStep() {
+    const digits = String(this.data.loginPhone || '');
     return html`
       <div class="panel-card">
-        <div class="form-item">
-          <div class="label">手机号</div>
-          <input class="login-input" name="loginPhone" type="tel" inputmode="numeric" maxlength="11"
-                 autocomplete="tel" value="${this.data.loginPhone}" placeholder="请输入手机号"
-                 data-input="onLoginPhoneInput" />
+        <div class="label">手机号</div>
+        <div class="phone-boxes" data-tap="focusPhone">
+          <input class="phone-catcher" name="loginPhone" type="tel" inputmode="numeric" maxlength="11"
+                 autocomplete="tel" value="${digits}" data-input="onLoginPhoneInput" />
+          ${Array.from({ length: 11 }, (unused, index) => html`
+            <span class="phone-cell ${cx({ active: index === digits.length })}">${digits[index] || ''}</span>
+          `)}
         </div>
       </div>
       <button type="button" class="login-btn primary" data-tap="handlePhoneNext">下一步</button>
     `;
+  }
+
+  focusPhone() {
+    const input = this.$('.phone-catcher');
+    if (input) input.focus();
   }
 
   /** 手机号已登记：只补全姓名中隐藏的字，性别由登记信息带出 */
@@ -353,7 +368,6 @@ export class LoginView extends View {
                  value="${this.data.nameBlank}" data-input="onNameBlankInput" />
           <span>${suffix}</span>
         </div>
-        <div class="verify-tip">请补全姓名中的 ${this.data.missingCount} 个字</div>
       </div>
       <button type="button" class="login-btn primary" ${this.data.phoneLogging ? 'disabled' : ''}
               data-tap="handleOneKeyLogin">${this.data.phoneLogging ? '登录中' : '进入'}</button>
@@ -390,18 +404,6 @@ export class LoginView extends View {
           <div class="sub">柏楚2026价值共创峰会</div>
         </div>
 
-        <div class="member-card">
-          <div class="card-shine"></div>
-          <div class="card-label">BOCHU</div>
-          <div class="card-title">VALUE CO-CREATION</div>
-          <div class="card-sub">2026 VIP ACCESS</div>
-          <div class="card-lines">
-            <div></div>
-            <div></div>
-            <div></div>
-          </div>
-        </div>
-
         <div class="login-steps">
           <span class="on"></span>
           <span class="${cx({ on: step >= 2 })}"></span>
@@ -415,7 +417,7 @@ export class LoginView extends View {
   template() {
     const { profileReady } = this.data;
     // 已登录且档案完整 → 个人中心（档案/记录）；其余情况由极简向导接管（唯一身份入口）
-    const complete = this.data.wxLogged && this.data.profileReady;
+    const complete = this.data.authed && this.data.profileReady;
     const minimalWizard = !complete;
     return html`
       <div class="page-scroll">
