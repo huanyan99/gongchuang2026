@@ -21,6 +21,8 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -38,6 +40,8 @@ public class AuthService {
     private final ApplicationGuestMapper applicationGuestMapper;
     private final RestClient wxRestClient;
     private final ObjectMapper objectMapper;
+    /** 设备开关；单元测试直接 new AuthService 时允许为空，此时按邀请人限制处理 */
+    private final SettingService settingService;
 
     @Value("${wechat.appid}")
     private String appid;
@@ -53,15 +57,27 @@ public class AuthService {
     /** 小程序登录：前端传 wx.login 的 code，后端换取 openid 并返回 token */
     @Transactional
     public User login(LoginRequest req) {
+        return login(req, null);
+    }
+
+    /** 小程序登录，并按设备标识执行「一个账号一台设备」限制 */
+    @Transactional
+    public User login(LoginRequest req, String deviceId) {
         String openid = mockLogin ? "dev-user" : resolveOpenid(req.getCode());
-        return loginByOpenid(openid, req);
+        return loginByOpenid(openid, req, deviceId);
     }
 
     /** 公众号网页授权登录（网页版）：前端传 OAuth2 的 code，后端换取 openid 并返回 token */
     @Transactional
     public User webLogin(LoginRequest req) {
+        return webLogin(req, null);
+    }
+
+    /** 公众号网页授权登录，并按设备标识执行限制 */
+    @Transactional
+    public User webLogin(LoginRequest req, String deviceId) {
         String openid = mockLogin ? "dev-user" : resolveOauthOpenid(req.getCode());
-        return loginByOpenid(openid, req);
+        return loginByOpenid(openid, req, deviceId);
     }
 
     /** 公众号消息登录（网页版）：回调里拿到 openid 后直接建档发 token */
@@ -77,10 +93,28 @@ public class AuthService {
      */
     @Transactional
     public User phoneLogin(String phone, String name) {
+        return phoneLogin(phone, name, null);
+    }
+
+    /** 网页版手机号+姓名登录，并按设备标识执行限制 */
+    @Transactional
+    public User phoneLogin(String phone, String name, String deviceId) {
         String normalizedPhone = phone.trim();
         String trimmedName = name == null ? "" : name.trim();
         if (normalizedPhone.isEmpty() || trimmedName.isEmpty()) {
             throw new BizException(ErrorCode.BAD_REQUEST, "手机号和姓名不能为空");
+        }
+        // 该手机号已在参会登记中出现过时，姓名必须与登记一致，作为身份核验
+        List<ApplicationGuest> registered = applicationGuestMapper.selectList(
+                new LambdaQueryWrapper<ApplicationGuest>()
+                        .eq(ApplicationGuest::getPhone, normalizedPhone)
+                        .orderByAsc(ApplicationGuest::getId));
+        ApplicationGuest matched = registered.stream()
+                .filter((guest) -> trimmedName.equals(guest.getName() == null ? "" : guest.getName().trim()))
+                .findFirst()
+                .orElse(null);
+        if (!registered.isEmpty() && matched == null) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "姓名与登记信息不一致");
         }
         String openid = WEB_OPENID_PREFIX + normalizedPhone;
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getOpenid, openid));
@@ -95,29 +129,26 @@ public class AuthService {
             }
         }
         user.setPhone(normalizedPhone);
-        if (user.getName() == null || user.getName().isBlank()) {
+        if (matched != null) {
+            // 以登记信息为准回填档案，姓名核验通过后不再要求填写性别
+            user.setName(matched.getName());
+            if (matched.getGender() != null && !matched.getGender().isBlank()) {
+                user.setGender(matched.getGender());
+            }
+        } else if (user.getName() == null || user.getName().isBlank()) {
             user.setName(trimmedName);
         }
-        if (user.getGender() == null || user.getGender().isBlank()) {
-            ApplicationGuest guest = applicationGuestMapper.selectOne(
-                    new LambdaQueryWrapper<ApplicationGuest>()
-                            .eq(ApplicationGuest::getPhone, normalizedPhone)
-                            .eq(ApplicationGuest::getName, trimmedName)
-                            .orderByAsc(ApplicationGuest::getId)
-                            .last("LIMIT 1"));
-            if (guest != null) {
-                user.setGender(guest.getGender());
-                if (user.getName() == null || user.getName().isBlank()) {
-                    user.setName(guest.getName());
-                }
-            }
-        }
+        applyDeviceGuard(user, deviceId);
         issueToken(user);
         return user;
     }
 
     /** 按 openid 查找或创建账号，并签发可校验的登录 token */
     private User loginByOpenid(String openid, LoginRequest req) {
+        return loginByOpenid(openid, req, null);
+    }
+
+    private User loginByOpenid(String openid, LoginRequest req, String deviceId) {
         User user = userMapper.selectOne(
                 new LambdaQueryWrapper<User>().eq(User::getOpenid, openid));
         if (user == null) {
@@ -145,8 +176,91 @@ public class AuthService {
             user.setCanInvite(true);
             user.setCanReview(true);
         }
+        applyDeviceGuard(user, deviceId);
         issueToken(user);
         return user;
+    }
+
+    /**
+     * 一个账号一台设备：首次登录绑定设备识别码。
+     * 邀请人始终限制；普通嘉宾由后台开关决定，未开启时跟随最新设备。
+     * 客户端未携带识别码时放行，避免旧版本客户端被挡在门外。
+     */
+    private void applyDeviceGuard(User user, String deviceId) {
+        String incoming = deviceId == null ? "" : deviceId.trim();
+        if (incoming.isEmpty()) return;
+
+        String bound = user.getDeviceId() == null ? "" : user.getDeviceId().trim();
+        if (bound.equals(incoming)) return;
+
+        boolean inviter = Boolean.TRUE.equals(user.getCanInvite()) || Boolean.TRUE.equals(user.getCanReview());
+        boolean enforce = inviter
+                || (settingService != null && settingService.isEnabled(SettingService.DEVICE_BINDING_GUESTS));
+        if (bound.isEmpty() || !enforce) {
+            user.setDeviceId(incoming);
+            return;
+        }
+        throw new BizException(ErrorCode.DEVICE_LIMITED);
+    }
+
+    /** 已登录用户补全姓名：与本人手机号的登记信息比对，通过后回填姓名与性别 */
+    @Transactional
+    public User verifyProfileName(User user, String name) {
+        String phone = user.getPhone() == null ? "" : user.getPhone().trim();
+        if (phone.isEmpty()) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "请先完成手机号授权");
+        }
+        String trimmedName = name == null ? "" : name.trim();
+        ApplicationGuest matched = applicationGuestMapper.selectList(
+                        new LambdaQueryWrapper<ApplicationGuest>()
+                                .eq(ApplicationGuest::getPhone, phone)
+                                .orderByAsc(ApplicationGuest::getId))
+                .stream()
+                .filter((guest) -> trimmedName.equals(guest.getName() == null ? "" : guest.getName().trim()))
+                .findFirst()
+                .orElse(null);
+        if (matched == null) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "姓名与登记信息不一致");
+        }
+        user.setName(matched.getName());
+        if (matched.getGender() != null && !matched.getGender().isBlank()) {
+            user.setGender(matched.getGender());
+        }
+        userMapper.updateById(user);
+        return user;
+    }
+
+    /** 手机号在参会登记中的姓名提示：只回掩码与待补字数，不回完整姓名 */
+    public Map<String, Object> phoneHint(String phone) {
+        String normalizedPhone = phone == null ? "" : phone.trim();
+        ApplicationGuest guest = normalizedPhone.isEmpty() ? null : applicationGuestMapper.selectOne(
+                new LambdaQueryWrapper<ApplicationGuest>()
+                        .eq(ApplicationGuest::getPhone, normalizedPhone)
+                        .orderByAsc(ApplicationGuest::getId)
+                        .last("LIMIT 1"));
+        String name = guest == null || guest.getName() == null ? "" : guest.getName().trim();
+        String maskedName = maskName(name);
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("known", !maskedName.isEmpty());
+        body.put("maskedName", maskedName);
+        body.put("missingCount", missingCount(name));
+        return body;
+    }
+
+    /** 姓名掩码：两字隐藏末字，三字及以上隐藏中间 */
+    public static String maskName(String name) {
+        String value = name == null ? "" : name.trim();
+        int length = value.length();
+        if (length < 2) return "";
+        if (length == 2) return value.charAt(0) + "*";
+        return value.charAt(0) + "*".repeat(length - 2) + value.charAt(length - 1);
+    }
+
+    private static int missingCount(String name) {
+        int length = name == null ? 0 : name.trim().length();
+        if (length < 2) return 0;
+        return length == 2 ? 1 : length - 2;
     }
 
     private String resolveOpenid(String code) {

@@ -33,6 +33,19 @@
       <view class="hint">点击登录后，微信将询问是否允许提供手机号，用于会务联络及登记预填。仅在您同意后获取；拒绝仍可登录并手动填写。</view>
     </block>
 
+    <block wx:elif="{{!profileReady && hintKnown}}">
+      <view class="panel-card verify-card">
+        <view class="label">姓名核验</view>
+        <view class="masked-name">
+          <text>{{maskedPrefix}}</text>
+          <input class="name-blank" type="text" value="{{nameBlank}}" maxlength="{{missingCount}}" bindinput="onNameBlankInput" cursor-spacing="48" />
+          <text>{{maskedSuffix}}</text>
+        </view>
+        <view class="verify-tip">请补全姓名中的 {{missingCount}} 个字</view>
+      </view>
+      <button class="login-btn primary" loading="{{verifying}}" bindtap="verifyName">进入</button>
+    </block>
+
     <block wx:elif="{{!profileReady}}">
       <view class="panel-card">
         <view class="panel-title">贵宾信息</view>

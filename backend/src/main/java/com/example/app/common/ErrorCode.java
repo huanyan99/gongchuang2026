@@ -13,6 +13,7 @@ public enum ErrorCode {
     UNAUTHORIZED(1001, "未授权或密钥错误"),
     NOT_FOUND(1002, "资源不存在"),
     CONFLICT(1003, "数据冲突，请勿重复操作"),
+    DEVICE_LIMITED(1004, "该账号已绑定其他设备，请使用原设备登录"),
 
     // 邀请码
     INVITATION_NOT_FOUND(2001, "邀请码无效"),

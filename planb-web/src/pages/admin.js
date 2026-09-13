@@ -83,6 +83,7 @@ export class AdminView extends View {
       seatInvalidLines: [],
       seatImporting: false,
       seatSummary: '',
+      guestDeviceLimit: false,
     };
   }
 
@@ -142,10 +143,38 @@ export class AdminView extends View {
         const list = reset ? records : this.data.list.concat(records);
         const total = Number((result && result.total) || 0);
         this.setData({ logged: true, list, total, page, hasMore: list.length < total });
-        if (reset) this.loadSeatSummary();
+        if (reset) {
+          this.loadSeatSummary();
+          this.loadSettings();
+        }
       })
       .catch(() => {})
       .finally(() => this.setData({ loading: false }));
+  }
+
+  /* ---------- 安全设置 ---------- */
+
+  loadSettings() {
+    return request('/api/admin/settings', 'GET', {}, { 'X-Admin-Key': this.data.adminKey }, { silent: true })
+      .then((result) => this.setData({ guestDeviceLimit: !!(result && result.device_binding_guests) }))
+      .catch(() => {});
+  }
+
+  async toggleGuestDeviceLimit() {
+    const enabled = !this.data.guestDeviceLimit;
+    const confirmed = await showModal({
+      title: enabled ? '开启设备限制' : '关闭设备限制',
+      content: enabled
+        ? '开启后，普通嘉宾也只能在首次登录的设备上登录。'
+        : '关闭后，普通嘉宾可在任意设备登录；邀请人始终受限。',
+    });
+    if (!confirmed.confirm) return;
+    return request(`/api/admin/settings/device_binding_guests?enabled=${enabled}`, 'POST', {}, { 'X-Admin-Key': this.data.adminKey })
+      .then((result) => {
+        this.setData({ guestDeviceLimit: !!(result && result.device_binding_guests) });
+        toast(enabled ? '已开启' : '已关闭');
+      })
+      .catch(() => {});
   }
 
   /* ---------- 桌位批量导入 ---------- */
@@ -333,6 +362,7 @@ export class AdminView extends View {
       </div>
 
       ${this.seatPanel()}
+      ${this.securityPanel()}
 
       <div class="tabs">
         ${[['', '全部'], ['PENDING', '待审核'], ['APPROVED', '已通过'], ['REJECTED', '已驳回']].map(([status, label]) => html`
@@ -379,6 +409,21 @@ export class AdminView extends View {
         ${when(this.data.seatRows.length > rows.length, html`
           <div class="seat-preview-more">共 ${this.data.seatRows.length} 行，仅预览前 5 行</div>
         `)}
+      </div>
+    `;
+  }
+
+  securityPanel() {
+    return html`
+      <div class="seat-panel">
+        <div class="seat-head">
+          <span>安全设置</span>
+          <span>邀请人始终限制</span>
+        </div>
+        <div class="seat-row">
+          <span class="seat-label">普通嘉宾设备限制</span>
+          <span class="seat-value tap" data-tap="toggleGuestDeviceLimit">${this.data.guestDeviceLimit ? '已开启' : '已关闭'} ›</span>
+        </div>
       </div>
     `;
   }

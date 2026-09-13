@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS gonghcuang_user (
     phone_verified_at DATETIME,
     can_invite TINYINT(1) NOT NULL DEFAULT 0,
     can_review TINYINT(1) NOT NULL DEFAULT 0,
+    device_id    VARCHAR(64),
     token VARCHAR(64) UNIQUE,
     token_expire DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -106,4 +107,10 @@ CREATE TABLE IF NOT EXISTS gonghcuang_seat (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uk_city_phone (event_city, phone),
     KEY idx_city_table (event_city, table_no)
+) ENGINE=InnoDB DEFAULT CHARSET utf8mb4;
+
+CREATE TABLE IF NOT EXISTS gonghcuang_setting (
+    setting_key VARCHAR(64) PRIMARY KEY,
+    setting_value VARCHAR(255),
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET utf8mb4;

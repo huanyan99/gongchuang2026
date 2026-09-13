@@ -86,6 +86,14 @@
       <text class="feature-meta">LUCKY DRAW</text>
     </view>
   </view>
+  <view class="invitation-manager seat-entry" data-key="seat" bindtap="onMenu">
+    <text class="feature-no">03</text>
+    <view class="manager-copy">
+      <text class="feature-name">桌位图</text>
+      <text class="feature-meta">SEATING MAP</text>
+    </view>
+    <text class="arrow">›</text>
+  </view>
   <view wx:if="{{canManageInvitations}}" class="invitation-manager" data-key="invitations" bindtap="onMenu">
     <view class="manager-copy">
       <text class="feature-name">我的邀请</text>
@@ -100,23 +108,18 @@
       <text>SERVICES</text>
     </view>
     <view class="menu-row" data-key="letter" bindtap="onMenu">
-      <text class="no">03</text>
+      <text class="no">04</text>
       <text class="menu-name">电子邀请函</text>
       <text class="arrow">›</text>
     </view>
     <view class="menu-row" data-key="agenda" bindtap="onMenu">
-      <text class="no">04</text>
+      <text class="no">05</text>
       <text class="menu-name">大会议程</text>
       <text class="arrow">›</text>
     </view>
     <view class="menu-row" data-key="route" bindtap="onMenu">
-      <text class="no">05</text>
-      <text class="menu-name">交通路线</text>
-      <text class="arrow">›</text>
-    </view>
-    <view class="menu-row" data-key="seat" bindtap="onMenu">
       <text class="no">06</text>
-      <text class="menu-name">桌位图</text>
+      <text class="menu-name">交通路线</text>
       <text class="arrow">›</text>
     </view>
   </view>

@@ -6,7 +6,7 @@
 
 import { View } from '../core/view.js';
 import { html, when, cx } from '../core/dom.js';
-import { request, ensureLogin, loginWithPhone } from '../core/api.js';
+import { request, ensureLogin, loginWithPhone, phoneHint } from '../core/api.js';
 import { getStorage, setStorage, removeStorage } from '../core/storage.js';
 import { showModal, showSheet, toast } from '../core/ui.js';
 
@@ -36,6 +36,10 @@ export class LoginView extends View {
       step: 1,
       loginPhone: '',
       loginName: '',
+      nameBlank: '',
+      hintKnown: false,
+      maskedName: '',
+      missingCount: 0,
       phoneLogging: false,
       name: '',
       gender: '',
@@ -51,6 +55,15 @@ export class LoginView extends View {
     this.setData({ redirect: options.redirect ? decodeURIComponent(options.redirect) : '' });
   }
 
+  navMeta() {
+    const complete = this.data.wxLogged && this.data.profileReady;
+    return { title: complete ? '个人中心' : '贵宾登录', background: '#ffffff', textStyle: 'black' };
+  }
+
+  afterRender() {
+    this.router.sync();
+  }
+
   onShow() {
     this.loadProfile();
     if (!this.data.profileReady) this.focusLoginInput();
@@ -59,7 +72,7 @@ export class LoginView extends View {
   /** 极简登录向导：每步渲染后自动聚焦输入框（光标提示） */
   focusLoginInput() {
     this.later(() => {
-      const input = document.querySelector('.minimal-login input');
+      const input = this.$('.login-wizard input');
       if (input) input.focus();
     }, 150);
   }
@@ -87,6 +100,10 @@ export class LoginView extends View {
         }
         // 静默建立身份不等于用户已点击登录；未登录时保留统一登录入口。
         this.setData({ wxLogged: !!user.phone || this.data.wxLogged || !!getStorage('webLogged') });
+        if (user.phone && !user.name) {
+          this.assign({ loginPhone: user.phone });
+          this.loadPhoneHint(user.phone);
+        }
         return this.fetchApplyRecord();
       })
       .catch(() => this.setData({ queryFailed: true }));
@@ -151,32 +168,66 @@ export class LoginView extends View {
     this.assign({ loginName: event.target.value });
   }
 
+  onNameBlankInput(event) {
+    this.assign({ nameBlank: event.target.value });
+  }
+
+  /** 手机号已在参会登记中出现过时，第二步只需补全姓名中被隐藏的字 */
+  loadPhoneHint(phone) {
+    return phoneHint(phone).then((hint) => this.setData({
+      hintKnown: !!(hint && hint.known),
+      maskedName: (hint && hint.maskedName) || '',
+      missingCount: (hint && hint.missingCount) || 0,
+      nameBlank: '',
+    }));
+  }
+
   handlePhoneNext() {
     const phone = String(this.data.loginPhone || '').trim();
     if (!/^1\d{10}$/.test(phone)) return toast('请输入 11 位手机号');
     this.setData({ step: 2 });
-    this.focusLoginInput();
+    this.loadPhoneHint(phone).then(() => this.focusLoginInput());
   }
 
-  /** 一键登录：未登录走手机号+姓名登录；已登录仅补全档案。完成后进入首页 */
+  /** 掩码姓名的固定部分：张*明 → ['张', '明'] */
+  maskedParts() {
+    const masked = this.data.maskedName || '';
+    const first = masked.indexOf('*');
+    const last = masked.lastIndexOf('*');
+    if (first < 0) return ['', ''];
+    return [masked.slice(0, first), masked.slice(last + 1)];
+  }
+
+  /** 补全后的完整姓名，供后端与登记信息比对 */
+  completedName() {
+    const [prefix, suffix] = this.maskedParts();
+    return `${prefix}${String(this.data.nameBlank || '').trim()}${suffix}`;
+  }
+
+  /** 登录：姓名核验通过后由后端回填档案；未登记的手机号仍填写姓名与性别 */
   handleOneKeyLogin() {
     if (this.data.phoneLogging) return;
     const phone = String(this.data.loginPhone || '').trim();
-    const name = String(this.data.loginName || '').trim();
-    if (!this.data.wxLogged && !/^1\d{10}$/.test(phone)) {
+    if (!/^1\d{10}$/.test(phone)) {
       this.setData({ step: 1 });
       this.focusLoginInput();
       return toast('请输入 11 位手机号');
     }
+
+    const verifying = this.data.hintKnown;
+    const name = verifying ? this.completedName() : String(this.data.loginName || '').trim();
+    if (verifying && String(this.data.nameBlank || '').trim().length !== this.data.missingCount) {
+      return toast(`请补全姓名中的 ${this.data.missingCount} 个字`);
+    }
     if (!name) return toast('请输入贵宾姓名');
-    if (!this.data.gender) return toast('请选择性别');
+    if (!verifying && !this.data.gender) return toast('请选择性别');
+
     this.setData({ phoneLogging: true });
-    const login = this.data.wxLogged ? Promise.resolve() : loginWithPhone(phone, name);
-    login
-      .then(() => request('/api/auth/profile', 'PUT', { name, gender: this.data.gender }))
+    loginWithPhone(phone, name)
+      .then(() => (verifying ? Promise.resolve() : request('/api/auth/profile', 'PUT', { name, gender: this.data.gender })))
       .then(() => {
         setStorage('webLogged', true);
-        this.setData({ wxLogged: true, profileReady: true, name, genderText: `${this.data.gender}士` });
+        this.setData({ wxLogged: true, profileReady: true, name });
         toast('登录成功', 'success');
         this.later(() => {
           if (this.data.redirect) this.router.redirectTo(this.data.redirect);
@@ -269,48 +320,94 @@ export class LoginView extends View {
     `;
   }
 
-  /* ---------- 极简登录向导（未登录或档案不全时的唯一身份入口） ---------- */
+  /* ---------- 登录向导（未登录或档案不全时的唯一身份入口） ---------- */
 
   /** 已登录缺档案的贵宾直接从第二步补全，跳过手机号 */
   effectiveStep() {
     return this.data.wxLogged ? 2 : this.data.step;
   }
 
-  wizardSteps() {
-    const step = this.effectiveStep();
+  phoneStep() {
     return html`
-      <div class="wizard-steps">
-        <div class="wizard-step ${cx({ active: step === 1 })}">第一步</div>
-        <div class="wizard-step ${cx({ active: step === 2 })}">第二步</div>
+      <div class="panel-card">
+        <div class="form-item">
+          <div class="label">手机号</div>
+          <input class="login-input" name="loginPhone" type="tel" inputmode="numeric" maxlength="11"
+                 autocomplete="tel" value="${this.data.loginPhone}" placeholder="请输入手机号"
+                 data-input="onLoginPhoneInput" />
+        </div>
       </div>
+      <button type="button" class="login-btn primary" data-tap="handlePhoneNext">下一步</button>
     `;
   }
 
-  minimalWizard() {
-    if (this.effectiveStep() === 1) {
-      return html`
-        <div class="minimal-login">
-          <div class="wizard-title">贵宾登录</div>
-          ${this.wizardSteps()}
-          <input class="wizard-box" name="loginPhone" value="${this.data.loginPhone}" maxlength="11"
-                 inputmode="numeric" autocomplete="tel" placeholder="请输入手机号" data-input="onLoginPhoneInput" />
-          <button type="button" class="login-btn primary" data-tap="handlePhoneNext">下一步</button>
-        </div>
-      `;
-    }
-    const savedName = this.data.loginName || (this.data.wxLogged ? this.data.name : '');
+  /** 手机号已登记：只补全姓名中隐藏的字，性别由登记信息带出 */
+  verifyStep() {
+    const [prefix, suffix] = this.maskedParts();
     return html`
-      <div class="minimal-login">
-        <div class="wizard-title">贵宾登录</div>
-        ${this.wizardSteps()}
-        <input class="wizard-box" name="loginName" value="${savedName}" maxlength="32"
-               placeholder="请输入姓名" data-input="onLoginNameInput" />
-        <div class="wizard-box gender tap ${cx({ empty: !this.data.gender })}" data-tap="onGenderChange">
-          ${this.data.gender || '请选择性别'}
+      <div class="panel-card verify-card">
+        <div class="label">姓名核验</div>
+        <div class="masked-name">
+          <span>${prefix}</span>
+          <input class="name-blank" name="nameBlank" maxlength="${this.data.missingCount}"
+                 value="${this.data.nameBlank}" data-input="onNameBlankInput" />
+          <span>${suffix}</span>
         </div>
-        <button type="button" class="login-btn primary" ${this.data.phoneLogging ? 'disabled' : ''} data-tap="handleOneKeyLogin">
-          ${this.data.phoneLogging ? '登录中' : '一键登录'}
-        </button>
+        <div class="verify-tip">请补全姓名中的 ${this.data.missingCount} 个字</div>
+      </div>
+      <button type="button" class="login-btn primary" ${this.data.phoneLogging ? 'disabled' : ''}
+              data-tap="handleOneKeyLogin">${this.data.phoneLogging ? '登录中' : '进入'}</button>
+    `;
+  }
+
+  profileStep() {
+    return html`
+      <div class="panel-card">
+        <div class="form-item">
+          <div class="label">姓名</div>
+          <input class="login-input" name="loginName" maxlength="32" value="${this.data.loginName}"
+                 placeholder="请输入姓名" data-input="onLoginNameInput" />
+        </div>
+        <div class="form-item">
+          <div class="label">性别</div>
+          <div class="login-input picker tap ${cx({ empty: !this.data.gender })}" data-tap="onGenderChange">
+            ${this.data.gender || '请选择性别'}
+          </div>
+        </div>
+      </div>
+      <button type="button" class="login-btn primary" ${this.data.phoneLogging ? 'disabled' : ''}
+              data-tap="handleOneKeyLogin">${this.data.phoneLogging ? '登录中' : '一键登录'}</button>
+    `;
+  }
+
+  loginWizard() {
+    const step = this.effectiveStep();
+    return html`
+      <div class="login-wizard">
+        <div class="login-hero">
+          <div class="eyebrow">BOCHU INVITATION</div>
+          <div class="title">贵宾登录</div>
+          <div class="sub">柏楚2026价值共创峰会</div>
+        </div>
+
+        <div class="member-card">
+          <div class="card-shine"></div>
+          <div class="card-label">BOCHU</div>
+          <div class="card-title">VALUE CO-CREATION</div>
+          <div class="card-sub">2026 VIP ACCESS</div>
+          <div class="card-lines">
+            <div></div>
+            <div></div>
+            <div></div>
+          </div>
+        </div>
+
+        <div class="login-steps">
+          <span class="on"></span>
+          <span class="${cx({ on: step >= 2 })}"></span>
+        </div>
+
+        ${step === 1 ? this.phoneStep() : (this.data.hintKnown ? this.verifyStep() : this.profileStep())}
       </div>
     `;
   }
@@ -323,7 +420,7 @@ export class LoginView extends View {
     return html`
       <div class="page-scroll">
         <div class="login-page">
-          ${when(minimalWizard, this.minimalWizard())}
+          ${when(minimalWizard, this.loginWizard())}
           ${when(complete, html`
             <div class="login-hero">
               <div class="eyebrow">BOCHU INVITATION</div>

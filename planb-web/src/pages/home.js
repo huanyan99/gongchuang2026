@@ -393,6 +393,15 @@ export class HomeView extends View {
             </div>
           </div>
 
+          <div class="invitation-manager seat-entry tap" data-key="seat" data-tap="onMenu">
+            <span class="feature-no">03</span>
+            <div class="manager-copy">
+              <span class="feature-name">桌位图</span>
+              <span class="feature-meta">SEATING MAP</span>
+            </div>
+            <span class="arrow">›</span>
+          </div>
+
           ${when(this.data.canManageInvitations, html`
             <div class="invitation-manager tap" data-key="invitations" data-tap="onMenu">
               <div class="manager-copy">
@@ -409,23 +418,18 @@ export class HomeView extends View {
               <span>SERVICES</span>
             </div>
             <div class="menu-row tap" data-key="letter" data-tap="onMenu">
-              <span class="no">03</span>
+              <span class="no">04</span>
               <span class="menu-name">电子邀请函</span>
               <span class="arrow">›</span>
             </div>
             <div class="menu-row tap" data-key="agenda" data-tap="onMenu">
-              <span class="no">04</span>
+              <span class="no">05</span>
               <span class="menu-name">大会议程</span>
               <span class="arrow">›</span>
             </div>
             <div class="menu-row tap" data-key="route" data-tap="onMenu">
-              <span class="no">05</span>
-              <span class="menu-name">交通路线</span>
-              <span class="arrow">›</span>
-            </div>
-            <div class="menu-row tap" data-key="seat" data-tap="onMenu">
               <span class="no">06</span>
-              <span class="menu-name">桌位图</span>
+              <span class="menu-name">交通路线</span>
               <span class="arrow">›</span>
             </div>
           </div>

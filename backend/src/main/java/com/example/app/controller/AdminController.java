@@ -15,6 +15,7 @@ import com.example.app.mapper.UserMapper;
 import com.example.app.service.ApplicationService;
 import com.example.app.service.InvitationService;
 import com.example.app.service.SeatService;
+import com.example.app.service.SettingService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -41,6 +42,7 @@ public class AdminController {
     private final AdminAuth adminAuth;
     private final UserMapper userMapper;
     private final SeatService seatService;
+    private final SettingService settingService;
 
     /** 可授权用户列表（openid、token 等敏感字段由实体注解隐藏） */
     @GetMapping("/users")
@@ -137,6 +139,39 @@ public class AdminController {
             @RequestHeader("X-Admin-Key") String adminKey) {
         adminAuth.verify(adminKey);
         return Result.ok(seatService.page(city, page, size));
+    }
+
+    /** 解绑用户设备：邀请人换手机后由管理员放行 */
+    @PostMapping("/users/{id}/reset-device")
+    public Result<User> resetDevice(@PathVariable @Min(1) Long id,
+                                    @RequestHeader("X-Admin-Key") String adminKey) {
+        adminAuth.verify(adminKey);
+        User user = userMapper.selectById(id);
+        if (user == null) throw new com.example.app.common.BizException(com.example.app.common.ErrorCode.NOT_FOUND, "用户不存在");
+        user.setDeviceId(null);
+        userMapper.update(user, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<User>()
+                .eq(User::getId, id).set(User::getDeviceId, null));
+        return Result.ok(userMapper.selectById(id));
+    }
+
+    /** 读取后台开关 */
+    @GetMapping("/settings")
+    public Result<Map<String, Boolean>> settings(@RequestHeader("X-Admin-Key") String adminKey) {
+        adminAuth.verify(adminKey);
+        return Result.ok(settingService.all());
+    }
+
+    /** 开关：是否对普通嘉宾也执行一个账号一台设备 */
+    @PostMapping("/settings/{key}")
+    public Result<Map<String, Boolean>> updateSetting(@PathVariable String key,
+                                                      @RequestParam boolean enabled,
+                                                      @RequestHeader("X-Admin-Key") String adminKey) {
+        adminAuth.verify(adminKey);
+        if (!SettingService.DEVICE_BINDING_GUESTS.equals(key)) {
+            throw new com.example.app.common.BizException(com.example.app.common.ErrorCode.BAD_REQUEST, "未知开关");
+        }
+        settingService.setEnabled(key, enabled);
+        return Result.ok(settingService.all());
     }
 
     /** 按状态统计数量 */

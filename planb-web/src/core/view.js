@@ -107,6 +107,11 @@ export class View {
   /** 每次渲染后的补充处理（自增高文本域、动画节点等） */
   afterRender() {}
 
+  /** 导航栏配置，默认取页面静态 meta；页面可按状态覆盖后调用 router.sync() */
+  navMeta() {
+    return this.constructor.meta;
+  }
+
   /* ---------- 工具 ---------- */
 
   $(selector) {

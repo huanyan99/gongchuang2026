@@ -25,6 +25,12 @@ Page({
     genderText: '',
     genderIndex: 0,
     genderOptions: ['男', '女'],
+    hintKnown: false,
+    maskedPrefix: '',
+    maskedSuffix: '',
+    missingCount: 0,
+    nameBlank: '',
+    verifying: false,
     applyRecord: null,
     recordStatus: 'NONE',
     recordStatusText: STATUS_TEXT.NONE,
@@ -63,6 +69,7 @@ Page({
         }
         // 静默建立 OpenID 不等于用户已点击登录；未授权时保留统一登录入口。
         this.setData({ wxLogged: !!user.phone || this.data.wxLogged });
+        if (user.phone && !user.name) this.loadPhoneHint(user.phone);
         return this.fetchApplyRecord();
       })
       .catch(() => this.setData({ queryFailed: true }));
@@ -141,6 +148,49 @@ Page({
         showCancel: false,
       });
     }).finally(() => this.setData({ logging: false }));
+  },
+  /** 手机号已在参会登记中出现过时，只需补全姓名中被隐藏的字 */
+  loadPhoneHint(phone) {
+    return app.request('/api/auth/phone-hint', 'POST', { phone }, {}, { silent: true }).then((hint) => {
+      const masked = (hint && hint.maskedName) || '';
+      const first = masked.indexOf('*');
+      const last = masked.lastIndexOf('*');
+      this.setData({
+        hintKnown: !!(hint && hint.known),
+        maskedPrefix: first < 0 ? '' : masked.slice(0, first),
+        maskedSuffix: first < 0 ? '' : masked.slice(last + 1),
+        missingCount: (hint && hint.missingCount) || 0,
+        nameBlank: '',
+      });
+    }).catch(() => this.setData({ hintKnown: false }));
+  },
+  onNameBlankInput(e) {
+    this.setData({ nameBlank: e.detail.value });
+  },
+  verifyName() {
+    if (this.data.verifying) return;
+    const blank = String(this.data.nameBlank || '').trim();
+    if (blank.length !== this.data.missingCount) {
+      wx.showToast({ title: `请补全姓名中的 ${this.data.missingCount} 个字`, icon: 'none' });
+      return;
+    }
+    const name = `${this.data.maskedPrefix}${blank}${this.data.maskedSuffix}`;
+    this.setData({ verifying: true });
+    app.request('/api/auth/profile/verify', 'POST', { name })
+      .then((user) => {
+        wx.setStorageSync('bochuMemberProfile', { name: user.name, gender: user.gender || '' });
+        this.setData({
+          profileReady: true,
+          name: user.name,
+          gender: user.gender || '',
+          genderText: user.gender ? `${user.gender}士` : '',
+          genderIndex: user.gender === '女' ? 1 : 0,
+        });
+        wx.showToast({ title: '登录成功', icon: 'success' });
+        this.fetchApplyRecord();
+      })
+      .catch(() => {})
+      .finally(() => this.setData({ verifying: false }));
   },
   onNameInput(e) {
     this.setData({ name: e.detail.value });

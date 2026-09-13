@@ -388,3 +388,49 @@ input,
   color: #7f6736;
   text-decoration: underline;
 }
+
+.verify-card {
+  padding-bottom: 34rpx;
+  text-align: center;
+}
+
+.verify-card .label {
+  text-align: center;
+}
+
+.masked-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 30rpx;
+  color: #17233f;
+  font-size: 56rpx;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
+.masked-name text {
+  margin: 0 7rpx;
+}
+
+.name-blank {
+  width: 96rpx;
+  height: 92rpx;
+  margin: 0 7rpx;
+  padding: 0;
+  color: #17233f;
+  font-size: 48rpx;
+  font-weight: 700;
+  text-align: center;
+  background: rgba(199, 168, 106, 0.1);
+  border: 2rpx solid rgba(199, 168, 106, 0.7);
+  border-radius: 14rpx;
+  box-sizing: border-box;
+}
+
+.verify-tip {
+  margin-top: 26rpx;
+  color: #949aa7;
+  font-size: 22rpx;
+}

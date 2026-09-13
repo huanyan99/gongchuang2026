@@ -36,6 +36,10 @@ public class User {
     /** 是否可以审核全部邀请记录 */
     private Boolean canReview;
 
+    /** 首次登录设备的识别码；邀请人换设备需管理员解绑 */
+    @JsonIgnore
+    private String deviceId;
+
     @JsonIgnore
     private String token;
 

@@ -371,81 +371,115 @@
   text-decoration: underline;
 }
 
-/* 极简登录向导 */
-.view--login .minimal-login {
-  padding: 100px 80px 0;
+/* ---------- 登录向导 ---------- */
+
+.view--login .login-wizard .login-hero {
+  padding-top: 10px;
 }
 
-.view--login .wizard-title {
-  text-align: center;
-  color: #17233f;
-  font-size: 44px;
-  font-weight: 700;
-  letter-spacing: 10px;
+.view--login .login-wizard .member-card {
+  margin-top: 44px;
+  height: 320px;
+  padding: 48px 46px;
 }
 
-.view--login .wizard-steps {
+.view--login .login-wizard .member-card .card-shine {
+  height: 140px;
+}
+
+.view--login .login-wizard .member-card .card-title {
+  font-size: 38px;
+  letter-spacing: 2px;
+}
+
+.view--login .login-steps {
   display: flex;
   justify-content: center;
-  gap: 18px;
-  margin-top: 34px;
+  gap: 14px;
+  margin-top: 40px;
 }
 
-.view--login .wizard-step {
-  min-width: 132px;
-  padding: 10px 30px;
-  border-radius: 26px;
-  background: rgba(38, 57, 123, 0.07);
-  color: #9aa3b5;
-  font-size: 22px;
-  letter-spacing: 4px;
-  text-align: center;
+.view--login .login-steps span {
+  width: 46px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(38, 57, 123, 0.14);
 }
 
-.view--login .wizard-step.active {
+.view--login .login-steps span.on {
   background: #26397b;
-  color: #ffffff;
-  box-shadow: 0 8px 20px rgba(38, 57, 123, 0.22);
 }
 
-.view--login .wizard-box {
-  display: block;
-  width: 100%;
-  margin-top: 52px;
-  padding: 28px 30px;
-  background: rgba(38, 57, 123, 0.06);
-  border: 2px solid transparent;
-  border-radius: 16px;
-  box-sizing: border-box;
+.view--login .login-wizard .panel-card {
+  margin-top: 32px;
+  padding: 12px 32px 20px;
+}
+
+.view--login .login-input {
+  margin-top: 16px;
+  height: 64px;
+  line-height: 64px;
   color: #17233f;
   font-size: 34px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.view--login .login-input::placeholder,
+.view--login .login-input.empty {
+  color: #b4bac7;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.view--login .login-wizard .login-btn {
+  margin-top: 40px;
+}
+
+/* 姓名核验：张 [ ] 明 */
+.view--login .verify-card {
+  padding-bottom: 34px;
   text-align: center;
+}
+
+.view--login .verify-card .label {
+  text-align: center;
+}
+
+.view--login .masked-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 30px;
+  color: #17233f;
+  font-size: 56px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.view--login .name-blank {
+  width: 96px;
+  height: 92px;
+  padding: 0;
+  color: #17233f;
+  font-size: 48px;
+  font-weight: 700;
+  text-align: center;
+  background: rgba(199, 168, 106, 0.1);
+  border: 2px solid rgba(199, 168, 106, 0.7);
+  border-radius: 14px;
   caret-color: #26397b;
 }
 
-.view--login .wizard-box::placeholder {
-  color: #b4bac7;
-  font-weight: 400;
-}
-
-.view--login input.wizard-box:focus {
-  outline: none;
-  border-color: #26397b;
+.view--login .name-blank:focus {
   background: #ffffff;
+  border-color: #26397b;
 }
 
-.view--login .wizard-box.gender {
-  margin-top: 28px;
-  line-height: 1.4;
-}
-
-.view--login .wizard-box.gender.empty {
-  color: #b4bac7;
-  font-weight: 400;
-}
-
-.view--login .minimal-login .login-btn {
-  margin-top: 76px;
-  width: 100%;
+.view--login .verify-tip {
+  margin-top: 26px;
+  color: #949aa7;
+  font-size: 22px;
 }

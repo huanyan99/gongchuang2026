@@ -4,6 +4,15 @@ App({
     if (token) this.globalData.token = token;
     this.ensureLogin().catch(() => {});
   },
+  /** 本机设备识别码：首次生成后长期保存，用于「一个账号一台设备」限制 */
+  deviceId() {
+    let id = wx.getStorageSync('deviceId');
+    if (!id) {
+      id = `wx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+      wx.setStorageSync('deviceId', id);
+    }
+    return id;
+  },
   clearIdentityCache() {
     [
       'token',
@@ -91,6 +100,7 @@ App({
         header: Object.assign({
           'Content-Type': 'application/json',
           Authorization: this.globalData.token || wx.getStorageSync('token') || '',
+          'X-Device-Id': this.deviceId(),
         }, extraHeader),
         success: (res) => {
           const body = res.data;

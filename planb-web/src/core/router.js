@@ -136,6 +136,6 @@ export class Router {
   sync() {
     const view = this.current;
     if (!view) return;
-    this.onChange(view.constructor.meta, this.stack.length);
+    this.onChange(view.navMeta(), this.stack.length);
   }
 }

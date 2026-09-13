@@ -485,6 +485,17 @@ page {
 .invitation-manager .feature-meta { color: rgba(255,255,255,.58); }
 .invitation-manager .arrow { color: #d5b46e; font-size: 44rpx; }
 
+.seat-entry {
+  color: #17233f;
+  background: linear-gradient(145deg, #fffdf8, #f7f0df);
+  border: 1rpx solid rgba(183, 144, 70, 0.38);
+  box-shadow: 0 12rpx 30rpx rgba(38, 57, 123, 0.06);
+}
+
+.seat-entry .feature-no { color: #a67e32; }
+.seat-entry .feature-meta { color: #9aa0a8; }
+.seat-entry .arrow { color: #b7934a; }
+
 .lottery-feature {
   position: relative;
   overflow: hidden;

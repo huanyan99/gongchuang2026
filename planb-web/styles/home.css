@@ -495,6 +495,13 @@
   box-sizing: border-box;
 }
 
+.view--home .invitation-manager .feature-no {
+  color: #d5b46e;
+  width: 64px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
 .view--home .invitation-manager .manager-copy {
   flex: 1;
   display: flex;
@@ -510,6 +517,17 @@
   color: #d5b46e;
   font-size: 44px;
 }
+
+.view--home .seat-entry {
+  color: #17233f;
+  background: linear-gradient(145deg, #fffdf8, #f7f0df);
+  border: 1px solid rgba(183, 144, 70, 0.38);
+  box-shadow: 0 12px 30px rgba(38, 57, 123, 0.06);
+}
+
+.view--home .seat-entry .feature-no { color: #a67e32; }
+.view--home .seat-entry .feature-meta { color: #9aa0a8; }
+.view--home .seat-entry .arrow { color: #b7934a; }
 
 .view--home .section {
   margin: 0 24px;

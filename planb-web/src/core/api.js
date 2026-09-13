@@ -36,6 +36,17 @@ export const session = {
   userInfo: null,
 };
 
+/** 本机设备识别码：首次生成后长期保存，用于「一个账号一台设备」限制 */
+export function deviceId() {
+  let id = getStorage('deviceId');
+  if (!id) {
+    id = (crypto.randomUUID ? crypto.randomUUID() : `web-${Date.now()}-${Math.random().toString(16).slice(2)}`)
+      .replace(/-/g, '');
+    setStorage('deviceId', id);
+  }
+  return id;
+}
+
 export function clearIdentityCache() {
   IDENTITY_KEYS.forEach(removeStorage);
   session.token = null;
@@ -187,6 +198,7 @@ export function request(path, method = 'GET', data = {}, extraHeader = {}, optio
     headers: {
       'Content-Type': 'application/json',
       Authorization: session.token || getStorage('token') || '',
+      'X-Device-Id': deviceId(),
       ...extraHeader,
     },
     body: method === 'GET' ? undefined : JSON.stringify(data),
@@ -211,6 +223,12 @@ export function request(path, method = 'GET', data = {}, extraHeader = {}, optio
     .finally(() => clearTimeout(timer));
 }
 
+/** 手机号在参会登记中的姓名掩码，用于登录时补全姓名核验身份 */
+export function phoneHint(phone) {
+  return request('/api/auth/phone-hint', 'POST', { phone: String(phone).trim() }, {}, { silent: true, skipRetry: true })
+    .catch(() => ({ known: false, maskedName: '', missingCount: 0 }));
+}
+
 /** 网页版登录：手机号 + 姓名（无验证码，后端按手机号建立/认领身份） */
 export function loginWithPhone(phone, name) {
   return request('/api/auth/phone-login', 'POST', { phone: String(phone).trim(), name: String(name).trim() }, {}, { skipRetry: true })
@@ -220,4 +238,4 @@ export function loginWithPhone(phone, name) {
     });
 }
 
-export const api = { config, session, request, ensureLogin, relogin, clearIdentityCache };
+export const api = { config, session, request, ensureLogin, relogin, clearIdentityCache, deviceId };

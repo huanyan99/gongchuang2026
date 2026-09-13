@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS gonghcuang_user (
     phone_verified_at TIMESTAMP,
     can_invite BOOLEAN NOT NULL DEFAULT FALSE,
     can_review BOOLEAN NOT NULL DEFAULT FALSE,
+    device_id VARCHAR(64),
     token VARCHAR(64) UNIQUE,
     token_expire TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -98,4 +99,10 @@ CREATE TABLE IF NOT EXISTS gonghcuang_seat (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (event_city, phone)
+);
+
+CREATE TABLE IF NOT EXISTS gonghcuang_setting (
+    setting_key VARCHAR(64) PRIMARY KEY,
+    setting_value VARCHAR(255),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

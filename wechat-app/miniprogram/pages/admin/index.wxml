@@ -60,6 +60,17 @@
       <button class="btn seat-btn" loading="{{seatImporting}}" disabled="{{seatImporting}}" bindtap="importSeats">导入桌位</button>
     </view>
 
+    <view class="seat-panel">
+      <view class="seat-head">
+        <text>安全设置</text>
+        <text>邀请人始终限制</text>
+      </view>
+      <view class="seat-row">
+        <text class="seat-label">普通嘉宾设备限制</text>
+        <text class="seat-value" bindtap="toggleGuestDeviceLimit">{{guestDeviceLimit ? '已开启' : '已关闭'}} ›</text>
+      </view>
+    </view>
+
     <view class="tabs">
       <view class="tab {{statusFilter === '' ? 'active' : ''}}" data-status="" bindtap="switchTab">全部</view>
       <view class="tab {{statusFilter === 'PENDING' ? 'active' : ''}}" data-status="PENDING" bindtap="switchTab">待审核</view>

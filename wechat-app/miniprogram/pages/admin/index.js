@@ -57,6 +57,7 @@ Page({
     seatParseTip: '支持从 Excel 直接复制粘贴，每行：姓名,手机号,桌号',
     seatImporting: false,
     seatSummary: '',
+    guestDeviceLimit: false,
   },
   onShow() {
     const saved = wx.getStorageSync('adminKey');
@@ -108,7 +109,10 @@ Page({
         page,
         hasMore: list.length < total,
       });
-      if (reset) this.loadSeatSummary();
+      if (reset) {
+        this.loadSeatSummary();
+        this.loadSettings();
+      }
     }).catch(() => {}).finally(() => this.setData({ loading: false }));
   },
   scanCheckin() {
@@ -139,6 +143,31 @@ Page({
       this.fetchList(true);
     }).catch(() => {}).finally(() => {
       this._checking = false;
+    });
+  },
+  loadSettings() {
+    app.request('/api/admin/settings', 'GET', {}, {
+      'X-Admin-Key': this.data.adminKey,
+    }, { silent: true }).then((result) => {
+      this.setData({ guestDeviceLimit: !!(result && result.device_binding_guests) });
+    }).catch(() => {});
+  },
+  toggleGuestDeviceLimit() {
+    const enabled = !this.data.guestDeviceLimit;
+    wx.showModal({
+      title: enabled ? '开启设备限制' : '关闭设备限制',
+      content: enabled
+        ? '开启后，普通嘉宾也只能在首次登录的设备上登录。'
+        : '关闭后，普通嘉宾可在任意设备登录；邀请人始终受限。',
+      success: (res) => {
+        if (!res.confirm) return;
+        app.request(`/api/admin/settings/device_binding_guests?enabled=${enabled}`, 'POST', {}, {
+          'X-Admin-Key': this.data.adminKey,
+        }).then((result) => {
+          this.setData({ guestDeviceLimit: !!(result && result.device_binding_guests) });
+          wx.showToast({ title: enabled ? '已开启' : '已关闭', icon: 'none' });
+        }).catch(() => {});
+      },
     });
   },
   onSeatCityChange(e) {

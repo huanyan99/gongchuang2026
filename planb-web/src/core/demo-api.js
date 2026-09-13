@@ -54,6 +54,7 @@ function seedDb() {
     })),
     applications: [],
     seats: [],
+    settings: { device_binding_guests: false },
     lottery: {},
   };
 }
@@ -200,6 +201,18 @@ function seatSummary(db, eventCity) {
   };
 }
 
+/** 姓名掩码：两字隐藏末字，三字及以上隐藏中间，与后端 AuthService.maskName 一致 */
+function maskName(name) {
+  const value = String(name || '').trim();
+  if (value.length < 2) return '';
+  if (value.length === 2) return `${value[0]}*`;
+  return `${value[0]}${'*'.repeat(value.length - 2)}${value[value.length - 1]}`;
+}
+
+function guestsByPhone(db, phone) {
+  return db.applications.flatMap((item) => item.attendees || []).filter((guest) => guest.phone === phone);
+}
+
 function mySeat(db) {
   const application = currentApplication(db);
   if (!application) throw fail(3002, '未查询到申报记录');
@@ -318,10 +331,32 @@ export function demoRequest(path, method = 'GET', data = {}) {
   }
 
   if (pathname === '/api/auth/phone-login') {
-    db.user.phone = String(data.phone || '').trim() || db.user.phone || '13800000000';
-    if (!db.user.name) db.user.name = String(data.name || '').trim();
+    const phone = String(data.phone || '').trim() || db.user.phone || '13800000000';
+    const name = String(data.name || '').trim();
+    // 与后端一致：手机号已在登记中出现过时，姓名必须与登记一致
+    const registered = guestsByPhone(db, phone);
+    const matched = registered.find((guest) => guest.name === name) || null;
+    if (registered.length && !matched) throw fail(1000, '姓名与登记信息不一致');
+
+    db.user.phone = phone;
+    if (matched) {
+      db.user.name = matched.name;
+      if (matched.gender) db.user.gender = matched.gender;
+    } else if (!db.user.name) {
+      db.user.name = name;
+    }
     saveDb(db);
     return { token: 'demo-token', user: db.user };
+  }
+
+  if (pathname === '/api/auth/phone-hint') {
+    const guest = guestsByPhone(db, String(data.phone || '').trim())[0];
+    const maskedName = maskName(guest && guest.name);
+    return {
+      known: !!maskedName,
+      maskedName,
+      missingCount: maskedName ? (maskedName.match(/\*/g) || []).length : 0,
+    };
   }
 
   if (pathname === '/api/auth/me') {
@@ -415,6 +450,17 @@ export function demoRequest(path, method = 'GET', data = {}) {
 
   if (segments[1] === 'invitations' && segments[3] === 'mini-code') {
     throw fail(9001, '网页版无法生成小程序码');
+  }
+
+  if (pathname === '/api/admin/settings' && method === 'GET') {
+    return { device_binding_guests: !!(db.settings && db.settings.device_binding_guests) };
+  }
+
+  if (segments[1] === 'admin' && segments[2] === 'settings' && segments[3] && method === 'POST') {
+    if (!db.settings) db.settings = {};
+    db.settings[segments[3]] = query.get('enabled') === 'true';
+    saveDb(db);
+    return { device_binding_guests: !!db.settings.device_binding_guests };
   }
 
   if (pathname === '/api/admin/applications' && method === 'GET') {
