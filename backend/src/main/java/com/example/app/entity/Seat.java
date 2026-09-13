@@ -24,8 +24,6 @@ public class Seat {
 
     private String tableNo;
 
-    private String seatNo;
-
     private String remark;
 
     private LocalDateTime createdAt;

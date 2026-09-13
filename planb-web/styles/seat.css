@@ -86,82 +86,59 @@
 
 .view--seat .seat-card {
   position: relative;
-  margin: -28px 28px 0;
-  padding: 48px 36px 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 24px 28px 0;
+  padding: 32px 36px;
   overflow: hidden;
-  text-align: center;
   color: #10244f;
   background: linear-gradient(135deg, #f7e8bc 0%, #d9b86f 48%, #f3dda5 100%);
   border: 1px solid rgba(168, 125, 49, 0.72);
-  border-radius: 24px;
-  box-shadow: 0 22px 48px rgba(143, 104, 39, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.48);
+  border-radius: 20px;
+  box-shadow: 0 16px 36px rgba(143, 104, 39, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.48);
+}
+
+.view--seat .seat-card:first-of-type {
+  margin-top: -28px;
 }
 
 .view--seat .seat-card::after {
   content: '';
   position: absolute;
-  right: -40px;
-  top: -60px;
-  width: 190px;
-  height: 190px;
+  right: -30px;
+  top: -48px;
+  width: 150px;
+  height: 150px;
   border: 1px solid rgba(93, 64, 20, 0.16);
   border-radius: 50%;
-  box-shadow: 0 0 0 20px rgba(255, 250, 231, 0.16);
-}
-
-.view--seat .seat-eyebrow {
-  position: relative;
-  color: rgba(52, 42, 25, 0.62);
-  font-size: 18px;
-  line-height: 1;
-  letter-spacing: 4px;
-  font-weight: 700;
-}
-
-.view--seat .seat-no-row {
-  position: relative;
-  margin-top: 24px;
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-}
-
-.view--seat .seat-no {
-  color: #10244f;
-  font-size: 150px;
-  line-height: 1;
-  font-weight: 800;
-  letter-spacing: 2px;
-}
-
-.view--seat .seat-unit {
-  margin-left: 14px;
-  color: #10244f;
-  font-size: 40px;
-  font-weight: 700;
 }
 
 .view--seat .seat-name {
   position: relative;
-  margin-top: 24px;
   color: #17284f;
-  font-size: 30px;
-  font-weight: 700;
+  font-size: 32px;
+  font-weight: 800;
 }
 
-.view--seat .seat-party {
+.view--seat .seat-no-row {
   position: relative;
-  margin-top: 28px;
-  padding-top: 22px;
-  border-top: 1px solid rgba(93, 64, 20, 0.2);
+  display: flex;
+  align-items: baseline;
 }
 
-.view--seat .party-row {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 12px;
-  color: #24345c;
-  font-size: 24px;
+.view--seat .seat-no {
+  color: #10244f;
+  font-size: 72px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.view--seat .seat-unit {
+  margin-left: 10px;
+  color: #10244f;
+  font-size: 26px;
+  font-weight: 700;
 }
 
 .view--seat .hall-image {

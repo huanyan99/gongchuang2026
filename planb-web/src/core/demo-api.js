@@ -213,7 +213,7 @@ function mySeat(db) {
   // 只返回本人及同行人的桌号，不下发其他嘉宾信息，也不下发同桌人数
   const mySeats = citySeats
     .filter((seat) => myPhones.has(seat.phone))
-    .map((seat) => ({ name: seat.name, tableNo: seat.tableNo, seatNo: seat.seatNo || '' }));
+    .map((seat) => ({ name: seat.name, tableNo: seat.tableNo }));
 
   return {
     eventCity,
@@ -243,7 +243,6 @@ function importSeats(db, data) {
     const name = String(row.name || '').trim();
     const phone = String(row.phone || '').trim();
     const tableNo = String(row.tableNo || '').trim();
-    const seatNo = String(row.seatNo || '').trim();
 
     if (!name || !phone || !tableNo) {
       errors.push({ line, message: '姓名、手机号、桌号不能为空' });
@@ -261,7 +260,7 @@ function importSeats(db, data) {
 
     const target = db.seats.find((item) => item.eventCity === eventCity && item.phone === phone);
     if (target) {
-      Object.assign(target, { name, tableNo, seatNo, updatedAt: nowIso() });
+      Object.assign(target, { name, tableNo, updatedAt: nowIso() });
       updated += 1;
     } else {
       db.seats.push({
@@ -270,7 +269,6 @@ function importSeats(db, data) {
         name,
         phone,
         tableNo,
-        seatNo,
         remark: '',
         createdAt: nowIso(),
         updatedAt: nowIso(),

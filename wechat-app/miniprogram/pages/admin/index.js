@@ -7,7 +7,7 @@ const MODE_OPTIONS = ['合并更新', '覆盖该场次'];
 const PHONE = /^1\d{10}$/;
 
 /**
- * 解析批量导入文本：每行「姓名,手机号,桌号[,座位号]」。
+ * 解析批量导入文本：每行「姓名,手机号,桌号」，多余的列忽略。
  * 行内出现逗号/分号/制表符时按分隔符切分，否则按空白切分；首行表头自动跳过。
  */
 function parseSeatRows(text) {
@@ -31,7 +31,7 @@ function parseSeatRows(text) {
       invalidLines.push(index + 1);
       return;
     }
-    rows.push({ name: parts[0], phone: parts[1], tableNo: parts[2], seatNo: parts[3] || '' });
+    rows.push({ name: parts[0], phone: parts[1], tableNo: parts[2] });
   });
 
   return { rows, invalidLines };
@@ -54,7 +54,7 @@ Page({
     modeIndex: 0,
     seatText: '',
     seatRows: [],
-    seatParseTip: '支持从 Excel 直接复制粘贴，每行：姓名,手机号,桌号[,座位号]',
+    seatParseTip: '支持从 Excel 直接复制粘贴，每行：姓名,手机号,桌号',
     seatImporting: false,
     seatSummary: '',
   },
@@ -156,7 +156,7 @@ Page({
       seatRows: parsed.rows,
       seatParseTip: seatText.trim()
         ? `已解析 ${parsed.rows.length} 位嘉宾${invalid ? `，第 ${parsed.invalidLines.slice(0, 5).join('、')} 行格式异常` : ''}`
-        : '支持从 Excel 直接复制粘贴，每行：姓名,手机号,桌号[,座位号]',
+        : '支持从 Excel 直接复制粘贴，每行：姓名,手机号,桌号',
     });
   },
   importSeats() {
@@ -187,7 +187,7 @@ Page({
             content: `新增 ${result.created} 条，更新 ${result.updated} 条，失败 ${result.failed} 条。\n当前${eventCity}场共 ${result.tableCount} 桌 / ${result.guestCount} 人。${errors.length ? `\n${errors.slice(0, 5).join('\n')}` : ''}`,
             showCancel: false,
           });
-          this.setData({ seatText: '', seatRows: [], seatParseTip: '支持从 Excel 直接复制粘贴，每行：姓名,手机号,桌号[,座位号]' });
+          this.setData({ seatText: '', seatRows: [], seatParseTip: '支持从 Excel 直接复制粘贴，每行：姓名,手机号,桌号' });
           this.loadSeatSummary();
         }).catch(() => {}).finally(() => this.setData({ seatImporting: false }));
       },

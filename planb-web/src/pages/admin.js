@@ -15,10 +15,10 @@ const LOWER_THRESHOLD = 80;
 const CITY_OPTIONS = ['上海', '济南', '佛山'];
 const MODE_OPTIONS = ['合并更新', '覆盖该场次'];
 const PHONE = /^1\d{10}$/;
-const SEAT_HINT = '支持从 Excel 复制粘贴或选择 CSV 文件，每行：姓名,手机号,桌号[,座位号]';
+const SEAT_HINT = '支持从 Excel 复制粘贴或选择 CSV 文件，每行：姓名,手机号,桌号';
 
 /**
- * 解析批量导入文本：每行「姓名,手机号,桌号[,座位号]」。
+ * 解析批量导入文本：每行「姓名,手机号,桌号」，多余的列忽略。
  * 行内出现逗号/分号/制表符时按分隔符切分，否则按空白切分；首行表头自动跳过。
  * 与小程序 pages/admin/index.js 中的实现保持一致。
  */
@@ -43,7 +43,7 @@ function parseSeatRows(text) {
       invalidLines.push(index + 1);
       return;
     }
-    rows.push({ name: parts[0], phone: parts[1], tableNo: parts[2], seatNo: parts[3] || '' });
+    rows.push({ name: parts[0], phone: parts[1], tableNo: parts[2] });
   });
 
   return { rows, invalidLines };
@@ -373,7 +373,7 @@ export class AdminView extends View {
           <div class="seat-preview-row">
             <span>${row.name}</span>
             <span>${row.phone}</span>
-            <span>${row.tableNo} 桌${row.seatNo ? ` · ${row.seatNo} 号` : ''}</span>
+            <span>${row.tableNo} 桌</span>
           </div>
         `)}
         ${when(this.data.seatRows.length > rows.length, html`
@@ -406,7 +406,7 @@ export class AdminView extends View {
           class="seat-input"
           name="seatText"
           rows="6"
-          placeholder="每行一位嘉宾：姓名,手机号,桌号[,座位号]"
+          placeholder="每行一位嘉宾：姓名,手机号,桌号"
           data-input="onSeatTextInput"
         >${this.data.seatText}</textarea>
         <div class="seat-tip">${this.seatTip()}</div>

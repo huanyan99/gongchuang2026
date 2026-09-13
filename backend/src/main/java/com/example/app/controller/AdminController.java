@@ -122,7 +122,6 @@ public class AdminController {
             seat.setName(row.getName());
             seat.setPhone(row.getPhone());
             seat.setTableNo(row.getTableNo());
-            seat.setSeatNo(row.getSeatNo());
             seat.setRemark(row.getRemark());
             return seat;
         }).toList();

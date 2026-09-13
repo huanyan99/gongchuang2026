@@ -49,7 +49,7 @@
       </view>
       <textarea
         class="seat-input"
-        placeholder="每行一位嘉宾：姓名,手机号,桌号[,座位号]"
+        placeholder="每行一位嘉宾：姓名,手机号,桌号"
         placeholder-class="seat-ph"
         value="{{seatText}}"
         bindinput="onSeatTextInput"

@@ -22,20 +22,15 @@
   <view wx:if="{{loading}}" class="state-card">正在加载 ···</view>
 
   <block wx:else>
-    <view wx:if="{{primarySeat}}" class="seat-card">
-      <view class="seat-eyebrow">MY TABLE</view>
-      <view class="seat-no-row">
-        <text class="seat-no">{{primarySeat.tableNo}}</text>
-        <text class="seat-unit">桌</text>
-      </view>
-      <view class="seat-name">{{primarySeat.name}}{{primarySeat.seatLabel}}</view>
-      <view wx:if="{{mySeats.length > 1}}" class="seat-party">
-        <view wx:for="{{mySeats}}" wx:key="index" class="party-row">
-          <text>{{item.name}}</text>
-          <text>{{item.tableNo}} 桌{{item.seatLabel}}</text>
+    <block wx:if="{{mySeats.length}}">
+      <view wx:for="{{mySeats}}" wx:key="index" class="seat-card">
+        <text class="seat-name">{{item.name}}</text>
+        <view class="seat-no-row">
+          <text class="seat-no">{{item.tableNo}}</text>
+          <text class="seat-unit">桌</text>
         </view>
       </view>
-    </view>
+    </block>
     <view wx:elif="{{published}}" class="state-card">未查询到您的桌号，请联系现场会务人员</view>
     <view wx:else class="state-card">桌位安排尚未发布</view>
 

@@ -66,7 +66,6 @@ public class SeatService {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("name", seat.getName());
             row.put("tableNo", seat.getTableNo());
-            row.put("seatNo", seat.getSeatNo());
             mySeats.add(row);
         }
 
@@ -138,7 +137,6 @@ public class SeatService {
                 entity.setName(name);
                 entity.setPhone(phone);
                 entity.setTableNo(tableNo);
-                entity.setSeatNo(emptyToNull(trim(row.getSeatNo())));
                 entity.setRemark(emptyToNull(trim(row.getRemark())));
                 entity.setCreatedAt(now);
                 entity.setUpdatedAt(now);
@@ -148,7 +146,6 @@ public class SeatService {
             } else {
                 target.setName(name);
                 target.setTableNo(tableNo);
-                target.setSeatNo(emptyToNull(trim(row.getSeatNo())));
                 target.setRemark(emptyToNull(trim(row.getRemark())));
                 target.setUpdatedAt(now);
                 seatMapper.updateById(target);

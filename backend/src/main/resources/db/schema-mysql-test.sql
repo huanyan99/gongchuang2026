@@ -101,7 +101,6 @@ CREATE TABLE IF NOT EXISTS gonghcuang_seat (
     name VARCHAR(64) NOT NULL,
     phone VARCHAR(20) NOT NULL,
     table_no VARCHAR(32) NOT NULL,
-    seat_no VARCHAR(16),
     remark VARCHAR(255),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

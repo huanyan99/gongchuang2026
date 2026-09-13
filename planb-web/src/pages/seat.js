@@ -1,13 +1,9 @@
 /** 桌位图，对应 wechat-app/miniprogram/pages/seat/index.js */
 
 import { View } from '../core/view.js';
-import { html, when } from '../core/dom.js';
+import { html } from '../core/dom.js';
 import { request, ensureLogin, config } from '../core/api.js';
 import { showImage, showModal } from '../core/ui.js';
-
-function seatLabel(seatNo) {
-  return seatNo ? ` · ${seatNo} 号座` : '';
-}
 
 /** 全场位置图：把图片放进 assets/ 后在 config.js 的 hallImages 中填写路径 */
 function hallImage(eventCity) {
@@ -24,7 +20,6 @@ export class SeatView extends View {
       eventCity: '',
       published: false,
       mySeats: [],
-      primarySeat: null,
       hallImage: '',
     };
   }
@@ -53,7 +48,6 @@ export class SeatView extends View {
     const mySeats = (data.mySeats || []).map((item) => ({
       ...item,
       tableNo: String(item.tableNo),
-      seatLabel: seatLabel(item.seatNo),
     }));
     const eventCity = data.eventCity || this.data.eventCity;
 
@@ -62,7 +56,6 @@ export class SeatView extends View {
       eventCity,
       published: !!data.published,
       mySeats,
-      primarySeat: mySeats.length ? mySeats[0] : null,
       hallImage: hallImage(eventCity),
     });
   }
@@ -71,28 +64,16 @@ export class SeatView extends View {
     if (this.data.hallImage) showImage(this.data.hallImage);
   }
 
-  seatCard() {
-    const seat = this.data.primarySeat;
-    return html`
+  seatCards() {
+    return this.data.mySeats.map((item) => html`
       <div class="seat-card">
-        <div class="seat-eyebrow">MY TABLE</div>
+        <span class="seat-name">${item.name}</span>
         <div class="seat-no-row">
-          <span class="seat-no">${seat.tableNo}</span>
+          <span class="seat-no">${item.tableNo}</span>
           <span class="seat-unit">桌</span>
         </div>
-        <div class="seat-name">${seat.name}${seat.seatLabel}</div>
-        ${when(this.data.mySeats.length > 1, () => html`
-          <div class="seat-party">
-            ${this.data.mySeats.map((item) => html`
-              <div class="party-row">
-                <span>${item.name}</span>
-                <span>${item.tableNo} 桌${item.seatLabel}</span>
-              </div>
-            `)}
-          </div>
-        `)}
       </div>
-    `;
+    `);
   }
 
   template() {
@@ -113,8 +94,8 @@ export class SeatView extends View {
           ${this.data.loading
             ? html`<div class="state-card">正在加载 ···</div>`
             : html`
-              ${this.data.primarySeat
-                ? this.seatCard()
+              ${this.data.mySeats.length
+                ? this.seatCards()
                 : html`<div class="state-card">${this.data.published
                     ? '未查询到您的桌号，请联系现场会务人员'
                     : '桌位安排尚未发布'}</div>`}

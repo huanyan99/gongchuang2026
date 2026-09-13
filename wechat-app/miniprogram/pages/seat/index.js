@@ -7,17 +7,12 @@ const HALL_IMAGES = {
   佛山: '',
 };
 
-function seatLabel(seatNo) {
-  return seatNo ? ` · ${seatNo} 号座` : '';
-}
-
 Page({
   data: {
     loading: true,
     eventCity: '',
     published: false,
     mySeats: [],
-    primarySeat: null,
     hallImage: '',
   },
   onLoad(options) {
@@ -45,7 +40,6 @@ Page({
   applySeat(data) {
     const mySeats = (data.mySeats || []).map((item) => Object.assign({}, item, {
       tableNo: String(item.tableNo),
-      seatLabel: seatLabel(item.seatNo),
     }));
     const eventCity = data.eventCity || this.data.eventCity;
     this.setData({
@@ -53,7 +47,6 @@ Page({
       eventCity,
       published: !!data.published,
       mySeats,
-      primarySeat: mySeats.length ? mySeats[0] : null,
       hallImage: HALL_IMAGES[eventCity] || '',
     });
   },

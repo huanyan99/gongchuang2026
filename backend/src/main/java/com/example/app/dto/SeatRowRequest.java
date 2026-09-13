@@ -8,6 +8,5 @@ public class SeatRowRequest {
     private String name;
     private String phone;
     private String tableNo;
-    private String seatNo;
     private String remark;
 }
