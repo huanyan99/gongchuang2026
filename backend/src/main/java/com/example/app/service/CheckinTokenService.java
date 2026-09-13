@@ -18,8 +18,15 @@ public class CheckinTokenService {
 
     private static final Duration TTL = Duration.ofMinutes(2);
 
-    @Value("${admin.key}")
-    private String secretSeed;
+    /** 入场码签名密钥；留空时启动随机生成，重启后旧二维码失效（有效期本就只有 2 分钟） */
+    @Value("${app.checkin-secret:}")
+    private String configuredSecret;
+
+    private final String fallbackSecret = java.util.UUID.randomUUID().toString();
+
+    private String secretSeed() {
+        return configuredSecret == null || configuredSecret.isBlank() ? fallbackSecret : configuredSecret;
+    }
 
     public Duration ttl() {
         return TTL;
@@ -71,7 +78,7 @@ public class CheckinTokenService {
     private String hmacHex(String payload) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(secretSeed.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            mac.init(new SecretKeySpec(secretSeed().getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
             byte[] raw = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder(raw.length * 2);
             for (byte b : raw) {

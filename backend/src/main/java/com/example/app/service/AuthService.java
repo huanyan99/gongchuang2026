@@ -177,8 +177,8 @@ public class AuthService {
 
     /**
      * 一个账号一台设备：首次登录绑定设备识别码。
-     * 邀请人始终限制；普通嘉宾由后台开关决定，未开启时跟随最新设备。
-     * 客户端未携带识别码时放行，避免旧版本客户端被挡在门外。
+     * 邀请人与普通嘉宾各有一个后台开关，每次登录实时读库，后台改完即刻生效；
+     * 未开启限制时绑定跟随最新设备。客户端未携带识别码时放行，避免旧客户端被挡在门外。
      */
     private void applyDeviceGuard(User user, String deviceId) {
         String incoming = deviceId == null ? "" : deviceId.trim();
@@ -188,8 +188,11 @@ public class AuthService {
         if (bound.equals(incoming)) return;
 
         boolean inviter = Boolean.TRUE.equals(user.getCanInvite()) || Boolean.TRUE.equals(user.getCanReview());
-        boolean enforce = inviter
-                || (settingService != null && settingService.isEnabled(SettingService.DEVICE_BINDING_GUESTS));
+        boolean enforce = settingService == null
+                ? inviter
+                : settingService.isEnabled(inviter
+                        ? SettingService.DEVICE_BINDING_INVITERS
+                        : SettingService.DEVICE_BINDING_GUESTS, inviter);
         if (bound.isEmpty() || !enforce) {
             user.setDeviceId(incoming);
             return;

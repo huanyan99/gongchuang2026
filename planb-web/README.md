@@ -13,19 +13,16 @@ python3 -m http.server 4173 --directory planb-web
 浏览器访问 <http://127.0.0.1:4173>。
 页面使用 ES Module，必须通过 HTTP 打开，直接双击 `index.html`（file://）不会生效。
 
-本地预览把 `config.js` 的 `demoMode` 改成 `true`：不连后端，全部数据存在浏览器 localStorage，可走通全流程。
-仓库里默认是 `false`（正式模式），避免演示数据被带到线上。演示数据只在 `demoMode: true` 时使用，
-正式模式下 `src/core/demo-api.js` 完全不参与请求。
+网页版只连真实后端，没有演示数据。本地调试时先在 `backend` 目录启动后端
+（`mvn spring-boot:run`，数据库连接写在 `backend/config/application-local.yml`），
+再把 `config.js` 的 `apiBase` 填成后端地址（同源部署时留空）。
 
-### 演示模式完整流程
+### 本地联调流程
 
-1. 首页 → 「我的邀请」→ 任一场次「转发邀请」，会把邀请链接复制到剪贴板（形如 `?code=SH2026`）
-2. 打开该链接：首页场次被锁定为受邀城市，「参会登记」可用
-3. 填写并提交登记 → 状态变为「审核中」
-4. 「我的邀请」→「查看邀请列表」→「审核通过」
-5. 首页出现金色受邀条，底部「抽奖码」可抽号；「参会服务」四项解锁
-6. 审核后台入口：`#/admin`，演示模式下任意密钥可进入
-7. 在审核后台「桌位批量导入」粘贴或选择 CSV 导入桌号后，首页 →「参会服务」→「桌位图」即可看到自己的桌位
+1. 启动后端：`cd backend && mvn spring-boot:run`
+2. `config.js` 填 `apiBase: 'http://127.0.0.1:8080'`
+3. 后台 `#/admin` 用管理员账号登录，给某个用户开邀请权限后，该用户在「我的邀请」里生成各场次邀请码
+4. 打开邀请链接 `?code=XXXX` → 参会登记 → 后台审核通过 → 抽奖码、桌位图可用
 
 ## 一比一还原的实现方式
 
@@ -60,7 +57,7 @@ python3 -m http.server 4173 --directory planb-web
 
 ```
 index.html              页面骨架（导航栏、页面容器、弹层容器）
-config.js               运行时配置（apiBase / demoMode / token）
+config.js               运行时配置（apiBase / token / 全场位置图）
 src/
   main.js               注册路由、同步导航栏
   core/
@@ -69,7 +66,6 @@ src/
     view.js             页面基类：生命周期、setData、事件委托、重绘保留滚动与焦点
     dom.js              html 标签模板（默认转义）、when / cx
     api.js              请求层，语义对齐小程序 app.js（code===0、1001 重登、silent）
-    demo-api.js         演示后端，接口路径/字段/错误码对齐 backend/
     storage.js          localStorage 封装，键名与小程序一致
     ui.js               Toast / Modal / 底部选择器 / 图片预览 / 复制 / 震动
   pages/*.js            与小程序 pages/* 一一对应
@@ -87,6 +83,7 @@ styles/*.css            与小程序各页 wxss 一一对应
 | `pages/invitations`、`pages/invitation-list` | `src/pages/invitations.js`、`src/pages/invitation-list.js` + `styles/invitations.css` |
 | `pages/seat` | `src/pages/seat.js` + `styles/seat.css` |
 | `pages/admin` | `src/pages/admin.js` + `styles/admin.css` |
+| （网页独有）现场通道 | `src/pages/pass.js` + `styles/pass.css` |
 | `pages/agreement`、`pages/privacy`、`pages/lottery-rules` | `src/pages/policy.js` + `styles/policy.css` |
 | `pages/invitation-letter`、`pages/agenda`、`pages/route` | `src/pages/service.js` + `styles/service.css` |
 | `app.wxss`（page-scroll、组件默认样式） | `styles/base.css` |
@@ -135,9 +132,16 @@ styles/*.css            与小程序各页 wxss 一一对应
 | `any` 正常登录或现场通道 | 抽奖码、桌位图 |
 | 公开 | 首页、协议、参会服务、登录、现场通道 |
 
-现场通道：扫会议当天公布的二维码（链接带 `pass` 参数）进入 `#/pass`，只核对姓名即可查看
-抽奖码与桌位，同名多人时补手机号后四位。通道会话在浏览器里标记为 `passScoped`，
-访问参会登记等页面会被路由守卫挡回登录页。
+三种二维码：
+
+| 二维码 | 内容 | 打开后 |
+| --- | --- | --- |
+| 首页 | 网页地址 | 正常首页；未登录点功能入口跳登录 |
+| 抽奖码 | `#/lottery` | 未登录先走手机号 + 姓名登录，登录后回到抽奖页 |
+| 桌位图现场通道 | `?pass=<随机串>#/pass` | 只核对姓名（同名多人补手机号后四位）→ 桌位图 |
+
+前两种不含任何密钥；桌位图通道的 `pass` 参数长期有效、提前不公布，会话在浏览器里标记为
+`passScoped`，只能看桌位，访问抽奖码或参会登记会被路由守卫挡回登录页。
 
 首页隐私弹窗已关闭（`config.js` 的 `privacyPopup`），协议入口保留在个人中心底部。
 

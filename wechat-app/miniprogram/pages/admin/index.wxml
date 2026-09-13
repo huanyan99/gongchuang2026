@@ -67,11 +67,15 @@
     <view class="seat-panel">
       <view class="seat-head">
         <text>安全设置</text>
-        <text>邀请人始终限制</text>
+        <text>改完即刻生效</text>
+      </view>
+      <view class="seat-row">
+        <text class="seat-label">邀请人设备限制</text>
+        <text class="seat-value" data-role="inviter" bindtap="toggleDeviceLimit">{{inviterDeviceLimit ? '已开启' : '已关闭'}} ›</text>
       </view>
       <view class="seat-row">
         <text class="seat-label">普通嘉宾设备限制</text>
-        <text class="seat-value" bindtap="toggleGuestDeviceLimit">{{guestDeviceLimit ? '已开启' : '已关闭'}} ›</text>
+        <text class="seat-value" data-role="guest" bindtap="toggleDeviceLimit">{{guestDeviceLimit ? '已开启' : '已关闭'}} ›</text>
       </view>
     </view>
 

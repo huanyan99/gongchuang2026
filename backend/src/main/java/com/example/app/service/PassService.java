@@ -27,9 +27,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 现场通道：会议当天公布的二维码带一个不可猜的 pass 参数，
- * 扫码的嘉宾只需核对姓名即可查看自己的抽奖码与桌位，不需要手机号登录。
- * 通道会话只在抽奖与桌位接口上生效（见 AuthInterceptor）。
+ * 桌位图现场通道：会场二维码带一个不可猜的 pass 参数，长期有效、提前不公布。
+ * 扫码的嘉宾只需核对姓名即可查看自己的桌位，不需要手机号登录。
+ * 通道会话只在桌位接口上生效（见 AuthInterceptor），抽奖码仍需手机号+姓名正常登录。
  */
 @Service
 @RequiredArgsConstructor
@@ -52,7 +52,7 @@ public class PassService {
     /* ---------- 管理端 ---------- */
 
     @Transactional
-    public Map<String, Object> create(String eventCity, String note, Integer validHours) {
+    public Map<String, Object> create(String eventCity, String note) {
         byte[] raw = new byte[18];
         random.nextBytes(raw);
 
@@ -61,9 +61,7 @@ public class PassService {
         pass.setEventCity(eventCity == null || eventCity.isBlank() ? null : eventCity.trim());
         pass.setNote(note == null || note.isBlank() ? null : note.trim());
         pass.setEnabled(true);
-        pass.setExpiresAt(validHours != null && validHours > 0
-                ? LocalDateTime.now().plusHours(validHours)
-                : null);
+        pass.setExpiresAt(null);
         pass.setCreatedAt(LocalDateTime.now());
         accessPassMapper.insert(pass);
         return describe(pass, true);
@@ -145,6 +143,17 @@ public class PassService {
         return body;
     }
 
+    /** 首页、抽奖码等固定入口的二维码；不含任何密钥，扫码后仍需正常登录 */
+    public Map<String, Object> entryQrCode(String target) {
+        String hash = "lottery".equalsIgnoreCase(target) ? "#/lottery" : "#/home";
+        String url = baseUrl().isEmpty() ? "" : baseUrl() + "/" + hash;
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("target", "lottery".equalsIgnoreCase(target) ? "lottery" : "home");
+        body.put("url", url);
+        if (!url.isEmpty()) body.put("qrBase64", qrCodeService.pngBase64(url));
+        return body;
+    }
+
     /** 通道会话 token → 用户；供 AuthInterceptor 使用 */
     public User resolveSession(String token) {
         if (token == null || token.isBlank()) return null;
@@ -197,9 +206,12 @@ public class PassService {
     }
 
     private String passUrl(String token) {
+        return baseUrl().isEmpty() ? "" : baseUrl() + "/?pass=" + token + "#/pass";
+    }
+
+    private String baseUrl() {
         if (webBaseUrl == null || webBaseUrl.isBlank()) return "";
         String base = webBaseUrl.trim();
-        if (base.endsWith("/")) base = base.substring(0, base.length() - 1);
-        return base + "/?pass=" + token + "#/pass";
+        return base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
     }
 }

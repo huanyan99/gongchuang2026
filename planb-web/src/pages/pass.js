@@ -1,7 +1,7 @@
 /**
- * 现场通道：扫会议当天公布的二维码进入（链接带 pass 参数）。
- * 只核对姓名即可查看自己的抽奖码与桌位，不需要手机号登录；
- * 同名多人时再补手机号后四位区分。
+ * 桌位图现场通道：扫会场二维码进入（链接带 pass 参数，长期有效、提前不公布）。
+ * 只核对姓名即可查看自己的桌位，不需要手机号登录；同名多人时再补手机号后四位。
+ * 抽奖码不走这里，仍需手机号 + 姓名正常登录。
  */
 
 import { View } from '../core/view.js';
@@ -16,21 +16,15 @@ export class PassView extends View {
     super(options);
     this.data = {
       pass: '',
-      target: '',
       name: '',
       phoneTail: '',
       needPhoneTail: false,
       submitting: false,
-      ready: false,
-      guestName: '',
     };
   }
 
   onLoad(options) {
-    this.setData({
-      pass: options.pass || '',
-      target: options.to === 'seat' ? 'seat' : '',
-    });
+    this.setData({ pass: options.pass || '' });
   }
 
   onNameInput(event) {
@@ -60,47 +54,20 @@ export class PassView extends View {
           toast('有同名嘉宾，请补手机号后四位');
           return;
         }
-        if (this.data.target === 'seat') {
-          this.router.redirectTo('/seat');
-          return;
-        }
-        this.setData({ ready: true, guestName: (result && result.name) || name });
+        this.router.redirectTo('/seat');
       })
       .catch(() => {})
       .finally(() => this.setData({ submitting: false }));
   }
 
-  goLottery() {
-    this.router.redirectTo('/lottery');
-  }
-
-  goSeat() {
-    this.router.redirectTo('/seat');
-  }
-
   template() {
-    if (this.data.ready) {
-      return html`
-        <div class="page-scroll">
-          <div class="pass-page">
-            <div class="pass-hero">
-              <div class="eyebrow">ON-SITE ACCESS</div>
-              <div class="title">${this.data.guestName}</div>
-            </div>
-            <button type="button" class="pass-btn primary" data-tap="goLottery">查看抽奖码</button>
-            <button type="button" class="pass-btn" data-tap="goSeat">查看桌位</button>
-          </div>
-        </div>
-      `;
-    }
-
     return html`
       <div class="page-scroll">
         <div class="pass-page">
           <div class="pass-hero">
             <div class="eyebrow">ON-SITE ACCESS</div>
             <div class="title">现场通道</div>
-            <div class="sub">核对姓名后即可查看抽奖码与桌位</div>
+            <div class="sub">核对姓名后即可查看您的桌位</div>
           </div>
 
           <div class="pass-card">

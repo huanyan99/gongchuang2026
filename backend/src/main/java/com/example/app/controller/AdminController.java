@@ -86,7 +86,15 @@ public class AdminController {
     public Result<Map<String, Object>> createPass(@Valid @RequestBody AccessPassRequest req,
                                                   @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
         adminAccountService.require(adminToken);
-        return Result.ok(passService.create(req.getEventCity(), req.getNote(), req.getValidHours()));
+        return Result.ok(passService.create(req.getEventCity(), req.getNote()));
+    }
+
+    /** 首页 / 抽奖码入口二维码：不含密钥，扫码后按正常登录流程走 */
+    @GetMapping("/qrcode")
+    public Result<Map<String, Object>> entryQrCode(@RequestParam(defaultValue = "home") String target,
+                                                   @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
+        return Result.ok(passService.entryQrCode(target));
     }
 
     @GetMapping("/passes")
@@ -231,7 +239,8 @@ public class AdminController {
                                                       @RequestParam boolean enabled,
                                                       @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
         adminAccountService.require(adminToken);
-        if (!SettingService.DEVICE_BINDING_GUESTS.equals(key)) {
+        if (!SettingService.DEVICE_BINDING_GUESTS.equals(key)
+                && !SettingService.DEVICE_BINDING_INVITERS.equals(key)) {
             throw new com.example.app.common.BizException(com.example.app.common.ErrorCode.BAD_REQUEST, "未知开关");
         }
         settingService.setEnabled(key, enabled);

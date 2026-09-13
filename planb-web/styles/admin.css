@@ -436,3 +436,12 @@
 .view--admin .pass-disable {
   color: #b42318;
 }
+
+.view--admin .entry-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.view--admin .entry-actions .seat-file-btn {
+  flex: 1;
+}

@@ -7,6 +7,10 @@ server:
       force: true
 
 spring:
+  # 本地真实数据库连接与口令放在 backend/config/application-local.yml（已 gitignore），
+  # 存在时自动覆盖下面的默认值；仓库里不保存任何口令。
+  config:
+    import: optional:file:./config/application-local.yml
   jackson:
     time-zone: Asia/Shanghai
     serialization:
@@ -51,10 +55,11 @@ app:
   web-base-url: http://127.0.0.1:4173
 
 admin:
-  # 首次启动且后台没有任何账号时，用这里的账号建一个管理员；建完请立即登录改密。
-  # 口令要求 >=12 位且含字母、数字、符号。正式环境建议改为环境变量注入，并在建号后清空。
-  bootstrap-username: bochuadmin
-  bootstrap-password: Bochu#2026Admin
+  # 首次启动且后台没有任何账号时用这里的账号建一个管理员；建完请立即登录改密。
+  # 口令要求 >=12 位且含字母、数字、符号。仓库里不写口令，值放在
+  # backend/config/application-local.yml 或环境变量 ADMIN_BOOTSTRAP_PASSWORD。
+  bootstrap-username: ${ADMIN_BOOTSTRAP_USERNAME:}
+  bootstrap-password: ${ADMIN_BOOTSTRAP_PASSWORD:}
 
 logging:
   level:

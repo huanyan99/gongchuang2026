@@ -7,11 +7,9 @@
 
 import { getStorage, setStorage, removeStorage } from './storage.js';
 import { toast } from './ui.js';
-import { demoRequest } from './demo-api.js';
 
 const DEFAULTS = {
   apiBase: '',
-  demoMode: true,
   token: '',
   timeout: 15000,
 };
@@ -78,16 +76,12 @@ function applyLoginSession(data) {
 }
 
 export function ensureLogin() {
-  // 演示模式同样要求先在登录页完成手机号+姓名登录，与正式环境流程一致
   if (session.token) return Promise.resolve(session.token);
 
   const cached = getStorage('token') || config.token;
   if (cached) {
     session.token = cached;
     return Promise.resolve(cached);
-  }
-  if (config.demoMode) {
-    return Promise.reject({ code: 1001, stage: '登录', message: '请先使用手机号和姓名登录' });
   }
   // 页面加载后多个生命周期方法可能并发调用，只发起一次登录
   if (!loginInFlight) {
@@ -176,20 +170,6 @@ function networkMessage(error) {
   return '无法连接后端，请检查服务地址、网络和跨域配置';
 }
 
-function runDemo(path, method, data, options) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      try {
-        resolve(demoRequest(path, method, data));
-      } catch (error) {
-        const failure = { code: error.code || -1, message: error.message || '请求失败' };
-        if (!options.silent && failure.code !== 3002) toast(failure.message);
-        reject(failure);
-      }
-    }, 90);
-  });
-}
-
 /**
  * @param {string} path 接口路径，例如 /api/apply/me
  * @param {'GET'|'POST'|'PUT'|'DELETE'} method
@@ -198,8 +178,6 @@ function runDemo(path, method, data, options) {
  * @param {{silent?: boolean, skipRetry?: boolean}} options
  */
 export function request(path, method = 'GET', data = {}, extraHeader = {}, options = {}) {
-  if (config.demoMode) return runDemo(path, method, data, options);
-
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), config.timeout);
 

@@ -18,8 +18,8 @@ public class AuthInterceptor implements HandlerInterceptor {
     private final AuthService authService;
     private final PassService passService;
 
-    /** 现场通道会话允许访问的接口前缀 */
-    private static final String[] PASS_SCOPED_PATHS = {"/api/lottery/", "/api/seat/"};
+    /** 现场通道会话允许访问的接口前缀：只放行桌位 */
+    private static final String[] PASS_SCOPED_PATHS = {"/api/seat/"};
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
@@ -49,7 +49,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             if (path.startsWith(prefix)) allowed = true;
         }
         if (!allowed) {
-            throw new BizException(ErrorCode.UNAUTHORIZED, "现场通道只能查看抽奖码与桌位");
+            throw new BizException(ErrorCode.UNAUTHORIZED, "现场通道只能查看桌位");
         }
         UserContext.set(passUser);
         UserContext.setPassScoped(true);

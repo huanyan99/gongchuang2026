@@ -62,6 +62,7 @@ Page({
     seatImporting: false,
     seatSummary: '',
     guestDeviceLimit: false,
+    inviterDeviceLimit: true,
   },
   onShow() {
     const saved = wx.getStorageSync('adminToken');
@@ -180,22 +181,32 @@ Page({
     app.request('/api/admin/settings', 'GET', {}, {
       'X-Admin-Token': this.data.adminToken,
     }, { silent: true }).then((result) => {
-      this.setData({ guestDeviceLimit: !!(result && result.device_binding_guests) });
+      this.applySettings(result);
     }).catch(() => {});
   },
-  toggleGuestDeviceLimit() {
-    const enabled = !this.data.guestDeviceLimit;
+  applySettings(result) {
+    this.setData({
+      guestDeviceLimit: !!(result && result.device_binding_guests),
+      inviterDeviceLimit: !!(result && result.device_binding_inviters),
+    });
+  },
+  /** 设备限制开关：后端每次登录实时读库，改完即刻生效 */
+  toggleDeviceLimit(e) {
+    const inviter = e.currentTarget.dataset.role === 'inviter';
+    const key = inviter ? 'device_binding_inviters' : 'device_binding_guests';
+    const enabled = !(inviter ? this.data.inviterDeviceLimit : this.data.guestDeviceLimit);
+    const who = inviter ? '邀请人' : '普通嘉宾';
     wx.showModal({
-      title: enabled ? '开启设备限制' : '关闭设备限制',
+      title: enabled ? `开启${who}设备限制` : `关闭${who}设备限制`,
       content: enabled
-        ? '开启后，普通嘉宾也只能在首次登录的设备上登录。'
-        : '关闭后，普通嘉宾可在任意设备登录；邀请人始终受限。',
+        ? `开启后，${who}只能在首次登录的设备上登录。`
+        : `关闭后，${who}可在任意设备登录。`,
       success: (res) => {
         if (!res.confirm) return;
-        app.request(`/api/admin/settings/device_binding_guests?enabled=${enabled}`, 'POST', {}, {
+        app.request(`/api/admin/settings/${key}?enabled=${enabled}`, 'POST', {}, {
           'X-Admin-Token': this.data.adminToken,
         }).then((result) => {
-          this.setData({ guestDeviceLimit: !!(result && result.device_binding_guests) });
+          this.applySettings(result);
           wx.showToast({ title: enabled ? '已开启' : '已关闭', icon: 'none' });
         }).catch(() => {});
       },

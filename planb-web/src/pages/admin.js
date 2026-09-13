@@ -88,6 +88,9 @@ export class AdminView extends View {
       seatImporting: false,
       seatSummary: '',
       guestDeviceLimit: false,
+      inviterDeviceLimit: true,
+      entryQr: null,
+      entryTarget: 'home',
       passCityIndex: 0,
       passNote: '',
       passes: [],
@@ -100,7 +103,7 @@ export class AdminView extends View {
     const saved = getStorage('adminToken');
     if (saved && !this.data.logged) {
       this.assign({ adminToken: saved });
-      request('/api/admin/session', 'GET', {}, this.adminHeader(), { silent: true })
+      request('/api/admin/session', 'GET', {}, { 'X-Admin-Token': saved }, { silent: true })
         .then((admin) => {
           this.setData({ adminName: (admin && admin.displayName) || '' });
           this.fetchList(true);
@@ -114,6 +117,25 @@ export class AdminView extends View {
 
   adminHeader() {
     return { 'X-Admin-Token': this.data.adminToken };
+  }
+
+  /**
+   * 管理端请求统一出口：会话失效（1001）时直接退回登录框，
+   * 避免各处 catch 吞掉错误后继续显示默认值（例如开关状态）。
+   */
+  adminRequest(path, method = 'GET', data = {}, options = {}) {
+    return request(path, method, data, this.adminHeader(), options)
+      .catch((err) => {
+        if (err && err.code === 1001) this.expireSession();
+        return Promise.reject(err);
+      });
+  }
+
+  expireSession() {
+    if (!this.data.adminToken && !this.data.logged) return;
+    removeStorage('adminToken');
+    this.setData({ adminToken: '', adminName: '', logged: false, list: [], total: 0 });
+    toast('登录已失效，请重新登录');
   }
 
   afterRender() {
@@ -174,7 +196,7 @@ export class AdminView extends View {
     const status = this.data.statusFilter;
     const query = `?page=${page}&size=${PAGE_SIZE}${status ? `&status=${encodeURIComponent(status)}` : ''}`;
 
-    return request(`/api/admin/applications${query}`, 'GET', {}, this.adminHeader())
+    return this.adminRequest(`/api/admin/applications${query}`)
       .then((result) => {
         const records = ((result && result.records) || []).map((item) => ({
           ...item,
@@ -197,7 +219,7 @@ export class AdminView extends View {
   /* ---------- 现场通道 ---------- */
 
   loadPasses() {
-    return request('/api/admin/passes', 'GET', {}, this.adminHeader(), { silent: true })
+    return this.adminRequest('/api/admin/passes', 'GET', {}, { silent: true })
       .then((rows) => this.setData({ passes: rows || [] }))
       .catch(() => {});
   }
@@ -217,7 +239,7 @@ export class AdminView extends View {
     if (this.data.passCreating) return;
     const eventCity = this.data.passCityIndex === 0 ? '' : CITY_OPTIONS[this.data.passCityIndex - 1];
     this.setData({ passCreating: true });
-    return request('/api/admin/passes', 'POST', { eventCity, note: this.data.passNote, validHours: 24 }, this.adminHeader())
+    return this.adminRequest('/api/admin/passes', 'POST', { eventCity, note: this.data.passNote })
       .then((pass) => {
         this.setData({ lastPass: pass, passNote: '' });
         this.loadPasses();
@@ -234,7 +256,7 @@ export class AdminView extends View {
   async disablePass(event, dataset) {
     const confirmed = await showModal({ title: '停用该通道？', content: '停用后已扫码的会话立即失效。' });
     if (!confirmed.confirm) return;
-    return request(`/api/admin/passes/${dataset.id}/disable`, 'POST', {}, this.adminHeader())
+    return this.adminRequest(`/api/admin/passes/${dataset.id}/disable`, 'POST')
       .then(() => {
         toast('已停用');
         this.setData({ lastPass: null });
@@ -246,25 +268,43 @@ export class AdminView extends View {
   /* ---------- 安全设置 ---------- */
 
   loadSettings() {
-    return request('/api/admin/settings', 'GET', {}, this.adminHeader(), { silent: true })
-      .then((result) => this.setData({ guestDeviceLimit: !!(result && result.device_binding_guests) }))
+    return this.adminRequest('/api/admin/settings', 'GET', {}, { silent: true })
+      .then((result) => this.setData({
+        guestDeviceLimit: !!(result && result.device_binding_guests),
+        inviterDeviceLimit: !!(result && result.device_binding_inviters),
+      }))
       .catch(() => {});
   }
 
-  async toggleGuestDeviceLimit() {
-    const enabled = !this.data.guestDeviceLimit;
+  /** 设备限制开关：后端每次登录实时读库，改完即刻生效 */
+  async toggleDeviceLimit(event, dataset) {
+    const inviter = dataset.role === 'inviter';
+    const key = inviter ? 'device_binding_inviters' : 'device_binding_guests';
+    const enabled = !(inviter ? this.data.inviterDeviceLimit : this.data.guestDeviceLimit);
+    const who = inviter ? '邀请人' : '普通嘉宾';
     const confirmed = await showModal({
-      title: enabled ? '开启设备限制' : '关闭设备限制',
+      title: enabled ? `开启${who}设备限制` : `关闭${who}设备限制`,
       content: enabled
-        ? '开启后，普通嘉宾也只能在首次登录的设备上登录。'
-        : '关闭后，普通嘉宾可在任意设备登录；邀请人始终受限。',
+        ? `开启后，${who}只能在首次登录的设备上登录。`
+        : `关闭后，${who}可在任意设备登录。`,
     });
     if (!confirmed.confirm) return;
-    return request(`/api/admin/settings/device_binding_guests?enabled=${enabled}`, 'POST', {}, this.adminHeader())
+    return this.adminRequest(`/api/admin/settings/${key}?enabled=${enabled}`, 'POST')
       .then((result) => {
-        this.setData({ guestDeviceLimit: !!(result && result.device_binding_guests) });
+        this.setData({
+          guestDeviceLimit: !!(result && result.device_binding_guests),
+          inviterDeviceLimit: !!(result && result.device_binding_inviters),
+        });
         toast(enabled ? '已开启' : '已关闭');
       })
+      .catch(() => {});
+  }
+
+  /** 首页 / 抽奖码入口二维码：不含密钥，扫码后按正常登录流程走 */
+  async showEntryQr(event, dataset) {
+    const target = dataset.target;
+    return this.adminRequest(`/api/admin/qrcode?target=${target}`)
+      .then((result) => this.setData({ entryQr: result, entryTarget: target }))
       .catch(() => {});
   }
 
@@ -353,7 +393,7 @@ export class AdminView extends View {
     if (!confirmed.confirm) return;
 
     this.setData({ seatImporting: true });
-    return request('/api/admin/seats/import', 'POST', { eventCity, mode, rows }, this.adminHeader())
+    return this.adminRequest('/api/admin/seats/import', 'POST', { eventCity, mode, rows })
       .then((result) => {
         const errors = (result.errors || []).slice(0, 5).map((item) => `第${item.line}行：${item.message}`);
         showModal({
@@ -370,7 +410,7 @@ export class AdminView extends View {
 
   loadSeatSummary() {
     const eventCity = CITY_OPTIONS[this.data.cityIndex];
-    return request(`/api/admin/seats?city=${encodeURIComponent(eventCity)}&size=1`, 'GET', {}, this.adminHeader(), { silent: true })
+    return this.adminRequest(`/api/admin/seats?city=${encodeURIComponent(eventCity)}&size=1`, 'GET', {}, { silent: true })
       .then((result) => this.setData({ seatSummary: `${eventCity}场 ${result.tableCount} 桌 / ${result.guestCount} 人` }))
       .catch(() => this.setData({ seatSummary: '' }));
   }
@@ -395,7 +435,7 @@ export class AdminView extends View {
   doCheckin(token) {
     if (this.checking) return;
     this.checking = true;
-    return request('/api/admin/checkin', 'POST', { token }, this.adminHeader())
+    return this.adminRequest('/api/admin/checkin', 'POST', { token })
       .then((guest) => {
         toast(`核验通过：${(guest && guest.name) || '嘉宾'}`);
         this.fetchList(true);
@@ -418,7 +458,7 @@ export class AdminView extends View {
   doReview(id, status, remark) {
     if (this.reviewing) return;
     this.reviewing = true;
-    return request(`/api/admin/applications/${id}/review`, 'POST', { status, remark }, this.adminHeader())
+    return this.adminRequest(`/api/admin/applications/${id}/review`, 'POST', { status, remark })
       .then(() => {
         toast('已处理', 'success');
         this.fetchList(true);
@@ -461,6 +501,7 @@ export class AdminView extends View {
       </div>
 
       ${this.seatPanel()}
+      ${this.entryQrPanel()}
       ${this.passPanel()}
       ${this.securityPanel()}
 
@@ -518,8 +559,8 @@ export class AdminView extends View {
     return html`
       <div class="seat-panel">
         <div class="seat-head">
-          <span>现场通道二维码</span>
-          <span>扫码只验证姓名</span>
+          <span>桌位图扫码入口</span>
+          <span>只验证姓名 · 长期有效</span>
         </div>
         <div class="seat-row">
           <span class="seat-label">适用场次</span>
@@ -533,7 +574,7 @@ export class AdminView extends View {
                  placeholder="如：上海场签到台" data-input="onPassNoteInput" />
         </div>
         <button type="button" class="btn seat-btn" ${this.data.passCreating ? 'disabled' : ''} data-tap="createPass">
-          ${this.data.passCreating ? '生成中 ···' : '生成通道二维码（24 小时有效）'}
+          ${this.data.passCreating ? '生成中 ···' : '生成桌位图二维码'}
         </button>
 
         ${when(pass, () => html`
@@ -561,12 +602,45 @@ export class AdminView extends View {
       <div class="seat-panel">
         <div class="seat-head">
           <span>安全设置</span>
-          <span>邀请人始终限制</span>
+          <span>改完即刻生效</span>
+        </div>
+        <div class="seat-row">
+          <span class="seat-label">邀请人设备限制</span>
+          <span class="seat-value tap" data-role="inviter" data-tap="toggleDeviceLimit">
+            ${this.data.inviterDeviceLimit ? '已开启' : '已关闭'} ›
+          </span>
         </div>
         <div class="seat-row">
           <span class="seat-label">普通嘉宾设备限制</span>
-          <span class="seat-value tap" data-tap="toggleGuestDeviceLimit">${this.data.guestDeviceLimit ? '已开启' : '已关闭'} ›</span>
+          <span class="seat-value tap" data-role="guest" data-tap="toggleDeviceLimit">
+            ${this.data.guestDeviceLimit ? '已开启' : '已关闭'} ›
+          </span>
         </div>
+      </div>
+    `;
+  }
+
+  entryQrPanel() {
+    const qr = this.data.entryQr;
+    return html`
+      <div class="seat-panel">
+        <div class="seat-head">
+          <span>入口二维码</span>
+          <span>扫码后正常登录</span>
+        </div>
+        <div class="seat-actions entry-actions">
+          <button type="button" class="seat-file-btn" data-target="home" data-tap="showEntryQr">首页二维码</button>
+          <button type="button" class="seat-file-btn" data-target="lottery" data-tap="showEntryQr">抽奖码二维码</button>
+        </div>
+        ${when(qr, () => html`
+          <div class="pass-result">
+            ${when(qr.qrBase64, html`<img class="pass-qr" src="data:image/png;base64,${qr.qrBase64}" alt="入口二维码" />`)}
+            <div class="pass-url">${qr.url || '未配置网页地址（app.web-base-url）'}</div>
+            ${when(qr.url, html`
+              <button type="button" class="pass-copy" data-url="${qr.url}" data-tap="copyPassUrl">复制链接</button>
+            `)}
+          </div>
+        `)}
       </div>
     `;
   }
