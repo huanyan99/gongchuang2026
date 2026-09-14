@@ -206,22 +206,35 @@
   display: block;
 }
 
-.view--route .venue span:first-child {
+.view--route .venue-label {
   color: #a67e32;
   font-size: 20px;
   letter-spacing: 3px;
 }
 
-.view--route .venue span:nth-child(2) {
+.view--route .venue-name {
   margin-top: 16px;
   font-size: 32px;
   font-weight: 800;
 }
 
-.view--route .venue span:nth-child(3) {
+.view--route .venue-address {
   margin-top: 12px;
   color: #858b97;
   font-size: 23px;
+  line-height: 1.6;
+}
+
+.view--route .venue-hall {
+  display: inline-block;
+  margin-top: 18px;
+  padding: 10px 20px;
+  color: #8a6a20;
+  font-size: 22px;
+  font-weight: 700;
+  background: rgba(214, 181, 109, 0.16);
+  border: 1px solid rgba(168, 125, 49, 0.45);
+  border-radius: 22px;
 }
 
 .view--route .venue button {
@@ -238,39 +251,45 @@
 
 .view--route .row {
   display: flex;
-  padding: 26px 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px 0;
   border-bottom: 1px solid #e5e8ef;
 }
 
-.view--route .row > span {
-  width: 70px;
-  color: #b18a3d;
-  font-weight: 800;
+.view--route .row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
-.view--route .row div {
-  flex: 1;
+.view--route .row.column {
+  flex-direction: column;
+  gap: 10px;
 }
 
-.view--route .row div span {
-  display: block;
-}
-
-.view--route .row div span:first-child {
-  font-size: 27px;
+.view--route .row-name {
+  flex: none;
+  font-size: 26px;
   font-weight: 700;
 }
 
-.view--route .row div span:last-child {
-  margin-top: 9px;
+.view--route .row-detail {
+  flex: 1;
   color: #777f8d;
   font-size: 23px;
   line-height: 1.7;
+  text-align: right;
+}
+
+.view--route .row.column .row-detail {
+  text-align: left;
 }
 
 .view--route .notice {
   margin: 34px 26px;
   color: #8a7447;
   font-size: 22px;
+  line-height: 1.6;
   text-align: center;
 }
