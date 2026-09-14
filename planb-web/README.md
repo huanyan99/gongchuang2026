@@ -13,14 +13,21 @@ python3 -m http.server 4173 --directory planb-web
 浏览器访问 <http://127.0.0.1:4173>。
 页面使用 ES Module，必须通过 HTTP 打开，直接双击 `index.html`（file://）不会生效。
 
-网页版只连真实后端，没有演示数据。本地调试时先在 `backend` 目录启动后端
-（`mvn spring-boot:run`，数据库连接写在 `backend/config/application-local.yml`），
-再把 `config.js` 的 `apiBase` 填成后端地址（同源部署时留空）。
+网页版只连真实后端，没有演示数据。本地用自带的开发服务器跑：
+
+```bash
+cd backend && mvn spring-boot:run          # 后端，数据库连接在 backend/config/application-local.yml
+python3 planb-web/dev-server.py            # 网页 http://127.0.0.1:4173，/api 转发到 8080
+```
+
+`dev-server.py` 把接口和网页放在同一个源下，所以 `config.js` 的 `apiBase` 留空即可；
+正式部署用 Nginx 按同样方式反代 `/api` 就行。
 
 ### 本地联调流程
 
 1. 启动后端：`cd backend && mvn spring-boot:run`
-2. `config.js` 填 `apiBase: 'http://127.0.0.1:8080'`
+2. 启动网页：`python3 planb-web/dev-server.py`（静态托管 + 把 `/api/*` 转发到后端，
+   与网页同源，`config.js` 的 `apiBase` 保持留空即可，也不会有跨域问题）
 3. 后台 `#/admin` 用管理员账号登录，给某个用户开邀请权限后，该用户在「我的邀请」里生成各场次邀请码
 4. 打开邀请链接 `?code=XXXX` → 参会登记 → 后台审核通过 → 抽奖码、桌位图可用
 
@@ -120,6 +127,9 @@ styles/*.css            与小程序各页 wxss 一一对应
 1. 手机号 —— 11 个格子逐位输入
 2. 姓名 —— 手机号已在参会登记中出现过时，只显示姓名掩码与一个补字框（张 [ ] 明，隐藏第二个字，
    与银行转账核验一致），补对即登录，性别由登记信息带出；未登记过的手机号仍填写姓名与性别
+
+登录态保留 60 天，期间不会自动失效；个人中心底部的「退出登录」会同时作废后端 token 与本机缓存
+（设备识别码保留，同一台设备重新登录不会触发设备限制）。
 
 登录状态只有一个来源：会话 token + 用户手机号。未登录时首页不展示任何个人状态
 （登记状态显示「未登记」、不出现受邀场次与我的邀请），点击功能入口会跳到登录页。

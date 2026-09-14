@@ -90,6 +90,12 @@ planb-web/           Plan B 网页版（小程序的一比一网页复刻，无�
 - 数据表变更：`gonghcuang_user.device_id` 与 `gonghcuang_setting`，
   新库见 `db/schema.sql`，老库执行 `db/migrate_v10_device_setting.sql`。
 
+## 登录态
+
+- 嘉宾登录 token 有效期 60 天，期间不做任何清理；个人中心「退出登录」调用
+  `POST /api/auth/logout` 作废后端 token，并清掉本机身份缓存（设备识别码保留）。
+- 后台会话 8 小时过期，登录成功会作废该账号的其他会话。
+
 ## 管理后台账号
 
 - 后台改为账号口令登录：`POST /api/admin/login` 拿会话 token，其余管理接口放在请求头 `X-Admin-Token`。
