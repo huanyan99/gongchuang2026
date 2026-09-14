@@ -5,7 +5,8 @@
     <text>{{city}}场 · 交通路线</text>
   </view>
 
-  <view class="venue">
+  <view wx:if="{{city === '上海'}}" class="notice">暂未更新~</view>
+  <view wx:else class="venue">
     <text class="venue-label">活动会场</text>
     <text class="venue-name">{{venue ? venue.hotel : city + '场会场'}}</text>
     <text class="venue-address">{{venue ? venue.address : '详细地址待会务团队最终确认'}}</text>
@@ -37,6 +38,6 @@
     </view>
   </view>
 
-  <view wx:if="{{!venue}}" class="notice">会场与交通信息将在会场确定后及时更新</view>
+  <view wx:if="{{!venue && city !== '上海'}}" class="notice">会场与交通信息将在会场确定后及时更新</view>
 </view>
 </scroll-view>

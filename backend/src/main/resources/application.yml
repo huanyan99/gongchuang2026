@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 4556
   servlet:
     encoding:
       charset: UTF-8
@@ -50,9 +50,9 @@ wechat:
 app:
   # 网页版部署来源（CORS 放通），逗号分隔
   cors:
-    allowed-origins: http://localhost:4173,http://127.0.0.1:4173
+    allowed-origins: http://localhost:4555,http://127.0.0.1:4555,https://pmt.fscut.com
   # 网页版访问地址，用于生成现场通道二维码链接
-  web-base-url: http://127.0.0.1:4173
+  web-base-url: http://127.0.0.1:4555
 
 admin:
   # 首次启动且后台没有任何账号时用这里的账号建一个管理员；建完请立即登录改密。

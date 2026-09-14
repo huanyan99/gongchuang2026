@@ -6,6 +6,16 @@
 
 ## 本地运行
 
+### 邀请函海报
+
+请将做好的海报按以下文件名分别放入两个前端目录，文件会随小程序或网页一起打包：
+
+- 原始海报：`planb-web/assets/foshan-invent.png`、`jinan-invent.png`
+- 网页优化图：`planb-web/assets/foshan-invent.jpg`、`jinan-invent.jpg`
+- 小程序优化图：`wechat-app/miniprogram/images/foshan-invent.jpg`、`jinan-invent.jpg`
+
+打包使用优化后的 JPG，单张控制在 200 KB 内；原始 PNG 仅作设计源文件，不复制进小程序。上海场暂不配置图片。
+
 ```bash
 python3 -m http.server 4173 --directory planb-web
 ```

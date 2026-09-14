@@ -18,6 +18,7 @@ Page({
   onLoad(options) {
     const eventCity = decodeURIComponent(options.city || '');
     this.setData({ eventCity, hallImage: HALL_IMAGES[eventCity] || '' });
+    if (eventCity === '上海') { this.setData({ loading: false }); return; }
     this.loadSeat();
   },
   onShow() {

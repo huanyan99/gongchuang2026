@@ -10,6 +10,7 @@
  *                 留空则显示占位框。也可填写 https 图片地址。
  */
 window.PLANB_CONFIG = {
+  // 生产环境由 Nginx 将同源 /api 转发到 127.0.0.1:4556，避免跨域。
   apiBase: '',
   token: '',
   oauthAppid: '',

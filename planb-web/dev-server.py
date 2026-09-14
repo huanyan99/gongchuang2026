@@ -6,8 +6,8 @@
 也不会触发跨域。正式部署请用 Nginx 等按同样的方式反向代理 /api。
 
 用法：
-    python3 dev-server.py                      # 网页 4173，后端 http://127.0.0.1:8080
-    python3 dev-server.py 4173 http://后端地址   # 自定义端口与后端
+    python3 dev-server.py                      # 网页 4555，后端 http://127.0.0.1:4556
+    python3 dev-server.py 4555 http://后端地址   # 自定义端口与后端
 """
 
 import http.server
@@ -16,8 +16,8 @@ import sys
 import urllib.error
 import urllib.request
 
-PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 4173
-BACKEND = (sys.argv[2] if len(sys.argv) > 2 else 'http://127.0.0.1:8080').rstrip('/')
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 4555
+BACKEND = (sys.argv[2] if len(sys.argv) > 2 else 'http://127.0.0.1:4556').rstrip('/')
 ROOT = os.path.dirname(os.path.abspath(__file__))
 HOP_BY_HOP = {'connection', 'keep-alive', 'transfer-encoding', 'content-encoding', 'content-length'}
 

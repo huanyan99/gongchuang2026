@@ -9,13 +9,7 @@ import { copyText, showSheet, toast } from '../core/ui.js';
 
 const EVENT_DATES = { 佛山: '9月18日', 济南: '9月22日', 上海: '10月21日' };
 
-const AGENDA = [
-  ['13:00', '嘉宾签到', '签到入场与自由交流'],
-  ['14:00', '峰会开幕', '主办方致辞与年度分享'],
-  ['14:40', '主题演讲', '行业趋势与创新实践'],
-  ['16:00', '价值共创', '合作伙伴交流与案例分享'],
-  ['17:30', '晚宴交流', '抽奖仪式与贵宾晚宴'],
-];
+const AGENDA = ['欢迎致辞','智慧产线愿景、模式、进展分享','智能硬件赋能切割智能制造创新实践分享','茶歇','智能焊接创新实践分享','柏楚技术愿景分享','解决方案介绍及交流互动'];
 
 // 各场次会场与交通信息；与小程序 pages/route/index.js 保持一致，上海场待会务确认后补充。
 const VENUES = {
@@ -99,19 +93,12 @@ export class InvitationLetterView extends CityView {
   static meta = { title: '电子邀请函', background: '#0d214d', textStyle: 'white' };
 
   template() {
-    const date = EVENT_DATES[this.data.city] || '待通知';
+    const posters = { 佛山: 'assets/foshan-invent.jpg', 济南: 'assets/jinan-invent.jpg' };
+    const poster = posters[this.data.city];
     return html`
       <div class="page-scroll">
         <div class="page">
-          <div class="letter-card">
-            <div class="eyebrow">EXCLUSIVE INVITATION</div>
-            <div class="title">诚挚邀请</div>
-            <div class="gem"></div>
-            <div class="body">尊敬的贵宾：</div>
-            <div class="body">诚邀您参加柏楚2026价值共创峰会，与行业伙伴共同探讨产业趋势、创新实践与协同发展的更多可能。</div>
-            <div class="event"><span>${this.data.city}场</span><span>${date}</span></div>
-            <div class="note">具体时间及会场信息以会务团队最终通知为准</div>
-          </div>
+          ${poster ? html`<img class="invitation-poster" src="${poster}" alt="${this.data.city}场电子邀请函" />` : html`<div class="service-unavailable">暂未更新~</div>`}
         </div>
       </div>
     `;
@@ -122,23 +109,17 @@ export class AgendaView extends CityView {
   static meta = { title: '大会议程', background: '#0d214d', textStyle: 'white' };
 
   template() {
+    const available = this.data.city === '佛山' || this.data.city === '济南';
     return html`
       <div class="page-scroll">
         <div class="page">
           <div class="hero">
             <span>SUMMIT AGENDA</span>
             <span>${this.data.city}场 · 大会议程</span>
-            <span>共创价值 · 共启新程</span>
+            <span>智践于行，增长共生</span>
           </div>
-          <div class="timeline">
-            ${AGENDA.map(([time, title, desc]) => html`
-              <div class="item">
-                <span>${time}</span>
-                <div><span>${title}</span><span>${desc}</span></div>
-              </div>
-            `)}
-          </div>
-          <div class="notice">当前为议程预览，最终安排以会务通知为准</div>
+          ${when(available, () => html`<div class="agenda-card"><div class="agenda-heading"><span>价值共创峰会</span><span>${this.data.city}场</span></div><div class="agenda-group"><div class="time-column"><span>实践分享</span><span>14:00—16:30</span></div><div class="agenda-line">${AGENDA.map((title) => html`<div class="agenda-item"><i></i><span>${title}</span></div>`)}</div></div><div class="agenda-group dinner-group"><div class="time-column"><span></span><span>17:30—21:00</span></div><div class="agenda-line"><div class="agenda-item dinner"><i></i><span>晚宴</span></div></div></div></div><div class="notice">实际安排以会务团队现场通知为准</div>`)}
+          ${when(!available, html`<div class="unavailable"><i></i><span>暂未更新~</span></div>`)}
         </div>
       </div>
     `;
@@ -187,6 +168,7 @@ export class RouteView extends CityView {
 
   template() {
     const venue = this.venue;
+    if (this.data.city === '上海') return html`<div class="page-scroll"><div class="page"><div class="hero"><span>VENUE GUIDE</span><span>上海场 · 交通路线</span></div><div class="notice">暂未更新~</div></div></div>`;
     return html`
       <div class="page-scroll">
         <div class="page">

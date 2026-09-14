@@ -30,6 +30,7 @@ export class SeatView extends View {
   onLoad(options) {
     const eventCity = decodeURIComponent(options.city || '');
     this.setData({ eventCity, hallImage: hallImage(eventCity) });
+    if (eventCity === '上海') { this.setData({ loading: false }); return; }
     this.loadSeat();
   }
 
@@ -80,6 +81,7 @@ export class SeatView extends View {
   }
 
   template() {
+    if (this.data.eventCity === '上海') return html`<div class="page-scroll"><div class="page"><div class="head"><img class="head-bg" src="assets/banner.jpg" alt="" /><div class="head-shade"></div><div class="head-copy"><div class="eyebrow">SEATING MAP</div><div class="title">桌位图</div><div class="gold-line"></div><div class="sub">上海场</div></div></div><div class="state-card">暂未更新~</div></div></div>`;
     return html`
       <div class="page-scroll">
         <div class="page">

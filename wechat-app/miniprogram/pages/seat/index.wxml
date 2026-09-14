@@ -19,9 +19,10 @@
     </view>
   </view>
 
-  <view wx:if="{{loading}}" class="state-card">正在加载 ···</view>
+  <view wx:if="{{eventCity === '上海'}}" class="state-card">暂未更新~</view>
+  <view wx:elif="{{loading}}" class="state-card">正在加载 ···</view>
 
-  <block wx:else>
+  <block wx:elif="{{eventCity !== '上海'}}">
     <block wx:if="{{mySeats.length}}">
       <view wx:for="{{mySeats}}" wx:key="index" class="seat-card">
         <text class="seat-name">{{item.name}}</text>
