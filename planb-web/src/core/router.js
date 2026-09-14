@@ -64,6 +64,19 @@ export class Router {
     this.mount(target.route, target.query, { animate: false });
   }
 
+  /**
+   * 对应 wx.reLaunch：清空整个页面栈再打开目标页。
+   * 登录完成后用它，避免登录前那张首页留在栈里（返回会看到旧状态、历史里也多一层）。
+   */
+  reLaunch(url) {
+    const target = parseUrl(url);
+    if (!this.routes[target.route] || this.animating) return;
+    this.index = 0;
+    history.replaceState({ index: 0 }, '', `#${target.url}`);
+    this.stack.splice(0).forEach((entry) => this.destroy(entry));
+    this.mount(target.route, target.query, { animate: false });
+  }
+
   /** 对应 wx.navigateBack */
   navigateBack() {
     if (this.stack.length <= 1) return;

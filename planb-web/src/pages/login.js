@@ -237,8 +237,8 @@ export class LoginView extends View {
         this.setData({ authed: true, profileReady: true, name });
         toast('登录成功', 'success');
         this.later(() => {
-          if (this.data.redirect) this.router.redirectTo(this.data.redirect);
-          else this.router.redirectTo('/home');
+          // reLaunch 而不是 redirectTo：登录前那张首页不该留在栈里
+          this.router.reLaunch(this.data.redirect || '/home');
         }, 620);
       })
       .catch(() => {})
