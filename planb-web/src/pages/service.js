@@ -227,9 +227,9 @@ export class RouteView extends CityView {
             </div>
           `)}
 
-          <div class="notice">
-            ${venue ? '具体接驳与停车安排以会务现场指引为准' : '会场与交通信息将在会场确定后及时更新'}
-          </div>
+          ${when(!venue, html`
+            <div class="notice">会场与交通信息将在会场确定后及时更新</div>
+          `)}
         </div>
       </div>
     `;

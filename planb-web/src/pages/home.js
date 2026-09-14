@@ -80,16 +80,27 @@ export class HomeView extends View {
       .catch(() => this.setData({ canManageInvitations: false }));
   }
 
-  applyInvitationContext(context) {
-    if (!context || !context.eventCity) return;
-    const weatherIndex = this.data.weatherStops.findIndex((item) => item.city === context.eventCity);
+  /**
+   * 会场归属，按优先级取：
+   * 1. 已审核登记的场次
+   * 2. 未审核登记 / 有效邀请码的场次
+   * 3. 都没有：不锁定场次，参会服务不可用
+   * 有归属才锁定城市标签并开放参会服务，避免 syncApplyFlag 与邀请码校验互相覆盖。
+   */
+  applyVenue() {
+    const registered = this.data.registrationEventCity || '';
+    const invited = this.data.valid === true && this.data.invitationContext
+      ? (this.data.invitationContext.eventCity || '')
+      : '';
+    const lockedCity = registered || invited;
+    const patch = { lockedCity, hasServiceAccess: !!lockedCity };
+
+    const weatherIndex = this.data.weatherStops.findIndex((item) => item.city === lockedCity);
     if (weatherIndex >= 0) {
-      this.setData({
-        weatherIndex,
-        currentWeather: this.data.weatherStops[weatherIndex],
-        lockedCity: context.eventCity,
-      });
+      patch.weatherIndex = weatherIndex;
+      patch.currentWeather = this.data.weatherStops[weatherIndex];
     }
+    this.setData(patch);
   }
 
   validateInvitation(inviteCode) {
@@ -98,30 +109,21 @@ export class HomeView extends View {
         // 查询邀请期间若登记状态发生变化，仍以数据库登记为最高优先级。
         if (this.data.hasRegistrationRecord && !this.data.invitationCanOverride) return;
         setStorage('activeInviteCode', inviteCode);
-        this.setData({
-          inviteCode,
-          valid: true,
-          invitationContext: context || {},
-          hasServiceAccess: true,
-        });
-        this.applyInvitationContext(context || {});
+        this.setData({ inviteCode, valid: true, invitationContext: context || {} });
+        this.applyVenue();
       })
       .catch(() => {
         if (this.data.hasRegistrationRecord && !this.data.invitationCanOverride) return;
         removeStorage('activeInviteCode');
-        this.setData({
-          valid: false,
-          invitationContext: null,
-          lockedCity: '',
-          hasServiceAccess: false,
-        });
+        this.setData({ valid: false, invitationContext: null });
         if (this.data.hasRegistrationRecord && this.databaseInvitationContext) {
           this.setData({
             inviteCode: this.databaseInviteCode || '',
+            valid: true,
             invitationContext: this.databaseInvitationContext,
           });
-          this.applyInvitationContext(this.databaseInvitationContext);
         }
+        this.applyVenue();
       });
   }
 
@@ -146,7 +148,7 @@ export class HomeView extends View {
       });
       const weatherIndex = Math.min(this.data.weatherIndex, weatherStops.length - 1);
       this.setData({ weatherStops, weatherIndex, currentWeather: weatherStops[weatherIndex] });
-      this.applyInvitationContext(this.data.invitationContext);
+      this.applyVenue();
     }).catch(() => {});
   }
 
@@ -167,8 +169,6 @@ export class HomeView extends View {
           lotteryEligible: !!approved,
           hasRegistrationRecord: !!record,
           registrationEventCity: (record && record.eventCity) || '',
-          // 参会服务仅对审核通过（含已入场）的登记场次开放。
-          hasServiceAccess: !!approved,
           invitationCanOverride: !!rejected,
         });
         if (record && record.phone) setStorage('lastApplyPhone', record.phone);
@@ -181,9 +181,9 @@ export class HomeView extends View {
             if (record.invitationCode) setStorage('activeInviteCode', record.invitationCode);
             else removeStorage('activeInviteCode');
             this.setData({ inviteCode: record.invitationCode || '', valid: true, invitationContext: context });
-            this.applyInvitationContext(context);
           }
         }
+        this.applyVenue();
         return record;
       })
       .catch((err) => {
@@ -196,9 +196,11 @@ export class HomeView extends View {
             lotteryEligible: false,
             hasRegistrationRecord: false,
             registrationEventCity: '',
-            hasServiceAccess: false,
             canManageInvitations: false,
+            valid: null,
+            invitationContext: null,
           });
+          this.applyVenue();
           return null;
         }
         if (err && err.code === 3002) {
@@ -209,10 +211,9 @@ export class HomeView extends View {
             lotteryEligible: false,
             hasRegistrationRecord: false,
             registrationEventCity: '',
-            hasServiceAccess: false,
             invitationCanOverride: false,
           });
-          if (!this.data.valid) this.setData({ lockedCity: '', invitationContext: null });
+          this.applyVenue();
           return null;
         }
         return Promise.reject(err);
