@@ -15,6 +15,7 @@
   /* 由 src/core/viewport.js 写入 */
   --device-width: 375px;
   --device-height: 100dvh;
+  --stage-height: 200dvh;
   --scale: 0.5;
   --safe-bottom: 0px;
 }
@@ -27,6 +28,8 @@ html,
 body {
   height: 100%;
   margin: 0;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
 }
 
 body {
@@ -39,7 +42,6 @@ body {
   font-family: -apple-system, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
-  -webkit-text-size-adjust: 100%;
 }
 
 /* 桌面端居中展示为手机画幅，移动端铺满视口 */
@@ -65,9 +67,10 @@ body {
 
 .stage {
   position: relative;
-  zoom: var(--scale);
   width: 750px;
-  height: 100%;
+  height: var(--stage-height);
+  transform: scale(var(--scale));
+  transform-origin: left top;
   font-size: 28px;
   line-height: 1.45;
   color: #111111;
@@ -86,13 +89,13 @@ body {
 /* ---------- 导航栏：对齐小程序 navigationBar（44pt = 88rpx） ---------- */
 
 .nav-bar {
+  display: none;
   position: absolute;
   left: 0;
   right: 0;
   top: 0;
   z-index: 60;
   height: 88px;
-  display: flex;
   align-items: center;
   justify-content: center;
   margin: 0;
@@ -153,7 +156,7 @@ body {
   position: absolute;
   left: 0;
   right: 0;
-  top: 88px;
+  top: 0;
   bottom: 0;
   overflow: hidden;
 }

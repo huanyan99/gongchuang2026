@@ -23,8 +23,9 @@ export class LotteryView extends View {
     super(options);
     this.data = {
       running: false,
-      requesting: false,
+      requesting: true,
       drawn: false,
+      preparedNumber: '',
       rollingDigits: ['—', '—', '—', '—'],
       finalNumber: '',
       activeReels: [false, false, false, false],
@@ -39,10 +40,11 @@ export class LotteryView extends View {
   onLoad() {
     ensureLogin()
       .then(() => request('/api/lottery/me', 'GET', {}, {}, { silent: true }))
-      .then((result) => this.showExistingCode(result.luckyCode))
+      .then((result) => this.prepareCode(result.luckyCode))
       .catch((err) => {
         if (!err || err.code !== 4001) toast((err && err.message) || '抽奖信息加载失败');
-      });
+      })
+      .finally(() => this.setData({ requesting: false }));
   }
 
   onUnload() {
@@ -59,30 +61,19 @@ export class LotteryView extends View {
       return;
     }
 
-    this.assign({ requesting: true, buttonPressed: true });
+    if (!this.data.preparedNumber) {
+      toast('抽奖码尚未加载，请稍后重试');
+      return;
+    }
+    this.assign({ buttonPressed: true });
     this.sync();
-
-    ensureLogin()
-      .then(() => request('/api/lottery/draw', 'POST'))
-      .then((result) => this.beginDraw(result.luckyCode))
-      .catch(() => this.assign({ buttonPressed: false }))
-      .finally(() => {
-        this.assign({ requesting: false });
-        this.sync();
-      });
+    this.beginDraw(this.data.preparedNumber);
   }
 
-  showExistingCode(luckyCode) {
+  prepareCode(luckyCode) {
     const finalNumber = String(luckyCode || '').padStart(4, '0').slice(-4);
     if (!/^\d{4}$/.test(finalNumber)) return;
-    this.setData({
-      drawn: true,
-      finalNumber,
-      rollingDigits: finalNumber.split(''),
-      lockedReels: [true, true, true, true],
-      focusNumber: true,
-      showResultText: true,
-    });
+    this.setData({ preparedNumber: finalNumber });
   }
 
   beginDraw(luckyCode) {
@@ -290,7 +281,7 @@ export class LotteryView extends View {
             <div class="status-copy">${this.statusText()}</div>
 
             <button type="button" class="draw-button" data-tap="startDraw">${this.buttonText()}</button>
-            <div class="one-chance">每位嘉宾仅有一次抽取机会</div>
+            <div class="one-chance">号码已预先生成，动画仅作揭晓展示</div>
             <div class="rules-link tap" data-tap="openRules">查看《抽奖活动说明》</div>
             <div class="ticket-line bottom"></div>
           </div>

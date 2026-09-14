@@ -49,6 +49,9 @@ public class AuthService {
     @Autowired(required = false)
     private LoginAuditService loginAuditService;
 
+    @Autowired(required = false)
+    private LuckyCodeGeneratorService luckyCodeGeneratorService;
+
     @Value("${wechat.appid}")
     private String appid;
     @Value("${wechat.secret}")
@@ -140,6 +143,7 @@ public class AuthService {
         }
         applyDeviceGuard(user, deviceId, "WEB_PHONE");
         issueToken(user);
+        ensureLuckyCode(user);
         safeAudit(user, "WEB_PHONE", deviceId, "SUCCESS", "登录成功");
         return user;
     }
@@ -179,6 +183,7 @@ public class AuthService {
         }
         applyDeviceGuard(user, deviceId, loginType);
         issueToken(user);
+        ensureLuckyCode(user);
         safeAudit(user, loginType, deviceId, "SUCCESS", "登录成功");
         return user;
     }
@@ -215,6 +220,15 @@ public class AuthService {
             loginAuditService.recordLogin(user, loginType, deviceId, result, reason);
         } catch (Exception e) {
             log.warn("登录审计写入失败: type={} result={} error={}", loginType, result, e.getClass().getSimpleName());
+        }
+    }
+
+    private void ensureLuckyCode(User user) {
+        if (luckyCodeGeneratorService == null || user == null || user.getId() == null) return;
+        try {
+            luckyCodeGeneratorService.getOrCreate(user.getId());
+        } catch (Exception e) {
+            log.warn("注册抽奖码生成失败: userId={} error={}", user.getId(), e.getClass().getSimpleName());
         }
     }
 

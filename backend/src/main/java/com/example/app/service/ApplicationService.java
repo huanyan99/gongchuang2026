@@ -34,6 +34,7 @@ public class ApplicationService {
     private final CheckinTokenService checkinTokenService;
     private final QrCodeService qrCodeService;
     private final ApplicationGuestMapper applicationGuestMapper;
+    private final LuckyCodeGeneratorService luckyCodeGeneratorService;
 
     /**
      * 提交申报。事务内完成：
@@ -85,6 +86,8 @@ public class ApplicationService {
                 row.setRoomType(guest.getRoomType()); row.setCheckinDate(LocalDate.parse(guest.getCheckinDate()));
                 applicationGuestMapper.insert(row);
             }
+            // 号码随登记事务一起生成；后续抽奖页只读取并播放展示动画。
+            luckyCodeGeneratorService.getOrCreate(user.getId());
             application.setAttendees(loadGuests(application.getId()));
         } catch (DuplicateKeyException e) {
             throw new BizException(ErrorCode.APPLY_DUPLICATED);
@@ -128,6 +131,7 @@ public class ApplicationService {
         applicationGuestMapper.delete(new LambdaQueryWrapper<ApplicationGuest>()
                 .eq(ApplicationGuest::getApplicationId, current.getId()));
         insertGuests(current.getId(), guests);
+        luckyCodeGeneratorService.getOrCreate(user.getId());
         Application result = applicationMapper.selectById(current.getId());
         result.setAttendees(loadGuests(result.getId()));
         return result;

@@ -1,8 +1,9 @@
 /**
  * 设备视口：把 750 设计宽度映射到当前浏览器宽度。
  *
- * .stage 使用 CSS zoom 整体缩放，因此页面样式里的 1px 恒等于小程序的 1rpx；
- * zoom 不会像 transform 那样脱离布局，fixed/滚动/字体渲染都保持正常。
+ * .stage 使用 transform 整体缩放，因此页面样式里的 1px 恒等于小程序的 1rpx。
+ * 不使用 CSS zoom：旧版 iOS Safari / 微信 WKWebView 对 zoom 支持不完整，
+ * 会导致 750 设计稿未缩放、字体显示成“大字版”。
  */
 
 const DESIGN_WIDTH = 750;
@@ -26,8 +27,9 @@ export function initViewport() {
 
     root.setProperty('--device-width', `${width}px`);
     root.setProperty('--device-height', `${height}px`);
+    root.setProperty('--stage-height', `${(height / scale).toFixed(2)}px`);
     root.setProperty('--scale', String(scale));
-    // env() 在 zoom 内部不会被换算，这里换算成设计稿单位再注入
+    // env() 位于缩放画布内部，需要换算成设计稿单位再注入
     root.setProperty('--safe-bottom', `${(readSafeBottom() / scale).toFixed(2)}px`);
   };
 

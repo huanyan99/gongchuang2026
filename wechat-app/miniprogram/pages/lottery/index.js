@@ -3,8 +3,9 @@ const app = getApp();
 Page({
   data: {
     running: false,
-    requesting: false,
+    requesting: true,
     drawn: false,
+    preparedNumber: '',
     rollingDigits: ['—', '—', '—', '—'],
     finalNumber: '',
     activeReels: [false, false, false, false],
@@ -18,12 +19,13 @@ Page({
     wx.removeStorageSync('bochuLuckyNumber');
     app.ensureLogin()
       .then(() => app.request('/api/lottery/me', 'GET', {}, {}, { silent: true }))
-      .then((result) => this.showExistingCode(result.luckyCode))
+      .then((result) => this.prepareCode(result.luckyCode))
       .catch((err) => {
         if (!err || err.code !== 4001) {
           wx.showToast({ title: (err && err.message) || '抽奖信息加载失败', icon: 'none' });
         }
-      });
+      })
+      .finally(() => this.setData({ requesting: false }));
   },
   onUnload() {
     this.clearAnimationTimers();
@@ -35,24 +37,17 @@ Page({
       return;
     }
 
-    this.setData({ requesting: true, buttonPressed: true });
-    app.ensureLogin()
-      .then(() => app.request('/api/lottery/draw', 'POST'))
-      .then((result) => this.beginDraw(result.luckyCode))
-      .catch(() => this.setData({ buttonPressed: false }))
-      .finally(() => this.setData({ requesting: false }));
+    if (!this.data.preparedNumber) {
+      wx.showToast({ title: '抽奖码尚未加载，请稍后重试', icon: 'none' });
+      return;
+    }
+    this.setData({ buttonPressed: true });
+    this.beginDraw(this.data.preparedNumber);
   },
-  showExistingCode(luckyCode) {
+  prepareCode(luckyCode) {
     const finalNumber = String(luckyCode || '').padStart(4, '0').slice(-4);
     if (!/^\d{4}$/.test(finalNumber)) return;
-    this.setData({
-      drawn: true,
-      finalNumber,
-      rollingDigits: finalNumber.split(''),
-      lockedReels: [true, true, true, true],
-      focusNumber: true,
-      showResultText: true,
-    });
+    this.setData({ preparedNumber: finalNumber });
   },
   beginDraw(luckyCode) {
     const finalNumber = String(luckyCode || '').padStart(4, '0').slice(-4);
