@@ -89,6 +89,8 @@ export class AdminView extends View {
       seatSummary: '',
       guestDeviceLimit: false,
       inviterDeviceLimit: true,
+      users: [],
+      usersLoading: false,
       entryQr: null,
       entryTarget: 'home',
       passCityIndex: 0,
@@ -210,6 +212,7 @@ export class AdminView extends View {
           this.loadSeatSummary();
           this.loadSettings();
           this.loadPasses();
+          this.loadUsers();
         }
       })
       .catch(() => {})
@@ -273,6 +276,49 @@ export class AdminView extends View {
         guestDeviceLimit: !!(result && result.device_binding_guests),
         inviterDeviceLimit: !!(result && result.device_binding_inviters),
       }))
+      .catch(() => {});
+  }
+
+  loadUsers() {
+    this.assign({ usersLoading: true });
+    return this.adminRequest('/api/admin/users', 'GET', {}, { silent: true })
+      .then((users) => this.setData({ users: users || [] }))
+      .catch(() => {})
+      .finally(() => this.assign({ usersLoading: false }));
+  }
+
+  async resetUserDevice(event, dataset) {
+    const user = this.data.users.find((item) => String(item.id) === String(dataset.id));
+    const name = (user && (user.name || user.phone)) || '该用户';
+    const confirmed = await showModal({
+      title: '解绑登录设备',
+      content: `确定允许“${name}”更换设备吗？解绑后当前登录会失效，下一次登录的设备将重新绑定。`,
+    });
+    if (!confirmed.confirm) return;
+    return this.adminRequest(`/api/admin/users/${dataset.id}/reset-device`, 'POST')
+      .then(() => {
+        toast('设备已解绑', 'success');
+        this.loadUsers();
+      })
+      .catch(() => {});
+  }
+
+  showLoginAudits(event, dataset) {
+    const typeText = {
+      MINIPROGRAM: '小程序登录', OFFICIAL_ACCOUNT: '公众号登录',
+      WECHAT_MESSAGE: '公众号消息登录', WEB_PHONE: '网页登录', ADMIN_RESET: '管理员解绑',
+    };
+    return this.adminRequest(`/api/admin/login-audits?userId=${dataset.id}&page=1&size=20`, 'GET')
+      .then((result) => {
+        const rows = (result && result.records) || [];
+        const content = rows.length ? rows.map((row) => {
+          const status = row.result === 'SUCCESS' ? '成功' : '设备冲突';
+          const device = row.deviceHash ? ` · 设备 ${row.deviceHash}` : '';
+          const actor = row.adminName ? ` · 操作人 ${row.adminName}` : '';
+          return `${String(row.createdAt || '').replace('T', ' ')}\n${typeText[row.loginType] || row.loginType} · ${status}${device}${actor}${row.ipAddress ? ` · IP ${row.ipAddress}` : ''}`;
+        }).join('\n\n') : '暂无登录或设备操作记录';
+        return showModal({ title: '登录与设备审计', content, showCancel: false, confirmText: '关闭' });
+      })
       .catch(() => {});
   }
 
@@ -504,6 +550,7 @@ export class AdminView extends View {
       ${this.entryQrPanel()}
       ${this.passPanel()}
       ${this.securityPanel()}
+      ${this.userDevicePanel()}
 
       <div class="tabs">
         ${[['', '全部'], ['PENDING', '待审核'], ['APPROVED', '已通过'], ['REJECTED', '已驳回']].map(([status, label]) => html`
@@ -616,6 +663,30 @@ export class AdminView extends View {
             ${this.data.guestDeviceLimit ? '已开启' : '已关闭'} ›
           </span>
         </div>
+      </div>
+    `;
+  }
+
+  userDevicePanel() {
+    return html`
+      <div class="seat-panel device-panel">
+        <div class="seat-head">
+          <span>用户设备管理</span>
+          <span>${this.data.usersLoading ? '加载中' : `${this.data.users.length} 位用户`}</span>
+        </div>
+        ${when(!this.data.users.length, html`<div class="empty">暂无已登录用户</div>`)}
+        ${this.data.users.map((user) => html`
+          <div class="device-user-row">
+            <div class="device-user-info">
+              <strong>${user.name || '未填写姓名'}</strong>
+              <span>${user.phone || '未授权手机号'} · ${user.deviceBound ? '设备已绑定' : '未绑定设备'}</span>
+            </div>
+            <div class="device-user-actions">
+              <button type="button" data-id="${user.id}" data-tap="showLoginAudits">登录记录</button>
+              <button type="button" data-id="${user.id}" data-tap="resetUserDevice" ${user.deviceBound ? '' : 'disabled'}>解绑设备</button>
+            </div>
+          </div>
+        `)}
       </div>
     `;
   }

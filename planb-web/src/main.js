@@ -2,6 +2,7 @@
 
 import { initViewport } from './core/viewport.js';
 import { Router } from './core/router.js';
+import { configureWechatShare } from './core/wechat-share.js';
 
 import { HomeView } from './pages/home.js';
 import { ApplyView } from './pages/apply.js';
@@ -45,6 +46,7 @@ function syncNavBar(meta, depth) {
   navBar.classList.toggle('has-back', depth > 1);
   document.title = `${meta.title} · 柏楚2026价值共创峰会`;
   if (themeMeta) themeMeta.setAttribute('content', meta.background);
+  configureWechatShare();
 }
 
 initViewport();

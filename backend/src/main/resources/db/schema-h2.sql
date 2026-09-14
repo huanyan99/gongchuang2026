@@ -147,3 +147,17 @@ CREATE TABLE IF NOT EXISTS gonghcuang_pass_session (
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS gonghcuang_login_audit (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT,
+    login_type VARCHAR(32) NOT NULL,
+    result VARCHAR(16) NOT NULL,
+    reason VARCHAR(128),
+    device_hash VARCHAR(32),
+    ip_address VARCHAR(64),
+    user_agent VARCHAR(255),
+    admin_id BIGINT,
+    admin_name VARCHAR(64),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

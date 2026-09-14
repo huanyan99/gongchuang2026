@@ -44,6 +44,7 @@ wechat:
   official-account:
     appid: ${WECHAT_OA_APPID:}
     secret: ${WECHAT_OA_SECRET:}
+    js-sdk-domain: ${WECHAT_JS_SDK_DOMAIN:pmt.fscut.com}
     # 一键登录链接的网页基地址（网页版部署地址）
     web-base-url: ${WEB_BASE_URL:https://pmt.fscut.com}
 
@@ -52,7 +53,7 @@ app:
   cors:
     allowed-origins: http://localhost:4555,http://127.0.0.1:4555,https://pmt.fscut.com
   # 网页版访问地址，用于生成现场通道二维码链接
-  web-base-url: http://127.0.0.1:4555
+  web-base-url: ${WEB_BASE_URL:https://pmt.fscut.com}
 
 admin:
   # 首次启动且后台没有任何账号时用这里的账号建一个管理员；建完请立即登录改密。

@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +45,10 @@ public class AuthService {
     /** 设备开关；单元测试直接 new AuthService 时允许为空，此时按邀请人限制处理 */
     private final SettingService settingService;
 
+    /** 审计失败不能阻断用户登录；非 final 保持现有单元测试构造方式兼容。 */
+    @Autowired(required = false)
+    private LoginAuditService loginAuditService;
+
     @Value("${wechat.appid}")
     private String appid;
     @Value("${wechat.secret}")
@@ -65,7 +70,7 @@ public class AuthService {
     @Transactional
     public User login(LoginRequest req, String deviceId) {
         String openid = mockLogin ? "dev-user" : resolveOpenid(req.getCode());
-        return loginByOpenid(openid, req, deviceId);
+        return loginByOpenid(openid, req, deviceId, "MINIPROGRAM");
     }
 
     /** 公众号网页授权登录（网页版）：前端传 OAuth2 的 code，后端换取 openid 并返回 token */
@@ -78,13 +83,13 @@ public class AuthService {
     @Transactional
     public User webLogin(LoginRequest req, String deviceId) {
         String openid = mockLogin ? "dev-user" : resolveOauthOpenid(req.getCode());
-        return loginByOpenid(openid, req, deviceId);
+        return loginByOpenid(openid, req, deviceId, "OFFICIAL_ACCOUNT");
     }
 
     /** 公众号消息登录（网页版）：回调里拿到 openid 后直接建档发 token */
     @Transactional
     public User loginByOpenid(String openid) {
-        return loginByOpenid(openid, null);
+        return loginByOpenid(openid, null, null, "WECHAT_MESSAGE");
     }
 
     /**
@@ -133,17 +138,18 @@ public class AuthService {
         } else if (user.getName() == null || user.getName().isBlank()) {
             user.setName(trimmedName);
         }
-        applyDeviceGuard(user, deviceId);
+        applyDeviceGuard(user, deviceId, "WEB_PHONE");
         issueToken(user);
+        safeAudit(user, "WEB_PHONE", deviceId, "SUCCESS", "登录成功");
         return user;
     }
 
     /** 按 openid 查找或创建账号，并签发可校验的登录 token */
     private User loginByOpenid(String openid, LoginRequest req) {
-        return loginByOpenid(openid, req, null);
+        return loginByOpenid(openid, req, null, "MINIPROGRAM");
     }
 
-    private User loginByOpenid(String openid, LoginRequest req, String deviceId) {
+    private User loginByOpenid(String openid, LoginRequest req, String deviceId, String loginType) {
         User user = userMapper.selectOne(
                 new LambdaQueryWrapper<User>().eq(User::getOpenid, openid));
         if (user == null) {
@@ -171,8 +177,9 @@ public class AuthService {
             user.setCanInvite(true);
             user.setCanReview(true);
         }
-        applyDeviceGuard(user, deviceId);
+        applyDeviceGuard(user, deviceId, loginType);
         issueToken(user);
+        safeAudit(user, loginType, deviceId, "SUCCESS", "登录成功");
         return user;
     }
 
@@ -181,7 +188,7 @@ public class AuthService {
      * 邀请人与普通嘉宾各有一个后台开关，每次登录实时读库，后台改完即刻生效；
      * 未开启限制时绑定跟随最新设备。客户端未携带识别码时放行，避免旧客户端被挡在门外。
      */
-    private void applyDeviceGuard(User user, String deviceId) {
+    private void applyDeviceGuard(User user, String deviceId, String loginType) {
         String incoming = deviceId == null ? "" : deviceId.trim();
         if (incoming.isEmpty()) return;
 
@@ -198,7 +205,17 @@ public class AuthService {
             user.setDeviceId(incoming);
             return;
         }
+        safeAudit(user, loginType, incoming, "DEVICE_CONFLICT", "账号已绑定其他设备");
         throw new BizException(ErrorCode.DEVICE_LIMITED);
+    }
+
+    private void safeAudit(User user, String loginType, String deviceId, String result, String reason) {
+        if (loginAuditService == null) return;
+        try {
+            loginAuditService.recordLogin(user, loginType, deviceId, result, reason);
+        } catch (Exception e) {
+            log.warn("登录审计写入失败: type={} result={} error={}", loginType, result, e.getClass().getSimpleName());
+        }
     }
 
     /** 已登录用户补全姓名：与本人手机号的登记信息比对，通过后回填姓名与性别 */

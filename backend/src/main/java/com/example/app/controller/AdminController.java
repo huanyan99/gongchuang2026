@@ -21,6 +21,7 @@ import com.example.app.service.AdminAccountService;
 import com.example.app.service.PassService;
 import com.example.app.service.SeatService;
 import com.example.app.service.SettingService;
+import com.example.app.service.LoginAuditService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -30,6 +31,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.List;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -50,6 +52,7 @@ public class AdminController {
     private final UserMapper userMapper;
     private final SeatService seatService;
     private final SettingService settingService;
+    private final LoginAuditService loginAuditService;
 
     /** 账号口令登录，返回后台会话 token（后续请求放在 X-Admin-Token） */
     @PostMapping("/login")
@@ -118,9 +121,22 @@ public class AdminController {
 
     /** 可授权用户列表（openid、token 等敏感字段由实体注解隐藏） */
     @GetMapping("/users")
-    public Result<List<User>> users(@RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+    public Result<List<Map<String, Object>>> users(@RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
         adminAccountService.require(adminToken);
-        return Result.ok(userMapper.selectList(new LambdaQueryWrapper<User>().orderByDesc(User::getId)));
+        List<Map<String, Object>> rows = userMapper.selectList(
+                new LambdaQueryWrapper<User>().orderByDesc(User::getId)).stream().map(user -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", user.getId());
+            row.put("name", user.getName());
+            row.put("phone", user.getPhone());
+            row.put("gender", user.getGender());
+            row.put("canInvite", user.getCanInvite());
+            row.put("canReview", user.getCanReview());
+            row.put("deviceBound", user.getDeviceId() != null && !user.getDeviceId().isBlank());
+            row.put("createdAt", user.getCreatedAt());
+            return row;
+        }).toList();
+        return Result.ok(rows);
     }
 
     /** 开通或关闭“我的邀请”和全局审核权限 */
@@ -217,13 +233,35 @@ public class AdminController {
     @PostMapping("/users/{id}/reset-device")
     public Result<User> resetDevice(@PathVariable @Min(1) Long id,
                                     @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
-        adminAccountService.require(adminToken);
-        if (userMapper.selectById(id) == null) {
+        AdminUser admin = adminAccountService.require(adminToken);
+        User user = userMapper.selectById(id);
+        if (user == null) {
             throw new com.example.app.common.BizException(com.example.app.common.ErrorCode.NOT_FOUND, "用户不存在");
         }
+        loginAuditService.recordAdminReset(user, admin);
         userMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<User>()
-                .eq(User::getId, id).set(User::getDeviceId, null));
+                .eq(User::getId, id)
+                .set(User::getDeviceId, null)
+                .set(User::getToken, null)
+                .set(User::getTokenExpire, null));
         return Result.ok(userMapper.selectById(id));
+    }
+
+    /** 登录与设备操作审计，userId 为空时查看全部。 */
+    @GetMapping("/login-audits")
+    public Result<Map<String, Object>> loginAudits(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(defaultValue = "1") @Min(1) long page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) long size,
+            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
+        Page<com.example.app.entity.LoginAudit> result = loginAuditService.page(userId, page, size);
+        Map<String, Object> body = new HashMap<>();
+        body.put("records", result.getRecords());
+        body.put("total", result.getTotal());
+        body.put("page", result.getCurrent());
+        body.put("size", result.getSize());
+        return Result.ok(body);
     }
 
     /** 读取后台开关 */

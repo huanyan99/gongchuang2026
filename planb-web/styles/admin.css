@@ -445,3 +445,4 @@
 .view--admin .entry-actions .seat-file-btn {
   flex: 1;
 }
+.view--admin .device-user-row{padding:16px 0;border-bottom:1px solid #edf0f6}.view--admin .device-user-row:last-child{border-bottom:0}.view--admin .device-user-info{display:flex;flex-direction:column;gap:5px}.view--admin .device-user-info strong{font-size:17px;color:#10234a}.view--admin .device-user-info span{font-size:13px;color:#7a8394}.view--admin .device-user-actions{display:flex;gap:10px;margin-top:12px}.view--admin .device-user-actions button{flex:1;height:36px;border:1px solid #c8a762;border-radius:18px;background:#fff;color:#8a671e}.view--admin .device-user-actions button:last-child{background:#17377c;color:#fff;border-color:#17377c}.view--admin .device-user-actions button:disabled{opacity:.38}
