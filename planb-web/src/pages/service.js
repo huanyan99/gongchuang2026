@@ -5,7 +5,7 @@
 
 import { View } from '../core/view.js';
 import { html, when, cx } from '../core/dom.js';
-import { copyText, toast } from '../core/ui.js';
+import { copyText, showSheet, toast } from '../core/ui.js';
 
 const EVENT_DATES = { 佛山: '9月18日', 济南: '9月22日', 上海: '10月21日' };
 
@@ -59,6 +59,30 @@ const VENUES = {
     ],
   },
 };
+
+/**
+ * 拉起地图 App 导航。
+ * 用各家的 HTTPS URI 接口而不是 iosamap:// 这类私有协议：装了 App 会被唤起，
+ * 没装则回落到网页地图，微信内置浏览器里也能打开。
+ * 会场若带 location（GCJ02 经纬度）则直接定点，否则按名称检索。
+ */
+function mapLinks(venue, city) {
+  const name = encodeURIComponent(venue.hotel);
+  const address = encodeURIComponent(venue.address);
+  const region = encodeURIComponent(city);
+  const point = venue.location;
+
+  return {
+    高德地图: point
+      ? `https://uri.amap.com/marker?position=${point.lng},${point.lat}&name=${name}&src=bochu2026&coordinate=gaode&callnative=1`
+      : `https://uri.amap.com/search?keyword=${name}&city=${region}&src=bochu2026&callnative=1`,
+    腾讯地图: point
+      ? `https://apis.map.qq.com/uri/v1/marker?marker=coord:${point.lat},${point.lng};title:${name};addr:${address}&referer=bochu2026`
+      : `https://apis.map.qq.com/uri/v1/search?keyword=${name}&region=${region}&referer=bochu2026`,
+    百度地图: `https://api.map.baidu.com/geocoder?address=${address}&output=html&src=bochu2026`,
+    苹果地图: `https://maps.apple.com/?q=${name}&address=${address}`,
+  };
+}
 
 class CityView extends View {
   constructor(options) {
@@ -128,6 +152,21 @@ export class RouteView extends CityView {
     return VENUES[this.data.city] || null;
   }
 
+  /** 一键导航：选地图 App 后跳转，未安装则回落到网页地图 */
+  async openNavigation() {
+    const venue = this.venue;
+    if (!venue) return toast('会场地址待会务确认');
+
+    const links = mapLinks(venue, this.data.city);
+    const names = ['高德地图', '腾讯地图', '百度地图'];
+    if (/iPhone|iPad|iPod|Macintosh/i.test(navigator.userAgent)) names.push('苹果地图');
+
+    const picked = await showSheet({ title: `导航到${venue.hotel}`, options: [...names, '复制地址'] });
+    if (picked == null) return;
+    if (picked === names.length) return this.copyAddress();
+    location.href = links[names[picked]];
+  }
+
   async copyAddress() {
     const venue = this.venue;
     const text = venue
@@ -161,7 +200,10 @@ export class RouteView extends CityView {
             <span class="venue-name">${venue ? venue.hotel : `${this.data.city}场会场`}</span>
             <span class="venue-address">${venue ? venue.address : '详细地址待会务团队最终确认'}</span>
             ${when(venue, html`<div class="venue-hall">${venue && venue.hall}</div>`)}
-            <button type="button" data-tap="copyAddress">复制会场信息</button>
+            <div class="venue-actions">
+              <button type="button" class="navigate" data-tap="openNavigation">一键导航</button>
+              <button type="button" data-tap="copyAddress">复制会场信息</button>
+            </div>
           </div>
 
           ${when(venue, () => html`

@@ -237,11 +237,25 @@
   border-radius: 22px;
 }
 
-.view--route .venue button {
+.view--route .venue-actions {
+  display: flex;
+  gap: 16px;
   margin-top: 24px;
+}
+
+.view--route .venue button {
+  flex: 1;
+  color: #203b78;
+  background: #f2f5fb;
+  border: 1px solid rgba(32, 59, 120, 0.2);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.view--route .venue button.navigate {
   color: #ffffff;
   background: #203b78;
-  font-size: 24px;
+  border-color: #203b78;
 }
 
 .view--route .title {

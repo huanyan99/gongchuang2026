@@ -157,6 +157,15 @@ styles/*.css            与小程序各页 wxss 一一对应
 
 请求统一带 `X-Device-Id`（首次访问生成并存本机），用于后端「一个账号一台设备」限制。
 
+## 一键导航
+
+交通路线页的「一键导航」用各家地图的 HTTPS URI 接口（`uri.amap.com`、`apis.map.qq.com`、
+`api.map.baidu.com`、`maps.apple.com`），装了 App 会被唤起，没装则回落到网页地图，
+微信内置浏览器里也能打开；私有协议（`iosamap://` 等）在微信里会被拦截，所以没有使用。
+
+默认按酒店名称检索。若在 `src/pages/service.js` 的 `VENUES` 中给某个场次补上
+`location: { lng, lat }`（GCJ02 坐标），会自动改为直接定点，定位更准。
+
 ## 接入正式后端
 
 修改 `config.js`：
