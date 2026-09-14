@@ -6,7 +6,7 @@
 
 import { View } from '../core/view.js';
 import { html, when, cx } from '../core/dom.js';
-import { request, ensureLogin, loginWithPhone, phoneHint } from '../core/api.js';
+import { request, ensureLogin, loginWithPhone, phoneHint, clearIdentityCache } from '../core/api.js';
 import { getStorage, setStorage, removeStorage } from '../core/storage.js';
 import { showModal, showSheet, toast } from '../core/ui.js';
 
@@ -263,6 +263,31 @@ export class LoginView extends View {
     this.router.navigateTo('/privacy');
   }
 
+  /** 退出登录：作废后端登录态并清掉本机身份缓存，设备识别码保留 */
+  async logout() {
+    const confirmed = await showModal({ title: '退出登录', content: '退出后需要重新用手机号和姓名登录。' });
+    if (!confirmed.confirm) return;
+    request('/api/auth/logout', 'POST', {}, {}, { silent: true }).catch(() => {});
+    clearIdentityCache();
+    this.setData({
+      authed: false,
+      profileReady: false,
+      step: 1,
+      loginPhone: '',
+      loginName: '',
+      nameBlank: '',
+      hintKnown: false,
+      maskedName: '',
+      name: '',
+      gender: '',
+      genderText: '',
+      applyRecord: null,
+      recordStatus: 'NONE',
+      recordStatusText: STATUS_TEXT.NONE,
+    });
+    toast('已退出登录');
+  }
+
   requestPersonalInfoDeletion() {
     showModal({
       title: '注销并删除个人信息',
@@ -445,6 +470,7 @@ export class LoginView extends View {
                 <span class="agreement-link tap" data-tap="openPrivacy">《隐私政策》</span>
               </div>
               <div class="delete-info-link tap" data-tap="requestPersonalInfoDeletion">注销并删除个人信息</div>
+            ${when(complete, html`<button type="button" class="logout-btn" data-tap="logout">退出登录</button>`)}
             </div>
           `)}
         </div>

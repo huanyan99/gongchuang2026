@@ -462,3 +462,16 @@
   background: #ffffff;
   border-color: #26397b;
 }
+
+.view--login .logout-btn {
+  height: 84px;
+  line-height: 84px;
+  margin-top: 34px;
+  color: #26397b;
+  background: #ffffff;
+  border: 2px solid rgba(38, 57, 123, 0.5);
+  border-radius: 44px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 4px;
+}

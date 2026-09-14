@@ -42,6 +42,13 @@ public class AuthController {
         return Result.ok(authService.updateProfile(UserContext.require(), req));
     }
 
+    /** 退出登录：作废当前登录态 */
+    @PostMapping("/logout")
+    public Result<Void> logout() {
+        authService.logout(UserContext.require());
+        return Result.ok();
+    }
+
     /** 补全姓名核验：与本人手机号的登记信息比对，通过后回填档案 */
     @PostMapping("/profile/verify")
     public Result<User> verifyProfile(@Valid @RequestBody PhoneHintRequest req) {

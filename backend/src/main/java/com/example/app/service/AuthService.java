@@ -31,7 +31,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private static final int TOKEN_DAYS = 30;
+    /** 登录态保留 60 天；不做定期清理，只有用户主动退出登录才作废 */
+    private static final int TOKEN_DAYS = 60;
 
     /** 网页版手机号登录身份的 openid 前缀，与小程序/公众号 openid 区分 */
     public static final String WEB_OPENID_PREFIX = "web:";
@@ -341,6 +342,16 @@ public class AuthService {
             log.warn("公众号网页授权调用或解析失败: {}", e.getClass().getSimpleName());
             throw new BizException(ErrorCode.WECHAT_API_ERROR);
         }
+    }
+
+    /** 主动退出登录：作废当前 token，其他设备/浏览器的历史 token 一并失效 */
+    @Transactional
+    public void logout(User user) {
+        if (user == null || user.getId() == null) return;
+        userMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<User>()
+                .eq(User::getId, user.getId())
+                .set(User::getToken, null)
+                .set(User::getTokenExpire, null));
     }
 
     public User findById(Long id) {
