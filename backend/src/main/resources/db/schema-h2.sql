@@ -55,7 +55,7 @@ CREATE INDEX IF NOT EXISTS idx_application_status ON gonghcuang_application(stat
 CREATE TABLE IF NOT EXISTS gonghcuang_lottery_draw (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL UNIQUE,
-    lucky_code VARCHAR(4) NOT NULL,
+    lucky_code VARCHAR(4) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

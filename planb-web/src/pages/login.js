@@ -126,8 +126,9 @@ export class LoginView extends View {
           }));
         }
         const primaryGuest = record && record.attendees && record.attendees.length ? record.attendees[0] : null;
-        const databaseName = (record && record.name) || (primaryGuest && primaryGuest.name) || '';
-        const databaseGender = (primaryGuest && primaryGuest.gender) || '';
+        const sharedRecord = record && record.canEdit === false;
+        const databaseName = (record && record.viewerName) || (sharedRecord ? this.data.name : ((record && record.name) || (primaryGuest && primaryGuest.name))) || '';
+        const databaseGender = (record && record.viewerGender) || (sharedRecord ? this.data.gender : (primaryGuest && primaryGuest.gender)) || '';
         const status = record && record.status ? record.status : 'NONE';
         if (record && record.phone) setStorage('lastApplyPhone', record.phone);
 

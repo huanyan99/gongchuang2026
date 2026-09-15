@@ -49,11 +49,12 @@ public class ApplicationService {
                 (req.getAttendeeCount() != null && req.getAttendeeCount() != guests.size())) {
             throw new BizException(ErrorCode.BAD_REQUEST, "同行人员信息不完整");
         }
+        validateDistinctPhones(guests);
         GuestRequest primary = guests.get(0);
         String phone = trimToEmpty(primary.getPhone());
         String invitationCode = trimToEmpty(req.getInvitationCode());
 
-        if (getByUser(user) != null) {
+        if (findForAttendee(user) != null) {
             throw new BizException(ErrorCode.APPLY_DUPLICATED);
         }
 
@@ -98,8 +99,11 @@ public class ApplicationService {
     /** 嘉宾最多修改两次；修改后重置为待审核并替换全部同行人员信息。 */
     @Transactional
     public Application resubmit(ApplyRequest req, User user) {
-        Application current = getByUser(user);
+        Application current = findForAttendee(user);
         if (current == null) throw new BizException(ErrorCode.APPLY_NOT_FOUND);
+        if (!java.util.Objects.equals(current.getUserId(), user.getId())) {
+            throw new BizException(ErrorCode.UNAUTHORIZED, "仅登记提交人可修改同行登记信息");
+        }
         int editCount = current.getEditCount() == null ? 0 : current.getEditCount();
         if (editCount >= 2) throw new BizException(ErrorCode.CONFLICT, "登记信息最多修改两次");
         List<GuestRequest> guests = req.getAttendees();
@@ -107,6 +111,7 @@ public class ApplicationService {
                 (req.getAttendeeCount() != null && req.getAttendeeCount() != guests.size())) {
             throw new BizException(ErrorCode.BAD_REQUEST, "同行人员信息不完整");
         }
+        validateDistinctPhones(guests);
         GuestRequest primary = guests.get(0);
         String phone = trimToEmpty(primary.getPhone());
         String requestedInvitationCode = trimToEmpty(req.getInvitationCode()).toUpperCase();
@@ -135,6 +140,18 @@ public class ApplicationService {
         Application result = applicationMapper.selectById(current.getId());
         result.setAttendees(loadGuests(result.getId()));
         return result;
+    }
+
+    private void validateDistinctPhones(List<GuestRequest> guests) {
+        Map<String, Integer> seen = new java.util.HashMap<>();
+        for (int i = 0; i < guests.size(); i++) {
+            String phone = trimToEmpty(guests.get(i).getPhone());
+            Integer previous = seen.putIfAbsent(phone, i + 1);
+            if (previous != null) {
+                throw new BizException(ErrorCode.BAD_REQUEST,
+                        "第" + (i + 1) + "位与第" + previous + "位手机号重复，请填写各自的手机号");
+            }
+        }
     }
 
     private void insertGuests(Long applicationId, List<GuestRequest> guests) {

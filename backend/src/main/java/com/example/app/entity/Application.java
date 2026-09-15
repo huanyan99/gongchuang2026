@@ -51,4 +51,14 @@ public class Application {
 
     @TableField(exist = false)
     private String eventCity;
+
+    /** 当前查看者是否为这份登记的提交人。 */
+    @TableField(exist = false)
+    private Boolean canEdit;
+
+    @TableField(exist = false)
+    private String viewerName;
+
+    @TableField(exist = false)
+    private String viewerGender;
 }

@@ -55,12 +55,22 @@ public class ApplyController {
     /** 查询当前登录用户的申报与审核状态 */
     @GetMapping("/me")
     public Result<Application> me() {
-        Application application = applicationService.getByUser(UserContext.require());
+        var user = UserContext.require();
+        Application application = applicationService.findForAttendee(user);
         if (application == null) {
             throw new BizException(ErrorCode.APPLY_NOT_FOUND);
         }
         application.setEventCity(invitationService.getByCode(application.getInvitationCode()).getEventCity());
         application.setAttendees(applicationService.loadGuests(application.getId()));
+        application.setCanEdit(java.util.Objects.equals(application.getUserId(), user.getId()));
+        application.setViewerName(user.getName());
+        application.setViewerGender(user.getGender());
+        application.getAttendees().stream()
+                .filter(guest -> user.getPhone() != null && user.getPhone().equals(guest.getPhone()))
+                .findFirst().ifPresent(guest -> {
+                    application.setViewerName(guest.getName());
+                    application.setViewerGender(guest.getGender());
+                });
         return Result.ok(application);
     }
 

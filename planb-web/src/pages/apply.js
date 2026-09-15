@@ -54,6 +54,9 @@ export class ApplyView extends View {
       submitted: false,
       applyStatus: '',
       editMode: false,
+      canEdit: false,
+      viewerName: '',
+      recordLoading: true,
       editCount: 0,
       editRemaining: 2,
       countOptions: COUNT_OPTIONS,
@@ -108,9 +111,9 @@ export class ApplyView extends View {
         })
         .catch(() => {})
         .finally(() => {
-          if (shouldLoadRecord) this.loadApplication();
+          this.loadApplication();
         });
-    } else if (shouldLoadRecord) {
+    } else {
       this.loadApplication();
     }
   }
@@ -215,7 +218,8 @@ export class ApplyView extends View {
       });
       return;
     }
-    if (this.data.submitting) return;
+    if (this.data.recordLoading) return toast('正在查询您的参会登记，请稍候');
+    if (this.data.submitted || this.data.submitting) return;
 
     const raw = this.data.attendees;
     const attendees = raw.map((item) => copyAttendee(item, {
@@ -225,12 +229,15 @@ export class ApplyView extends View {
       phone: item.phone.trim(),
       position: item.position.trim(),
     }));
+    const phoneOwners = new Map();
     for (let i = 0; i < attendees.length; i += 1) {
       if (!attendees[i].name) return toast(`请填写第${i + 1}位姓名`);
       if (!attendees[i].company) return toast(`请填写第${i + 1}位公司`);
       if (!attendees[i].gender) return toast(`请选择第${i + 1}位性别`);
       if (!attendees[i].position) return toast(`请填写第${i + 1}位职位`);
       if (!/^1\d{10}$/.test(attendees[i].phone)) return toast(`第${i + 1}位手机号有误`);
+      if (phoneOwners.has(attendees[i].phone)) return toast(`第${i + 1}位与第${phoneOwners.get(attendees[i].phone)}位手机号重复，请填写各自的手机号`);
+      phoneOwners.set(attendees[i].phone, i + 1);
       if (!attendees[i].accommodation) return toast(`请选择第${i + 1}位住宿要求`);
     }
 
@@ -269,15 +276,16 @@ export class ApplyView extends View {
 
   loadApplication() {
     return ensureLogin()
-      .then(() => request('/api/apply/me'))
-      .then((record) => this.applyRecord(record))
+      .then(() => request('/api/apply/me', 'GET', {}, {}, { silent: true }))
+      .then((record) => { this.applyRecord(record); this.setData({ recordLoading: false }); })
       .catch((err) => {
-        if (err && err.code === 3002) this.setData({ submitted: false });
+        if (err && err.code === 3002) this.setData({ submitted: false, recordLoading: false });
+        else toast('登记信息加载失败，请重新进入页面');
       });
   }
 
   applyRecord(record) {
-    const inviteOverride = record.status === 'REJECTED'
+    const inviteOverride = record.canEdit === true && record.status === 'REJECTED'
       && !!this.data.inviteCode
       && !!this.data.eventCity
       && this.data.inviteCode !== record.invitationCode;
@@ -290,6 +298,8 @@ export class ApplyView extends View {
 
     this.setData({
       submitted: true,
+      canEdit: record.canEdit === true,
+      viewerName: record.viewerName || record.name || '',
       editMode: false,
       applyStatus: record.status || '',
       name: record.name || this.data.name,
@@ -308,6 +318,7 @@ export class ApplyView extends View {
   }
 
   async startEdit() {
+    if (!this.data.canEdit) return toast('请联系登记提交人修改信息');
     if (this.data.editRemaining <= 0) {
       showModal({ title: '无法修改', content: '每份登记信息最多修改两次。', showCancel: false });
       return;
@@ -393,25 +404,43 @@ export class ApplyView extends View {
           ${applyStatus === 'PENDING'
             ? '会务团队正在审核您的参会登记，通过后可以前往领取抽奖码。'
             : (applyStatus === 'REJECTED'
-              ? '本次登记未通过审核，您可以修改登记信息后重新提交审核。'
+              ? (this.data.canEdit ? '本次登记未通过审核，您可以修改登记信息后重新提交审核。' : '本次登记未通过审核，请联系登记提交人修改后重新提交。')
               : '您的参会登记已审核通过，可以前往领取抽奖码。')}
         </div>
 
-        <div class="guest-badge">贵宾 · ${this.data.name}</div>
+        <div class="guest-badge">贵宾 · ${this.data.viewerName || this.data.name}</div>
 
         ${when(applyStatus === 'APPROVED' || applyStatus === 'REJECTED', () => html`
           <div class="approved-actions">
             ${when(applyStatus === 'APPROVED', html`
               <button type="button" class="cta lottery-action" data-tap="goLottery">领取抽奖码</button>
             `)}
-            <button type="button" class="cta edit-action" data-tap="startEdit" ${this.data.editRemaining <= 0 ? 'disabled' : ''}>修改参会登记信息</button>
-            <div class="edit-chance">每人共有 2 次修改机会 · 当前剩余 ${this.data.editRemaining} 次</div>
+            ${when(this.data.canEdit, () => html`
+              <button type="button" class="cta edit-action" data-tap="startEdit" ${this.data.editRemaining <= 0 ? 'disabled' : ''}>修改参会登记信息</button>
+              <div class="edit-chance">每份登记共有 2 次修改机会 · 当前剩余 ${this.data.editRemaining} 次</div>
+            `)}
           </div>
         `)}
 
         <button type="button" class="cta secondary" data-tap="backHome">返回共创会</button>
+        ${when(!this.data.canEdit, html`<div class="edit-chance">您可查看同组参会信息；如需修改，请联系登记提交人。</div>`)}
       </div>
     `;
+  }
+
+  registrationDetails() {
+    return html`<div class="form-card"><div class="form">
+      <div class="label">同组参会信息 · ${this.data.attendeeCount} 人</div>
+      ${this.data.attendees.map((guest, index) => html`
+        <div class="form-item">
+          <div class="label">${index + 1}. ${guest.name}</div>
+          ${[['公司', guest.company], ['性别', guest.gender], ['手机号', guest.phone],
+            ['职位', guest.position], ['住宿要求', guest.accommodation],
+            ['房型', guest.roomType], ['入住日期', guest.checkinDate ? `${guest.checkinDate} 晚` : '—']]
+            .map(([label, value]) => html`<div class="picker-value">${label}：${value || '—'}</div>`)}
+        </div>`)}
+      ${when(this.data.reason, html`<div class="form-item">参会备注：${this.data.reason}</div>`)}
+    </div></div>`;
   }
 
   formCard() {
@@ -463,14 +492,14 @@ export class ApplyView extends View {
             </div>
           </div>
 
-          ${submitted ? this.resultCard() : this.formCard()}
+          ${submitted ? html`${this.resultCard()}${this.registrationDetails()}` : this.formCard()}
         </div>
       </div>
 
       ${when(!submitted, () => html`
         <div class="cta-wrap fixed">
-          <button type="button" class="cta" ${this.data.submitting ? 'disabled' : ''} data-tap="submit">
-            ${this.data.submitting ? '提交中 ···' : (editMode ? '提交修改并重新审核' : '确认提交邀请函')}
+          <button type="button" class="cta" ${this.data.submitting || this.data.recordLoading ? 'disabled' : ''} data-tap="submit">
+            ${this.data.recordLoading ? '正在查询登记 ···' : (this.data.submitting ? '提交中 ···' : (editMode ? '提交修改并重新审核' : '确认提交邀请函'))}
           </button>
           <div class="privacy-tip">提交后将用于入场核验与接待服务</div>
         </div>
