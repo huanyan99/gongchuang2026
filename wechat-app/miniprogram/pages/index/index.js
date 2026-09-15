@@ -3,7 +3,7 @@ const app = getApp();
 const WEATHER_STOPS = [
   { city: '佛山', date: '9月18日', temp: '23 ~ 30℃', weather: '小雨', icon: 'rainy', tip: '请备好雨具，预留抵达时间' },
   { city: '济南', date: '9月22日', temp: '17 ~ 28℃', weather: '多云', icon: 'cloudy', tip: '早晚温差明显，建议携带薄外套' },
-  { city: '上海', date: '10月21日', temp: '----', weather: '', icon: 'cloudy', tip: '临近活动日期将自动更新天气' },
+  { city: '上海', date: '10月12日', temp: '----', weather: '', icon: 'cloudy', tip: '临近活动日期将自动更新天气' },
 ];
 
 Page({

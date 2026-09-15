@@ -87,7 +87,7 @@ MERGE INTO gonghcuang_event_weather
 KEY(city) VALUES
 ('佛山', '113.12,23.02', DATE '2026-09-18', 23, 30, '小雨', 'rainy', '请备好雨具，预留抵达时间', CURRENT_TIMESTAMP),
 ('济南', '116.98,36.67', DATE '2026-09-22', 17, 28, '多云', 'cloudy', '早晚温差明显，建议携带薄外套', CURRENT_TIMESTAMP),
-('上海', '121.47,31.23', DATE '2026-10-21', 20, 25, '待更新', 'cloudy', '临近活动日期将自动更新天气', CURRENT_TIMESTAMP);
+('上海', '121.47,31.23', DATE '2026-10-12', 20, 25, '待更新', 'cloudy', '临近活动日期将自动更新天气', CURRENT_TIMESTAMP);
 
 CREATE TABLE IF NOT EXISTS gonghcuang_seat (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

@@ -92,7 +92,7 @@ INSERT INTO gonghcuang_event_weather
 VALUES
   ('佛山', '113.12,23.02', '2026-09-18', NULL, NULL, NULL, NULL, '临近活动日期将自动更新天气', NULL),
   ('济南', '116.98,36.67', '2026-09-22', NULL, NULL, NULL, NULL, '临近活动日期将自动更新天气', NULL),
-  ('上海', '121.47,31.23', '2026-10-21', NULL, NULL, NULL, NULL, '临近活动日期将自动更新天气', NULL)
+  ('上海', '121.47,31.23', '2026-10-12', NULL, NULL, NULL, NULL, '临近活动日期将自动更新天气', NULL)
   ON DUPLICATE KEY UPDATE
   location_id=VALUES(location_id), event_date=VALUES(event_date);
 

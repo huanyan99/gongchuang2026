@@ -1,7 +1,7 @@
 const app = getApp();
 const COUNT_OPTIONS = [1,2,3,4,5,6,7,8,9,10];
-const EVENT_DATES = { 佛山: '2026-09-18', 济南: '2026-09-22', 上海: '2026-10-21' };
-const EVENT_STAY_LABELS = { 佛山: '9月18日晚', 济南: '9月22日晚', 上海: '10月21日晚' };
+const EVENT_DATES = { 佛山: '2026-09-18', 济南: '2026-09-22', 上海: '2026-10-12' };
+const EVENT_STAY_LABELS = { 佛山: '9月18日晚', 济南: '9月22日晚', 上海: '10月12日晚' };
 
 function blankAttendee(checkinDate) {
   return { name: '', company: '', sameCompany: false, gender: '男', phone: '', position: '', accommodation: '无需住宿', roomType: '柏楚预定房型', checkinDate };
