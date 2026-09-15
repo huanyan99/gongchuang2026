@@ -232,7 +232,10 @@ export class HomeView extends View {
   onMenu(event, dataset) {
     const key = dataset.key;
     if (!this.data.authed) {
-      this.router.navigateTo('/login');
+      // 登录成功后按 redirect 直接回到目标页并带上邀请码，避免回首页后受邀状态丢失
+      const withCode = key === 'register' && this.data.inviteCode;
+      const target = withCode ? `/apply?inviteCode=${encodeURIComponent(this.data.inviteCode)}` : '';
+      this.router.navigateTo(`/login${target ? `?redirect=${encodeURIComponent(target)}` : ''}`);
       return;
     }
     if (!this.data.hasServiceAccess && SERVICE_KEYS.includes(key)) {

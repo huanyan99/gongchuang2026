@@ -237,8 +237,14 @@ export class LoginView extends View {
         this.setData({ authed: true, profileReady: true, name });
         toast('登录成功', 'success');
         this.later(() => {
-          // reLaunch 而不是 redirectTo：登录前那张首页不该留在栈里
-          this.router.reLaunch(this.data.redirect || '/home');
+          if (this.data.redirect) {
+            // reLaunch 而不是 redirectTo：登录前那张首页不该留在栈里
+            this.router.reLaunch(this.data.redirect);
+            return;
+          }
+          // 回首页时把启动链接里的邀请码带上：hash 跳转后首页拿不到 ?code=，会把受邀状态清掉
+          const launchCode = new URLSearchParams(location.search).get('code');
+          this.router.reLaunch(launchCode ? `/home?code=${encodeURIComponent(launchCode)}` : '/home');
         }, 620);
       })
       .catch(() => {})
