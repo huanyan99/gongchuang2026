@@ -217,15 +217,21 @@ export class ApplyView extends View {
     }
     if (this.data.submitting) return;
 
-    const attendees = this.data.attendees.map((item) => copyAttendee(item, {
+    const raw = this.data.attendees;
+    const attendees = raw.map((item) => copyAttendee(item, {
       name: item.name.trim(),
-      company: item.company.trim(),
+      // 勾选“与主要联系人一致”的同行人，公司取主联系人当前填写值
+      company: (item.sameCompany ? raw[0].company : item.company).trim(),
       phone: item.phone.trim(),
       position: item.position.trim(),
     }));
     for (let i = 0; i < attendees.length; i += 1) {
       if (!attendees[i].name) return toast(`请填写第${i + 1}位姓名`);
+      if (!attendees[i].company) return toast(`请填写第${i + 1}位公司`);
+      if (!attendees[i].gender) return toast(`请选择第${i + 1}位性别`);
+      if (!attendees[i].position) return toast(`请填写第${i + 1}位职位`);
       if (!/^1\d{10}$/.test(attendees[i].phone)) return toast(`第${i + 1}位手机号有误`);
+      if (!attendees[i].accommodation) return toast(`请选择第${i + 1}位住宿要求`);
     }
 
     const name = attendees[0].name;
@@ -335,7 +341,7 @@ export class ApplyView extends View {
         </div>
 
         <div class="form-item">
-          <div class="label">公司</div>
+          <div class="label">公司 <span class="req">*</span></div>
           ${when(index > 0, html`
             <label class="same-company tap" data-index="${index}" data-tap="onSameCompany">
               <span class="wx-checkbox ${cx({ 'is-checked': guest.sameCompany })}"></span>与主要联系人一致
@@ -350,7 +356,7 @@ export class ApplyView extends View {
             <div class="picker-value tap" data-index="${index}" data-tap="onGenderChange">${guest.gender} ›</div>
           </div>
           <div class="form-item half">
-            <div class="label">职位</div>
+            <div class="label">职位 <span class="req">*</span></div>
             <input name="position${index}" value="${guest.position}" data-index="${index}" data-field="position" data-input="onGuestInput" placeholder="请填写职位" />
           </div>
         </div>
