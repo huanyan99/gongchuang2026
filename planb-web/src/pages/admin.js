@@ -297,6 +297,39 @@ export class AdminView extends View {
       .finally(() => this.setData({ phoneLogging: false, exporting: false }));
   }
 
+  /** 导出抽奖码：抽奖码、姓名、公司、手机号，可按场次过滤 */
+  exportCodes() {
+    if (this.data.exporting) return;
+    const city = this.data.exportCity;
+    const qs = city && city !== '全部' ? `?city=${encodeURIComponent(city)}` : '';
+    this.setData({ exporting: true });
+    request(`/api/admin/lottery-export${qs}`, 'GET', {}, this.adminHeader())
+      .then((rows) => {
+        if (!rows || !rows.length) return this.notify('暂无抽奖码数据');
+        const header = Object.keys(rows[0]);
+        const NL = String.fromCharCode(10);
+        const CR = String.fromCharCode(13);
+        const badChars = [',', '"', NL, CR];
+        const esc = (v) => {
+          v = String(v == null ? '' : v);
+          return badChars.some((ch) => v.includes(ch)) ? '"' + v.replace(/"/g, '""') + '"' : v;
+        };
+        const bom = String.fromCharCode(65279);
+        const lines = [bom + header.join(',')].concat(
+          rows.map((row) => header.map((h) => esc(row[h])).join(','))
+        );
+        const blob = new Blob([lines.join(NL + CR)], { type: 'text/csv;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `抽奖码_${city}_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        this.notify(`已导出 ${rows.length} 条`, 'success');
+      })
+      .catch(() => {})
+      .finally(() => this.setData({ exporting: false }));
+  }
+
   switchTab(event, dataset) {
     this.assign({ statusFilter: dataset.status || '' });
     this.fetchList(true);
@@ -709,6 +742,9 @@ export class AdminView extends View {
         <button type="button" class="btn export-btn" ${this.data.exporting ? 'disabled' : ''} data-tap="doExport">
           ${this.data.exporting ? '导出中 ···' : '导出 Excel 名单'}
         </button>
+        <button type="button" class="btn export-btn" ${this.data.exporting ? 'disabled' : ''} data-tap="exportCodes">
+          导出抽奖码
+        </button>
       </div>
 
       ${this.seatPanel()}
@@ -1078,6 +1114,9 @@ export class AdminView extends View {
         </div>
         <button type="button" class="pc-btn primary" ${this.data.exporting ? 'disabled' : ''} data-tap="doExport">
           ${this.data.exporting ? '导出中 ···' : '导出 CSV 名单'}
+        </button>
+        <button type="button" class="pc-btn ghost" ${this.data.exporting ? 'disabled' : ''} data-tap="exportCodes">
+          导出抽奖码（按场次）
         </button>
       </section>
 
