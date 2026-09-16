@@ -18,8 +18,9 @@ public class LotteryService {
     private final InvitationService invitationService;
 
     public LuckyCodeResponse get(User user) {
-        requireApproved(user);
-        LotteryDraw draw = luckyCodeGeneratorService.getOrCreate(user.getId());
+        Application application = requireApproved(user);
+        String eventCity = invitationService.getByCode(application.getInvitationCode()).getEventCity();
+        LotteryDraw draw = luckyCodeGeneratorService.getOrCreate(user.getId(), eventCity);
         return new LuckyCodeResponse(draw.getLuckyCode(), false);
     }
 
@@ -28,7 +29,7 @@ public class LotteryService {
         return get(user);
     }
 
-    private void requireApproved(User user) {
+    private Application requireApproved(User user) {
         Application application = applicationService.findForAttendee(user);
         if (application == null || !"APPROVED".equalsIgnoreCase(application.getStatus())) {
             throw new BizException(ErrorCode.LOTTERY_NOT_APPROVED);
@@ -37,5 +38,6 @@ public class LotteryService {
         if (!settingService.isLotteryOpen(city)) {
             throw new BizException(ErrorCode.LOTTERY_NOT_OPEN);
         }
+        return application;
     }
 }

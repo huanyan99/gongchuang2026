@@ -36,11 +36,11 @@ class LotterySwitchTest {
         assertThrows(BizException.class,()->lottery.draw(user));
         verifyNoInteractions(generator);
         LotteryDraw draw = new LotteryDraw(); draw.setLuckyCode("5458");
-        when(generator.getOrCreate(9L)).thenReturn(draw);
+        when(generator.getOrCreate(9L, "上海")).thenReturn(draw);
         when(settings.isLotteryOpen("上海")).thenReturn(true);
         assertEquals("5458",lottery.get(user).getLuckyCode());
         when(settings.isLotteryOpen("上海")).thenReturn(false);
         assertThrows(BizException.class,()->lottery.get(user));
-        verify(generator,times(1)).getOrCreate(9L);
+        verify(generator,times(1)).getOrCreate(9L, "上海");
     }
 }

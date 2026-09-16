@@ -88,7 +88,7 @@ public class ApplicationService {
                 applicationGuestMapper.insert(row);
             }
             // 号码随登记事务一起生成；后续抽奖页只读取并播放展示动画。
-            luckyCodeGeneratorService.getOrCreate(user.getId());
+            luckyCodeGeneratorService.getOrCreate(user.getId(), invitation.getEventCity());
             application.setAttendees(loadGuests(application.getId()));
         } catch (DuplicateKeyException e) {
             throw new BizException(ErrorCode.APPLY_DUPLICATED);
@@ -136,7 +136,8 @@ public class ApplicationService {
         applicationGuestMapper.delete(new LambdaQueryWrapper<ApplicationGuest>()
                 .eq(ApplicationGuest::getApplicationId, current.getId()));
         insertGuests(current.getId(), guests);
-        luckyCodeGeneratorService.getOrCreate(user.getId());
+        luckyCodeGeneratorService.getOrCreate(user.getId(),
+                invitationService.getByCode(current.getInvitationCode()).getEventCity());
         Application result = applicationMapper.selectById(current.getId());
         result.setAttendees(loadGuests(result.getId()));
         return result;

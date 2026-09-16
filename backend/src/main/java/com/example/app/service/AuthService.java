@@ -6,9 +6,12 @@ import com.example.app.common.ErrorCode;
 import com.example.app.dto.LoginRequest;
 import com.example.app.dto.ProfileRequest;
 import com.example.app.entity.ApplicationGuest;
+import com.example.app.entity.Application;
 import com.example.app.entity.User;
 import com.example.app.mapper.ApplicationGuestMapper;
 import com.example.app.mapper.UserMapper;
+import com.example.app.service.ApplicationService;
+import com.example.app.service.InvitationService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +54,12 @@ public class AuthService {
 
     @Autowired(required = false)
     private LuckyCodeGeneratorService luckyCodeGeneratorService;
+
+    @Autowired(required = false)
+    private ApplicationService applicationService;
+
+    @Autowired(required = false)
+    private InvitationService invitationService;
 
     @Value("${wechat.appid}")
     private String appid;
@@ -226,7 +235,10 @@ public class AuthService {
     private void ensureLuckyCode(User user) {
         if (luckyCodeGeneratorService == null || user == null || user.getId() == null) return;
         try {
-            luckyCodeGeneratorService.getOrCreate(user.getId());
+            Application application = applicationService.findForAttendee(user);
+            if (application == null) return;
+            String eventCity = invitationService.getByCode(application.getInvitationCode()).getEventCity();
+            luckyCodeGeneratorService.getOrCreate(user.getId(), eventCity);
         } catch (Exception e) {
             log.warn("注册抽奖码生成失败: userId={} error={}", user.getId(), e.getClass().getSimpleName());
         }
