@@ -389,12 +389,6 @@
   margin-left: 22px;
 }
 
-.view--home .invite-venue-copy > .invite-eyebrow {
-  color: rgba(52, 42, 25, 0.62);
-  font-size: 16px;
-  line-height: 1;
-  letter-spacing: 3px;
-}
 
 .view--home .invite-venue-copy > .invite-venue {
   margin-top: 10px;
@@ -432,14 +426,10 @@
   background: linear-gradient(180deg, rgba(93, 64, 20, 0.55), rgba(93, 64, 20, 0.15));
 }
 
-/* 姓名：深蓝加粗 + 浅金高亮笔底纹 */
 .view--home .invite-identity .invite-name {
   font-weight: 700;
   color: #10244f;
   letter-spacing: 1px;
-  padding: 0 6px 2px;
-  background: linear-gradient(180deg, transparent 62%, rgba(255, 252, 240, 0.75) 62%);
-  border-radius: 0 0 4px 4px;
 }
 
 .view--home .invite-gem {

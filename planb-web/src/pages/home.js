@@ -416,7 +416,6 @@ export class HomeView extends View {
               <div class="directed-invite">
                 <div class="invite-emblem">贵宾</div>
                 <div class="invite-venue-copy">
-                  <span class="invite-eyebrow">EXCLUSIVE INVITATION</span>
                   <span class="invite-venue">受邀场次 · ${this.data.registrationEventCity}场</span>
                   ${when(this.data.guestCompany || this.data.guestName, () => html`
                     <div class="invite-identity">
