@@ -17,7 +17,7 @@ window.PLANB_CONFIG = {
   timeout: 15000,
   privacyPopup: false,
   hallImages: {
-    上海: '',
+    上海: 'assets/shanghai-invent.jpg',
     济南: 'assets/jinan-invent.jpg',
     佛山: 'assets/foshan-invent.jpg',
   },
