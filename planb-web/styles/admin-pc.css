@@ -666,3 +666,40 @@ body.admin-pc-open .admin-pc {
   height: auto;
   line-height: 1.5;
 }
+
+/* 开关（电脑端普通尺寸） */
+.admin-pc-root .pc-switch {
+  width: 42px;
+  height: 22px;
+  border-radius: 11px;
+  cursor: pointer;
+}
+
+.admin-pc-root .pc-switch::after {
+  width: 18px;
+  height: 18px;
+  top: 2px;
+  left: 2px;
+}
+
+.admin-pc-root .pc-switch.on::after {
+  left: 22px;
+}
+
+.admin-pc-root .seat-state {
+  color: #8a93a6;
+  font-size: 13px;
+  margin-right: 10px;
+}
+
+.admin-pc-root .seat-state.on {
+  color: #1b7d46;
+}
+
+.admin-pc-root .seat-row {
+  padding: 14px 0;
+}
+
+.admin-pc-root .seat-row:hover .seat-label {
+  color: #17233f;
+}

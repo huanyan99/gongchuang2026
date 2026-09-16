@@ -516,3 +516,46 @@ body.pc-mode .view--admin .login-box {
   margin-top: 26px;
   width: 100%;
 }
+
+/* 开关控件（手机画布内为设计稿尺寸） */
+.view--admin .seat-state {
+  color: #8a93a6;
+  font-size: 24px;
+  margin-right: 14px;
+}
+
+.view--admin .seat-state.on {
+  color: #1b7d46;
+  font-weight: 600;
+}
+
+.view--admin .pc-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 84px;
+  height: 44px;
+  border-radius: 22px;
+  background: #c9d1e0;
+  transition: background 0.2s;
+}
+
+.view--admin .pc-switch.on {
+  background: #1b7d46;
+}
+
+.view--admin .pc-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: left 0.2s;
+}
+
+.view--admin .pc-switch.on::after {
+  left: 43px;
+}

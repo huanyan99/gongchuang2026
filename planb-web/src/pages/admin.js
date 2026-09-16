@@ -419,12 +419,14 @@ export class AdminView extends View {
   lotterySettingsPanel() {
     return html`<div class="seat-panel">
       <div class="seat-head"><span>抽奖码领取开关</span><span>三场独立控制</span></div>
-      ${[['佛山','lottery_open_foshan'],['济南','lottery_open_jinan'],['上海','lottery_open_shanghai']].map(([city,key]) => html`
-        <div class="seat-row"><span class="seat-label">${city}场</span>
-          <button type="button" class="seat-value tap" data-key="${key}" data-city="${city}" data-tap="toggleLottery"
-            ${!this.data.lotterySettingsReady || this.data.lotterySaving ? 'disabled' : ''}>
-            ${!this.data.lotterySettingsReady ? '正在读取' : (this.data.lotterySettings[key] ? '已开启 · 可领取' : '已关闭 · 未到时间')} ›
-          </button></div>`)}
+      ${[['佛山','lottery_open_foshan'],['济南','lottery_open_jinan'],['上海','lottery_open_shanghai']].map(([city,key]) => {
+        const state = this.data.lotterySettings[key];
+        return html`
+        <div class="seat-row"><span class="seat-label">${city}场 · ${state ? '可领取' : '未开放'}</span>
+          <span class="seat-state ${state ? 'on' : 'off'}">${state ? '已开启' : '已关闭'}</span>
+          <div class="pc-switch tap ${cx({ on: !!state })}" data-key="${key}" data-city="${city}"
+            data-tap="toggleLottery" ${!this.data.lotterySettingsReady || this.data.lotterySaving ? 'disabled' : ''}></div>
+        </div>`})}
     </div>`;
   }
 
@@ -813,19 +815,17 @@ export class AdminView extends View {
       <div class="seat-panel">
         <div class="seat-head">
           <span>安全设置</span>
-          <span>改完即刻生效</span>
+          <span>点击开关即刻生效</span>
         </div>
         <div class="seat-row">
           <span class="seat-label">邀请人设备限制</span>
-          <span class="seat-value tap" data-role="inviter" data-tap="toggleDeviceLimit">
-            ${this.data.inviterDeviceLimit ? '已开启' : '已关闭'} ›
-          </span>
+          <span class="seat-state ${this.data.inviterDeviceLimit ? 'on' : 'off'}">${this.data.inviterDeviceLimit ? '已开启' : '已关闭'}</span>
+          <div class="pc-switch tap ${cx({ on: this.data.inviterDeviceLimit })}" data-role="inviter" data-tap="toggleDeviceLimit"></div>
         </div>
         <div class="seat-row">
           <span class="seat-label">普通嘉宾设备限制</span>
-          <span class="seat-value tap" data-role="guest" data-tap="toggleDeviceLimit">
-            ${this.data.guestDeviceLimit ? '已开启' : '已关闭'} ›
-          </span>
+          <span class="seat-state ${this.data.guestDeviceLimit ? 'on' : 'off'}">${this.data.guestDeviceLimit ? '已开启' : '已关闭'}</span>
+          <div class="pc-switch tap ${cx({ on: this.data.guestDeviceLimit })}" data-role="guest" data-tap="toggleDeviceLimit"></div>
         </div>
       </div>
     `;
