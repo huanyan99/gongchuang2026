@@ -43,24 +43,37 @@ public class LotteryService {
         return application;
     }
 
-    /** 后台导出抽奖码：抽奖码、姓名、公司、手机号，可按场次过滤 */
+    /** 后台导出抽奖码：抽奖码、姓名、公司、手机号，可按场次过滤。批量查询，避免远程库逐行往返。 */
     public java.util.List<java.util.Map<String, Object>> exportCodes(String city) {
         java.util.List<LotteryDraw> draws = lotteryDrawMapper.selectList(null);
         java.util.List<java.util.Map<String, Object>> rows = new java.util.ArrayList<>();
+        if (draws.isEmpty()) return rows;
+
+        java.util.Map<Long, User> userById = new java.util.HashMap<>();
+        for (User user : userMapper.selectList(null)) {
+            userById.put(user.getId(), user);
+        }
+        java.util.Map<Long, Application> appByUserId = new java.util.HashMap<>();
+        java.util.Map<String, Application> appByPhone = new java.util.HashMap<>();
+        for (Application application : applicationService.findAllApplications()) {
+            if (application.getUserId() != null) appByUserId.put(application.getUserId(), application);
+            if (application.getPhone() != null) appByPhone.putIfAbsent(application.getPhone(), application);
+        }
+        java.util.Map<String, String> cityByCode = new java.util.HashMap<>();
+        for (com.example.app.entity.Invitation invitation : invitationService.findAll()) {
+            cityByCode.put(invitation.getCode(), invitation.getEventCity() == null ? "" : invitation.getEventCity());
+        }
+
         for (LotteryDraw draw : draws) {
-            User user = userMapper.selectById(draw.getUserId());
+            User user = userById.get(draw.getUserId());
             if (user == null) continue;
-            Application application = applicationService.findForAttendee(user);
-            String eventCity = "";
-            String company = "";
-            if (application != null) {
-                try {
-                    eventCity = invitationService.getByCode(application.getInvitationCode()).getEventCity();
-                } catch (Exception ignored) {
-                }
-                company = application.getCompany() == null ? "" : application.getCompany();
+            Application application = appByUserId.get(user.getId());
+            if (application == null && user.getPhone() != null && !user.getPhone().isBlank()) {
+                application = appByPhone.get(user.getPhone());
             }
+            String eventCity = application == null ? "" : cityByCode.getOrDefault(application.getInvitationCode(), "");
             if (city != null && !city.isBlank() && !city.equals(eventCity)) continue;
+            String company = application == null ? "" : application.getCompany();
             java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
             row.put("抽奖码", draw.getLuckyCode());
             row.put("姓名", user.getName() == null ? "" : user.getName());

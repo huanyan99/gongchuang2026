@@ -326,7 +326,7 @@ export class AdminView extends View {
         setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         this.notify(`已导出 ${rows.length} 条`, 'success');
       })
-      .catch(() => {})
+      .catch(() => this.notify('导出失败，请检查后端服务后重试'))
       .finally(() => this.setData({ exporting: false }));
   }
 

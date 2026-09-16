@@ -263,6 +263,15 @@ public class ApplicationService {
         return rows;
     }
 
+    /** 后台导出用：全量登记与明细（活动规模下数据量可控，避免逐行查询） */
+    public java.util.List<Application> findAllApplications() {
+        return applicationMapper.selectList(null);
+    }
+
+    public java.util.List<ApplicationGuest> findAllGuests() {
+        return applicationGuestMapper.selectList(null);
+    }
+
     public Application getByUser(User user) {
         if (user == null) {
             return null;

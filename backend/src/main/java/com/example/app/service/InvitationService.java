@@ -57,6 +57,10 @@ public class InvitationService {
         }
     }
 
+    public java.util.List<Invitation> findAll() {
+        return invitationMapper.selectList(null);
+    }
+
     public Invitation getByCode(String code) {
         if (code == null || code.isBlank()) {
             throw new BizException(ErrorCode.INVITATION_NOT_FOUND);
