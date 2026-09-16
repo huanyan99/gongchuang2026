@@ -3,8 +3,8 @@ const app = getApp();
 // 全场位置图：把图片放进 /images/ 后填写路径，或填写已配置域名的 https 图片地址。
 const HALL_IMAGES = {
   上海: '',
-  济南: '',
-  佛山: '',
+  济南: '/images/jinan-invent.jpg',
+  佛山: '/images/foshan-invent.jpg',
 };
 
 Page({

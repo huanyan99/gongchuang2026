@@ -38,6 +38,8 @@ export class HomeView extends View {
       hasServiceAccess: false,
       hasRegistrationRecord: false,
       registrationEventCity: '',
+      guestCompany: '',
+      guestName: '',
       invitationCanOverride: false,
       authed: false,
     };
@@ -156,9 +158,14 @@ export class HomeView extends View {
     return ensureLogin()
       .then(() => {
         this.assign({ authed: true });
-        return request('/api/apply/me', 'GET', {}, {}, { silent: true });
+        return Promise.all([
+          request('/api/apply/me', 'GET', {}, {}, { silent: true }),
+          request('/api/auth/me', 'GET', {}, {}, { silent: true }),
+        ]);
       })
-      .then((record) => {
+      .then(([record, user]) => {
+        const ownGuest = (record.attendees || []).find((guest) => user.phone && guest.phone === user.phone);
+        const isOwner = record.userId === user.id;
         const checkedIn = !!(record && record.checkedInAt);
         const approved = record && record.status === 'APPROVED';
         const pending = record && record.status === 'PENDING';
@@ -170,6 +177,8 @@ export class HomeView extends View {
           hasRegistrationRecord: !!record,
           registrationEventCity: (record && record.eventCity) || '',
           invitationCanOverride: !!rejected,
+          guestCompany: (ownGuest && ownGuest.company) || (isOwner ? record.company : '') || '',
+          guestName: (ownGuest && ownGuest.name) || record.viewerName || user.name || '',
         });
         if (record && record.phone) setStorage('lastApplyPhone', record.phone);
         if (record && record.eventCity) {
@@ -191,6 +200,8 @@ export class HomeView extends View {
         if (err && err.code === 1001) {
           this.setData({
             authed: false,
+            guestCompany: '',
+            guestName: '',
             registrationStatus: '未登记',
             registrationStatusClass: 'unregistered',
             lotteryEligible: false,
@@ -206,6 +217,8 @@ export class HomeView extends View {
         if (err && err.code === 3002) {
           removeStorage('lastApplyPhone');
           this.setData({
+            guestCompany: '',
+            guestName: '',
             registrationStatus: '未登记',
             registrationStatusClass: 'unregistered',
             lotteryEligible: false,
@@ -403,8 +416,15 @@ export class HomeView extends View {
               <div class="directed-invite">
                 <div class="invite-emblem">贵宾</div>
                 <div class="invite-venue-copy">
-                  <span>EXCLUSIVE INVITATION</span>
-                  <span>受邀场次 · ${this.data.registrationEventCity}场</span>
+                  <span class="invite-eyebrow">EXCLUSIVE INVITATION</span>
+                  <span class="invite-venue">受邀场次 · ${this.data.registrationEventCity}场</span>
+                  ${when(this.data.guestCompany || this.data.guestName, () => html`
+                    <div class="invite-identity">
+                      ${when(this.data.guestCompany, html`<span class="invite-company">${this.data.guestCompany}</span>`)}
+                      ${when(this.data.guestCompany && this.data.guestName, html`<span class="invite-divider"></span>`)}
+                      ${when(this.data.guestName, html`<span class="invite-name">${this.data.guestName}</span>`)}
+                    </div>
+                  `)}
                 </div>
                 <div class="invite-gem"></div>
               </div>

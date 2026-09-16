@@ -32,6 +32,7 @@ public enum ErrorCode {
     // 抽奖
     LOTTERY_NOT_DRAWN(4001, "尚未抽取号码"),
     LOTTERY_NOT_APPROVED(4002, "参会登记审核通过后方可领取抽奖码"),
+    LOTTERY_NOT_OPEN(4003, "还没有到时间"),
 
     // 桌位
     SEAT_NOT_APPROVED(5001, "参会登记审核通过后可查看桌位"),

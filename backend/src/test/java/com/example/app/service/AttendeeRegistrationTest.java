@@ -90,7 +90,12 @@ class AttendeeRegistrationTest {
         LuckyCodeGeneratorService generator = mock(LuckyCodeGeneratorService.class);
         LotteryDraw own = new LotteryDraw(); own.setLuckyCode("1234"); own.setUserId(2L);
         when(generator.getOrCreate(2L)).thenReturn(own);
-        LotteryService lottery = new LotteryService(service, generator);
+        SettingService settings = mock(SettingService.class);
+        InvitationService invitations = mock(InvitationService.class);
+        Invitation invitation = new Invitation(); invitation.setEventCity("佛山");
+        when(invitations.getByCode(any())).thenReturn(invitation);
+        when(settings.isLotteryOpen("佛山")).thenReturn(true);
+        LotteryService lottery = new LotteryService(service, generator, settings, invitations);
         assertEquals("1234", lottery.get(companion()).getLuckyCode());
         verify(generator).getOrCreate(2L);
         verify(generator, never()).getOrCreate(1L);

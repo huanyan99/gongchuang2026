@@ -24,6 +24,7 @@ export class LotteryView extends View {
     this.data = {
       running: false,
       requesting: true,
+      locked: false,
       drawn: false,
       preparedNumber: '',
       rollingDigits: ['—', '—', '—', '—'],
@@ -42,6 +43,7 @@ export class LotteryView extends View {
       .then(() => request('/api/lottery/me', 'GET', {}, {}, { silent: true }))
       .then((result) => this.prepareCode(result.luckyCode))
       .catch((err) => {
+        this.setData({ locked: !!err && err.code === 4003, preparedNumber: '' });
         if (!err || err.code !== 4001) toast((err && err.message) || '抽奖信息加载失败');
       })
       .finally(() => this.setData({ requesting: false }));
@@ -61,13 +63,19 @@ export class LotteryView extends View {
       return;
     }
 
-    if (!this.data.preparedNumber) {
-      toast('抽奖码尚未加载，请稍后重试');
-      return;
-    }
-    this.assign({ buttonPressed: true });
+    this.assign({ requesting: true, buttonPressed: true });
     this.sync();
-    this.beginDraw(this.data.preparedNumber);
+    // 点击时重新检查场次开关；只读取固定号码，不重新生成或更换。
+    return request('/api/lottery/me', 'GET', {}, {}, { silent: true })
+      .then((result) => {
+        this.assign({ locked: false });
+        this.beginDraw(result.luckyCode);
+      })
+      .catch((err) => {
+        this.assign({ locked: !!err && err.code === 4003, preparedNumber: '', buttonPressed: false });
+        toast((err && err.message) || '抽奖信息加载失败');
+      })
+      .finally(() => { this.assign({ requesting: false }); this.sync(); });
   }
 
   prepareCode(luckyCode) {
@@ -177,6 +185,7 @@ export class LotteryView extends View {
   /* ---------- 渲染 ---------- */
 
   statusText() {
+    if (this.data.locked) return '还没有到时间';
     if (this.data.running) return '好运正在汇聚，请稍候';
     if (this.data.drawn) return '您的抽奖码已经生成，等待开奖。';
     return '请提前抽取您的专属号码，并静候会场开奖。';

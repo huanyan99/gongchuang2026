@@ -278,7 +278,8 @@ public class AdminController {
                                                       @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
         adminAccountService.require(adminToken);
         if (!SettingService.DEVICE_BINDING_GUESTS.equals(key)
-                && !SettingService.DEVICE_BINDING_INVITERS.equals(key)) {
+                && !SettingService.DEVICE_BINDING_INVITERS.equals(key)
+                && !SettingService.LOTTERY_KEYS.containsValue(key)) {
             throw new com.example.app.common.BizException(com.example.app.common.ErrorCode.BAD_REQUEST, "未知开关");
         }
         settingService.setEnabled(key, enabled);

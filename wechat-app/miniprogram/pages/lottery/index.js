@@ -37,12 +37,14 @@ Page({
       return;
     }
 
-    if (!this.data.preparedNumber) {
-      wx.showToast({ title: '抽奖码尚未加载，请稍后重试', icon: 'none' });
-      return;
-    }
-    this.setData({ buttonPressed: true });
-    this.beginDraw(this.data.preparedNumber);
+    this.setData({ requesting: true, buttonPressed: true });
+    app.request('/api/lottery/me', 'GET', {}, {}, { silent: true })
+      .then((result) => this.beginDraw(result.luckyCode))
+      .catch((err) => {
+        this.setData({ preparedNumber: '', buttonPressed: false });
+        wx.showToast({ title: (err && err.message) || '抽奖信息加载失败', icon: 'none' });
+      })
+      .finally(() => this.setData({ requesting: false }));
   },
   prepareCode(luckyCode) {
     const finalNumber = String(luckyCode || '').padStart(4, '0').slice(-4);

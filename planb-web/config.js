@@ -18,7 +18,7 @@ window.PLANB_CONFIG = {
   privacyPopup: false,
   hallImages: {
     上海: '',
-    济南: '',
-    佛山: '',
+    济南: 'assets/jinan-invent.jpg',
+    佛山: 'assets/foshan-invent.jpg',
   },
 };

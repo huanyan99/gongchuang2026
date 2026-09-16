@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 public class LotteryService {
     private final ApplicationService applicationService;
     private final LuckyCodeGeneratorService luckyCodeGeneratorService;
+    private final SettingService settingService;
+    private final InvitationService invitationService;
 
     public LuckyCodeResponse get(User user) {
         requireApproved(user);
@@ -30,6 +32,10 @@ public class LotteryService {
         Application application = applicationService.findForAttendee(user);
         if (application == null || !"APPROVED".equalsIgnoreCase(application.getStatus())) {
             throw new BizException(ErrorCode.LOTTERY_NOT_APPROVED);
+        }
+        String city = invitationService.getByCode(application.getInvitationCode()).getEventCity();
+        if (!settingService.isLotteryOpen(city)) {
+            throw new BizException(ErrorCode.LOTTERY_NOT_OPEN);
         }
     }
 }

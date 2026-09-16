@@ -88,6 +88,9 @@ export class AdminView extends View {
       seatImporting: false,
       seatSummary: '',
       guestDeviceLimit: false,
+      lotterySettings: {},
+      lotterySettingsReady: false,
+      lotterySaving: false,
       inviterDeviceLimit: true,
       users: [],
       usersLoading: false,
@@ -274,6 +277,8 @@ export class AdminView extends View {
     return this.adminRequest('/api/admin/settings', 'GET', {}, { silent: true })
       .then((result) => this.setData({
         guestDeviceLimit: !!(result && result.device_binding_guests),
+        lotterySettings: result || {},
+        lotterySettingsReady: true,
         inviterDeviceLimit: !!(result && result.device_binding_inviters),
       }))
       .catch(() => {});
@@ -285,6 +290,33 @@ export class AdminView extends View {
       .then((users) => this.setData({ users: users || [] }))
       .catch(() => {})
       .finally(() => this.assign({ usersLoading: false }));
+  }
+
+  async toggleLottery(event, dataset) {
+    if (this.data.lotterySaving || !this.data.lotterySettingsReady) return;
+    const allowed = ['lottery_open_foshan', 'lottery_open_jinan', 'lottery_open_shanghai'];
+    if (!allowed.includes(dataset.key)) return;
+    const enabled = !this.data.lotterySettings[dataset.key];
+    const result = await showModal({ title: `${enabled ? '开启' : '关闭'}${dataset.city}场抽奖码领取`,
+      content: enabled ? '开启后，已审核嘉宾可以领取本人的抽奖码。' : '关闭后，嘉宾领取时将提示“还没有到时间”。', showCancel: true });
+    if (!result.confirm) return;
+    this.setData({ lotterySaving: true });
+    return this.adminRequest(`/api/admin/settings/${dataset.key}?enabled=${enabled}`, 'POST')
+      .then((settings) => { this.setData({ lotterySettings: settings }); toast('已保存'); })
+      .catch(() => {})
+      .finally(() => this.setData({ lotterySaving: false }));
+  }
+
+  lotterySettingsPanel() {
+    return html`<div class="seat-panel">
+      <div class="seat-head"><span>抽奖码领取开关</span><span>三场独立控制</span></div>
+      ${[['佛山','lottery_open_foshan'],['济南','lottery_open_jinan'],['上海','lottery_open_shanghai']].map(([city,key]) => html`
+        <div class="seat-row"><span class="seat-label">${city}场</span>
+          <button type="button" class="seat-value tap" data-key="${key}" data-city="${city}" data-tap="toggleLottery"
+            ${!this.data.lotterySettingsReady || this.data.lotterySaving ? 'disabled' : ''}>
+            ${!this.data.lotterySettingsReady ? '正在读取' : (this.data.lotterySettings[key] ? '已开启 · 可领取' : '已关闭 · 未到时间')} ›
+          </button></div>`)}
+    </div>`;
   }
 
   async resetUserDevice(event, dataset) {
@@ -550,6 +582,7 @@ export class AdminView extends View {
       ${this.entryQrPanel()}
       ${this.passPanel()}
       ${this.securityPanel()}
+      ${this.lotterySettingsPanel()}
       ${this.userDevicePanel()}
 
       <div class="tabs">

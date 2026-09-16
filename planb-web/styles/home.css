@@ -366,6 +366,7 @@
 }
 
 .view--home .invite-emblem {
+  flex-shrink: 0;
   width: 62px;
   height: 62px;
   line-height: 62px;
@@ -380,28 +381,69 @@
 
 .view--home .invite-venue-copy {
   flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   margin-left: 22px;
 }
 
-.view--home .invite-venue-copy span:first-child {
+.view--home .invite-venue-copy > .invite-eyebrow {
   color: rgba(52, 42, 25, 0.62);
   font-size: 16px;
   line-height: 1;
   letter-spacing: 3px;
 }
 
-.view--home .invite-venue-copy span:last-child {
+.view--home .invite-venue-copy > .invite-venue {
   margin-top: 10px;
   color: #10244f;
   font-size: 27px;
-  line-height: 1;
+  line-height: 1.35;
   font-weight: 700;
   letter-spacing: 1px;
 }
 
+.view--home .invite-identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 16px;
+  margin-top: 14px;
+  color: #49391c;
+  font-size: 23px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.view--home .invite-identity .invite-company {
+  min-width: 0;
+  max-width: 100%;
+  color: rgba(73, 57, 28, 0.86);
+  letter-spacing: 0.5px;
+}
+
+/* 公司与姓名之间的金色分隔线 */
+.view--home .invite-identity .invite-divider {
+  width: 2px;
+  height: 22px;
+  border-radius: 1px;
+  background: linear-gradient(180deg, rgba(93, 64, 20, 0.55), rgba(93, 64, 20, 0.15));
+}
+
+/* 姓名：深蓝加粗 + 浅金高亮笔底纹 */
+.view--home .invite-identity .invite-name {
+  font-weight: 700;
+  color: #10244f;
+  letter-spacing: 1px;
+  padding: 0 6px 2px;
+  background: linear-gradient(180deg, transparent 62%, rgba(255, 252, 240, 0.75) 62%);
+  border-radius: 0 0 4px 4px;
+}
+
 .view--home .invite-gem {
+  flex-shrink: 0;
   position: relative;
   z-index: 1;
   width: 11px;

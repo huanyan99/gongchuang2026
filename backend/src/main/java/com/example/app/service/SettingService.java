@@ -20,6 +20,14 @@ public class SettingService {
     /** 是否对邀请人执行「一个账号一台设备」限制，默认开启 */
     public static final String DEVICE_BINDING_INVITERS = "device_binding_inviters";
 
+    public static final Map<String, String> LOTTERY_KEYS = Map.of(
+            "佛山", "lottery_open_foshan", "济南", "lottery_open_jinan", "上海", "lottery_open_shanghai");
+
+    public boolean isLotteryOpen(String city) {
+        String key = city == null ? null : LOTTERY_KEYS.get(city);
+        return key != null && isEnabled(key, false);
+    }
+
     private final SettingMapper settingMapper;
 
     public boolean isEnabled(String key) {
@@ -50,6 +58,7 @@ public class SettingService {
         Map<String, Boolean> body = new LinkedHashMap<>();
         body.put(DEVICE_BINDING_GUESTS, isEnabled(DEVICE_BINDING_GUESTS, false));
         body.put(DEVICE_BINDING_INVITERS, isEnabled(DEVICE_BINDING_INVITERS, true));
+        LOTTERY_KEYS.values().forEach(key -> body.put(key, isEnabled(key, false)));
         return body;
     }
 }
