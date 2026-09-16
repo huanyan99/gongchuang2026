@@ -69,6 +69,7 @@ export class AdminView extends View {
     super(options);
     this.data = {
       adminToken: '',
+      pcSection: 'sec-review',
       exportCity: '全部',
       exportStatus: '全部',
       adminName: '',
@@ -126,6 +127,66 @@ export class AdminView extends View {
     return { 'X-Admin-Token': this.data.adminToken };
   }
 
+  /* ---------- 电脑版（宽屏）支持 ---------- */
+
+  isPc() {
+    return window.innerWidth >= 1024;
+  }
+
+  usePcUi() {
+    return document.body.classList.contains('admin-pc-open');
+  }
+
+  /** 电脑模式下用轻量提示替代手机弹层 */
+  notify(message, type) {
+    if (!this.usePcUi()) return toast(message, type);
+    const el = document.createElement('div');
+    el.className = 'pc-toast';
+    el.textContent = message;
+    document.getElementById('adminPc').appendChild(el);
+    setTimeout(() => el.remove(), 2400);
+  }
+
+  confirmBox(title, content) {
+    const sep = String.fromCharCode(10) + String.fromCharCode(10);
+    if (this.usePcUi()) return Promise.resolve({ confirm: window.confirm(title + (content ? sep + content : '')) });
+    return showModal({ title, content, showCancel: true });
+  }
+
+  promptBox(title, placeholderText) {
+    if (this.usePcUi()) {
+      const content = window.prompt(title + (placeholderText ? `（${placeholderText}）` : ''));
+      return Promise.resolve({ confirm: content != null, content: content == null ? '' : content });
+    }
+    return showModal({ title, editable: true, placeholderText });
+  }
+
+  /** 电脑模式：后台渲染到独立的全屏层，脱离手机缩放画布 */
+  mount() {
+    if (this.isPc()) {
+      this.el.classList.add('admin-pc-view');
+      const root = document.getElementById('adminPc');
+      root.hidden = false;
+      document.body.classList.add('admin-pc-open');
+      root.appendChild(this.el);
+    }
+    super.mount();
+  }
+
+  render() {
+    if (!this.usePcUi()) { super.render(); return; }
+    const y = window.scrollY;
+    super.render();
+    window.scrollTo(0, y);
+  }
+
+  onUnload() {
+    document.body.classList.remove('admin-pc-open');
+    const root = document.getElementById('adminPc');
+    if (root) root.hidden = true;
+    super.onUnload();
+  }
+
   /**
    * 管理端请求统一出口：会话失效（1001）时直接退回登录框，
    * 避免各处 catch 吞掉错误后继续显示默认值（例如开关状态）。
@@ -170,7 +231,7 @@ export class AdminView extends View {
     const username = String(this.data.username || '').trim();
     const password = String(this.data.password || '');
     if (!username || !password) {
-      toast('请输入账号和口令');
+      this.notify('请输入账号和口令');
       return;
     }
     this.setData({ logging: true });
@@ -210,7 +271,7 @@ export class AdminView extends View {
     this.setData({ exporting: true });
     request(`/api/admin/export${qs}`, 'GET', {}, this.authHeaders())
       .then((rows) => {
-        if (!rows || !rows.length) return toast('该条件下暂无数据');
+        if (!rows || !rows.length) return this.notify('该条件下暂无数据');
         const header = Object.keys(rows[0]);
         const NL = String.fromCharCode(10);
         const CR = String.fromCharCode(13);
@@ -230,7 +291,7 @@ export class AdminView extends View {
         link.download = `参会名单_${city}_${statusMap[status] || status}_${new Date().toISOString().slice(0, 10)}.csv`;
         link.click();
         setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-        toast(`已导出 ${rows.length} 条`, 'success');
+        this.notify(`已导出 ${rows.length} 条`, 'success');
       })
       .catch(() => {})
       .finally(() => this.setData({ phoneLogging: false, exporting: false }));
@@ -308,11 +369,11 @@ export class AdminView extends View {
   }
 
   async disablePass(event, dataset) {
-    const confirmed = await showModal({ title: '停用该通道？', content: '停用后已扫码的会话立即失效。' });
+    const confirmed = await this.confirmBox('停用该通道？', '停用后已扫码的会话立即失效。');
     if (!confirmed.confirm) return;
     return this.adminRequest(`/api/admin/passes/${dataset.id}/disable`, 'POST')
       .then(() => {
-        toast('已停用');
+        this.notify('已停用');
         this.setData({ lastPass: null });
         this.loadPasses();
       })
@@ -345,8 +406,8 @@ export class AdminView extends View {
     const allowed = ['lottery_open_foshan', 'lottery_open_jinan', 'lottery_open_shanghai'];
     if (!allowed.includes(dataset.key)) return;
     const enabled = !this.data.lotterySettings[dataset.key];
-    const result = await showModal({ title: `${enabled ? '开启' : '关闭'}${dataset.city}场抽奖码领取`,
-      content: enabled ? '开启后，已审核嘉宾可以领取本人的抽奖码。' : '关闭后，嘉宾领取时将提示“还没有到时间”。', showCancel: true });
+    const result = await this.confirmBox(`${enabled ? '开启' : '关闭'}${dataset.city}场抽奖码领取`,
+      enabled ? '开启后，已审核嘉宾可以领取本人的抽奖码。' : '关闭后，嘉宾领取时将提示“还没有到时间”。');
     if (!result.confirm) return;
     this.setData({ lotterySaving: true });
     return this.adminRequest(`/api/admin/settings/${dataset.key}?enabled=${enabled}`, 'POST')
@@ -370,14 +431,12 @@ export class AdminView extends View {
   async resetUserDevice(event, dataset) {
     const user = this.data.users.find((item) => String(item.id) === String(dataset.id));
     const name = (user && (user.name || user.phone)) || '该用户';
-    const confirmed = await showModal({
-      title: '解绑登录设备',
-      content: `确定允许“${name}”更换设备吗？解绑后当前登录会失效，下一次登录的设备将重新绑定。`,
-    });
+    const confirmed = await this.confirmBox('解绑登录设备',
+      `确定允许“${name}”更换设备吗？解绑后当前登录会失效，下一次登录的设备将重新绑定。`);
     if (!confirmed.confirm) return;
     return this.adminRequest(`/api/admin/users/${dataset.id}/reset-device`, 'POST')
       .then(() => {
-        toast('设备已解绑', 'success');
+        this.notify('设备已解绑', 'success');
         this.loadUsers();
       })
       .catch(() => {});
@@ -397,6 +456,7 @@ export class AdminView extends View {
           const actor = row.adminName ? ` · 操作人 ${row.adminName}` : '';
           return `${String(row.createdAt || '').replace('T', ' ')}\n${typeText[row.loginType] || row.loginType} · ${status}${device}${actor}${row.ipAddress ? ` · IP ${row.ipAddress}` : ''}`;
         }).join('\n\n') : '暂无登录或设备操作记录';
+        if (this.usePcUi()) { window.alert(content || '暂无登录或设备操作记录'); return; }
         return showModal({ title: '登录与设备审计', content, showCancel: false, confirmText: '关闭' });
       })
       .catch(() => {});
@@ -421,7 +481,7 @@ export class AdminView extends View {
           guestDeviceLimit: !!(result && result.device_binding_guests),
           inviterDeviceLimit: !!(result && result.device_binding_inviters),
         });
-        toast(enabled ? '已开启' : '已关闭');
+        this.notify(enabled ? '已开启' : '已关闭');
       })
       .catch(() => {});
   }
@@ -435,6 +495,19 @@ export class AdminView extends View {
   }
 
   /* ---------- 桌位批量导入 ---------- */
+
+  onSeatCitySelect(event) {
+    this.setData({ cityIndex: Math.max(0, CITY_OPTIONS.indexOf(event.target.value)) });
+    this.loadSeatSummary();
+  }
+
+  onSeatModeSelect(event) {
+    this.setData({ modeIndex: Math.max(0, MODE_OPTIONS.indexOf(event.target.value)) });
+  }
+
+  onPassCitySelect(event) {
+    this.setData({ passCityIndex: Math.max(0, CITY_OPTIONS.indexOf(event.target.value)) });
+  }
 
   async onSeatCityChange() {
     const picked = await showSheet({
@@ -505,17 +578,15 @@ export class AdminView extends View {
     if (this.data.seatImporting) return;
     const rows = this.data.seatRows;
     if (!rows.length) {
-      toast('请先粘贴或选择桌位数据');
+      this.notify('请先粘贴或选择桌位数据');
       return;
     }
     const eventCity = CITY_OPTIONS[this.data.cityIndex];
     const mode = this.data.modeIndex === 1 ? 'REPLACE' : 'MERGE';
-    const confirmed = await showModal({
-      title: '确认导入桌位',
-      content: mode === 'REPLACE'
+    const confirmed = await this.confirmBox('确认导入桌位',
+      mode === 'REPLACE'
         ? `将清空${eventCity}场原有桌位，并导入 ${rows.length} 位嘉宾的桌号。`
-        : `将按手机号更新或新增 ${rows.length} 位嘉宾的桌号。`,
-    });
+        : `将按手机号更新或新增 ${rows.length} 位嘉宾的桌号。`);
     if (!confirmed.confirm) return;
 
     this.setData({ seatImporting: true });
@@ -542,17 +613,11 @@ export class AdminView extends View {
   }
 
   async scanCheckin() {
-    const result = await showModal({
-      title: '入场核验',
-      content: '网页版无法调用摄像头扫码，请录入嘉宾入场凭证或登记手机号。',
-      editable: true,
-      placeholderText: '入场凭证 / 手机号',
-      confirmText: '核验',
-    });
+    const result = await this.promptBox('入场核验', '入场凭证 / 手机号');
     if (!result.confirm) return;
     const token = result.content;
     if (!token) {
-      toast('未识别到入场码');
+      this.notify('未识别到入场码');
       return;
     }
     this.doCheckin(token);
@@ -563,7 +628,7 @@ export class AdminView extends View {
     this.checking = true;
     return this.adminRequest('/api/admin/checkin', 'POST', { token })
       .then((guest) => {
-        toast(`核验通过：${(guest && guest.name) || '嘉宾'}`);
+        this.notify(`核验通过：${(guest && guest.name) || '嘉宾'}`);
         this.fetchList(true);
       })
       .catch(() => {})
@@ -573,11 +638,11 @@ export class AdminView extends View {
   async review(event, dataset) {
     const { id, status } = dataset;
     if (status === 'REJECTED') {
-      const result = await showModal({ title: '驳回', editable: true, placeholderText: '选填：驳回原因' });
+      const result = await this.promptBox('驳回', '选填：驳回原因');
       if (result.confirm) this.doReview(id, status, result.content);
       return;
     }
-    const result = await showModal({ title: '确认通过', content: '确定通过该登记吗？' });
+    const result = await this.confirmBox('确认通过', '确定通过该登记吗？');
     if (result.confirm) this.doReview(id, status, '');
   }
 
@@ -586,7 +651,7 @@ export class AdminView extends View {
     this.reviewing = true;
     return this.adminRequest(`/api/admin/applications/${id}/review`, 'POST', { status, remark })
       .then(() => {
-        toast('已处理', 'success');
+        this.notify('已处理', 'success');
         this.fetchList(true);
       })
       .catch(() => {})
@@ -850,7 +915,216 @@ export class AdminView extends View {
     `;
   }
 
+  /* ---------- 电脑版界面 ---------- */
+
+  pcSeatPanel() {
+    return html`
+      <div class="seat-panel">
+        <div class="seat-head">
+          <span>桌位批量导入</span>
+          <span>${this.data.seatSummary}</span>
+        </div>
+        <div class="seat-row">
+          <span class="seat-label">活动场次</span>
+          <select class="pc-select" data-change="onSeatCitySelect">
+            ${CITY_OPTIONS.map((cityItem) => html`<option value="${cityItem}" ${CITY_OPTIONS[this.data.cityIndex] === cityItem ? 'selected' : ''}>${cityItem}</option>`)}
+          </select>
+        </div>
+        <div class="seat-row">
+          <span class="seat-label">导入方式</span>
+          <select class="pc-select" data-change="onSeatModeSelect">
+            ${MODE_OPTIONS.map((modeItem) => html`<option value="${modeItem}" ${MODE_OPTIONS[this.data.modeIndex] === modeItem ? 'selected' : ''}>${modeItem}</option>`)}
+          </select>
+        </div>
+        <div class="seat-actions">
+          <button type="button" class="seat-file-btn" data-tap="pickSeatFile">选择 CSV / TXT 文件</button>
+          <input class="seat-file" type="file" accept=".csv,.txt,text/csv,text/plain" data-change="onSeatFile" hidden />
+        </div>
+        <textarea
+          class="seat-input"
+          name="seatText"
+          rows="6"
+          placeholder="每行一位嘉宾：姓名,手机号,桌号"
+          data-input="onSeatTextInput"
+        >${this.data.seatText}</textarea>
+        <div class="seat-tip">${this.seatTip()}</div>
+        ${this.seatPreview()}
+        <button type="button" class="btn seat-btn" ${this.data.seatImporting ? 'disabled' : ''} data-tap="importSeats">
+          ${this.data.seatImporting ? '导入中 ···' : '导入桌位'}
+        </button>
+      </div>
+    `;
+  }
+
+  pcPassPanel() {
+    const pass = this.data.lastPass;
+    return html`
+      <div class="seat-panel">
+        <div class="seat-head">
+          <span>桌位图扫码入口</span>
+          <span>只验证姓名 · 长期有效</span>
+        </div>
+        <div class="seat-row">
+          <span class="seat-label">适用场次</span>
+          <select class="pc-select" data-change="onPassCitySelect">
+            ${['不限场次'].concat(CITY_OPTIONS).map((cityItem, index) => html`<option value="" ${index === 0 ? 'data-any="1"' : ''} ${this.data.passCityIndex === index ? 'selected' : ''}>${index === 0 ? '不限场次' : cityItem}</option>`)}
+          </select>
+        </div>
+        <div class="seat-row">
+          <span class="seat-label">备注</span>
+          <input class="pass-note" name="passNote" maxlength="32" value="${this.data.passNote}"
+                 placeholder="如：上海场签到台" data-input="onPassNoteInput" />
+        </div>
+        <button type="button" class="btn seat-btn" ${this.data.passCreating ? 'disabled' : ''} data-tap="createPass">
+          ${this.data.passCreating ? '生成中 ···' : '生成桌位图二维码'}
+        </button>
+
+        ${when(pass, () => html`
+          <div class="pass-result">
+            ${when(pass.qrBase64, html`<img class="pass-qr" src="data:image/png;base64,${pass.qrBase64}" alt="现场通道二维码" />`)}
+            <div class="pass-url">${pass.url || '未配置网页地址（app.web-base-url）'}</div>
+            ${when(pass.url, html`
+              <button type="button" class="pass-copy" data-url="${pass.url}" data-tap="copyPassUrl">复制链接</button>
+            `)}
+          </div>
+        `)}
+
+        ${this.data.passes.filter((item) => item.enabled).map((item) => html`
+          <div class="pass-row">
+            <span>${item.eventCity || '不限场次'}${item.note ? ` · ${item.note}` : ''}</span>
+            <span class="pass-disable tap" data-id="${item.id}" data-tap="disablePass">停用</span>
+          </div>
+        `)}
+      </div>
+    `;
+  }
+
+  pcGoSection(event, dataset) {
+    const target = document.getElementById(dataset.target);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.el.querySelectorAll('.pc-nav a').forEach((a) => a.classList.toggle('active', a.dataset.target === dataset.target));
+  }
+
+  loadMore() {
+    if (this.data.hasMore) this.fetchList(false);
+  }
+
+  onSeatCitySelect(event) {
+    this.setData({ cityIndex: Math.max(0, CITY_OPTIONS.indexOf(event.target.value)) });
+    this.loadSeatSummary();
+  }
+
+  onSeatModeSelect(event) {
+    this.setData({ modeIndex: Math.max(0, MODE_OPTIONS.indexOf(event.target.value)) });
+  }
+
+  onPassCitySelect(event) {
+    this.setData({ passCityIndex: Math.max(0, CITY_OPTIONS.indexOf(event.target.value)) });
+  }
+
+  pcTemplate() {
+    if (!this.data.logged) {
+      return html`
+        <div class="pc-shell pc-login-shell">
+          <div class="pc-login-card">${this.loginBox()}</div>
+        </div>
+      `;
+    }
+    return this.pcShell(html`
+      <section id="sec-review" class="pc-card">
+        <div class="pc-card-head">
+          <h3>登记审核</h3>
+          <div class="pc-tabs">
+            ${[['', '全部'], ['PENDING', '待审核'], ['APPROVED', '已通过'], ['REJECTED', '已驳回']].map(([status, label]) => html`
+              <div class="pc-chip tap ${cx({ active: this.data.statusFilter === status })}" data-status="${status}" data-tap="switchTab">${label}</div>`)}
+          </div>
+        </div>
+        <table class="pc-table">
+          <thead>
+            <tr><th>姓名</th><th>手机号</th><th>公司</th><th>职位</th><th>状态</th><th class="pc-col-actions">操作</th></tr>
+          </thead>
+          <tbody>
+            ${this.data.list.map((item) => html`
+              <tr>
+                <td>${item.checkedIn ? '✓ ' : ''}${item.name}</td>
+                <td>${item.phone}</td>
+                <td>${item.company || '—'}</td>
+                <td>${item.position || '—'}</td>
+                <td><span class="pc-status ${item.status}">${item.checkedIn ? '已入场' : item.statusText}</span></td>
+                <td class="pc-col-actions">
+                  ${when(item.status === 'PENDING', () => html`
+                    <button type="button" class="pc-btn small approve" data-id="${item.id}" data-status="APPROVED" data-tap="review">通过</button>
+                    <button type="button" class="pc-btn small reject" data-id="${item.id}" data-status="REJECTED" data-tap="review">驳回</button>`)}
+                  ${when(item.status !== 'PENDING' && item.reviewRemark, html`<span class="pc-remark" title="${item.reviewRemark}">有备注</span>`)}
+                </td>
+              </tr>`)}
+            ${when(!this.data.list.length, () => html`<tr><td colspan="6" class="pc-empty">暂无登记记录</td></tr>`)}
+          </tbody>
+        </table>
+        ${when(this.data.hasMore, () => html`<button type="button" class="pc-btn ghost pc-load-more" data-tap="loadMore">加载更多</button>`)}
+      </section>
+
+      <section id="sec-export" class="pc-card">
+        <div class="pc-card-head"><h3>导出名单</h3></div>
+        <div class="pc-form-row">
+          <span class="pc-form-label">场次</span>
+          ${['全部', '佛山', '济南', '上海'].map((cityItem) => html`
+            <div class="pc-chip tap ${cx({ active: this.data.exportCity === cityItem })}" data-city="${cityItem}" data-tap="setExportCity">${cityItem}</div>`)}
+        </div>
+        <div class="pc-form-row">
+          <span class="pc-form-label">状态</span>
+          ${[['', '全部'], ['PENDING', '待审核'], ['APPROVED', '已通过']].map(([status, label]) => html`
+            <div class="pc-chip tap ${cx({ active: this.data.exportStatus === status })}" data-status="${status}" data-tap="setExportStatus">${label}</div>`)}
+        </div>
+        <button type="button" class="pc-btn primary" ${this.data.exporting ? 'disabled' : ''} data-tap="doExport">
+          ${this.data.exporting ? '导出中 ···' : '导出 CSV 名单'}
+        </button>
+      </section>
+
+      <section id="sec-seats" class="pc-card">${this.pcSeatPanel()}</section>
+      <section id="sec-entry" class="pc-card">${this.entryQrPanel()}${this.pcPassPanel()}</section>
+      <section id="sec-security" class="pc-card">${this.securityPanel()}${this.lotterySettingsPanel()}${this.userDevicePanel()}</section>
+    `);
+  }
+
+  pcShell(inner) {
+    return html`
+      <div class="pc-shell">
+        <aside class="pc-side">
+          <div class="pc-brand">审核后台<span>ADMIN CONSOLE</span></div>
+          <nav class="pc-nav">
+            ${[['sec-review', '登记审核'], ['sec-export', '导出名单'], ['sec-seats', '桌位导入'], ['sec-entry', '入口与通道'], ['sec-security', '安全与设备']].map(([id, label]) => html`
+              <a class="${cx({ active: this.data.pcSection === id })}" data-target="${id}" data-tap="pcGoSection">${label}</a>`)}
+          </nav>
+          <div class="pc-side-foot">
+            <div class="pc-admin">${this.data.adminName || '管理员'}</div>
+            <button type="button" class="pc-logout" data-tap="logout">退出登录</button>
+          </div>
+        </aside>
+        <main class="pc-main">
+          <header class="pc-topbar">
+            <div>
+              <div class="pc-crumb">ADMIN CONSOLE</div>
+              <div class="pc-top-title">审核后台</div>
+            </div>
+            <div class="pc-top-right">
+              <span class="pc-count">${this.data.total}</span>
+              <span class="pc-count-label">登记总数</span>
+              <button type="button" class="pc-btn ghost" data-tap="scanCheckin">入场核验</button>
+            </div>
+          </header>
+          <div class="pc-content" id="pcContent">${inner}</div>
+        </main>
+      </div>
+    `;
+  }
+
   template() {
+    if (this.isPc()) return this.pcTemplate();
+    return this.mobileTemplate();
+  }
+
+  mobileTemplate() {
     return html`
       <div class="page-scroll">
         <div class="container">

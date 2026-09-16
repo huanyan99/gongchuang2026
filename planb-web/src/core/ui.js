@@ -3,6 +3,9 @@
 import { html, when, cx } from './dom.js';
 
 function layer() {
+  // 审核后台电脑模式：弹层挂到电脑层，避免被隐藏的手机画布吞掉
+  const pcLayer = document.getElementById('adminLayer');
+  if (document.body.classList.contains('admin-pc-open') && pcLayer) return pcLayer;
   return document.getElementById('stageLayer');
 }
 

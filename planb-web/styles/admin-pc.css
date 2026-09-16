@@ -1,0 +1,668 @@
+/* ============================================================
+   审核后台 · 电脑版
+   宽屏访问 #/admin 时，后台渲染到 #adminPc（脱离手机缩放画布），
+   本文件所有尺寸为普通 px（不再乘以 750 设计稿的 2 倍系数）。
+   ============================================================ */
+
+/* 弹层（toast / modal 复用 ui.css 的 .toast / .modal-mask / .modal） */
+#adminLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+#adminLayer > * {
+  pointer-events: auto;
+}
+
+body.admin-pc-open #adminLayer {
+  display: block;
+}
+
+.admin-pc {
+  display: none;
+  min-height: 100vh;
+}
+
+body.admin-pc-open .admin-pc {
+  display: flex;
+  width: 100%;
+}
+
+.pc-toast {
+  position: fixed;
+  top: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  padding: 10px 22px;
+  border-radius: 8px;
+  background: rgba(17, 24, 39, 0.92);
+  color: #ffffff;
+  font-size: 14px;
+  box-shadow: 0 8px 24px rgba(2, 8, 26, 0.3);
+}
+
+/* ---------- 整体布局 ---------- */
+
+.pc-shell {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.pc-side {
+  display: flex;
+  flex-direction: column;
+  width: 232px;
+  flex-shrink: 0;
+  background: #10244f;
+  color: #ffffff;
+  padding: 28px 18px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+.pc-brand {
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.pc-brand span {
+  display: block;
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  letter-spacing: 3px;
+  font-weight: 400;
+}
+
+.pc-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 34px;
+}
+
+.pc-nav a {
+  padding: 11px 16px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.pc-nav a:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.pc-nav a.active {
+  background: #26397b;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.pc-side-foot {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.pc-admin {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+}
+
+.pc-logout {
+  margin-top: 10px;
+  padding: 6px 0;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.pc-logout:hover {
+  color: #ffffff;
+}
+
+.pc-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pc-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 36px;
+  background: #ffffff;
+  border-bottom: 1px solid #e7eaf1;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.pc-crumb {
+  color: #9aa3b5;
+  font-size: 11px;
+  letter-spacing: 3px;
+}
+
+.pc-top-title {
+  margin-top: 2px;
+  color: #17233f;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.pc-top-right {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pc-count {
+  color: #17233f;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.pc-count-label {
+  color: #9aa3b5;
+  font-size: 12px;
+  margin-right: 14px;
+}
+
+.pc-content {
+  flex: 1;
+  padding: 28px 36px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1280px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pc-card {
+  background: #ffffff;
+  border: 1px solid #e7eaf1;
+  border-radius: 12px;
+  padding: 22px 26px;
+  box-shadow: 0 6px 18px rgba(23, 35, 63, 0.05);
+}
+
+.pc-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.pc-card-head h3 {
+  margin: 0;
+  color: #17233f;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* ---------- 筛选 chips / 按钮 ---------- */
+
+.pc-tabs,
+.pc-form-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pc-chip {
+  padding: 6px 18px;
+  border-radius: 16px;
+  background: rgba(38, 57, 123, 0.07);
+  color: #5c6478;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pc-chip.active {
+  background: #26397b;
+  color: #ffffff;
+}
+
+.pc-btn {
+  padding: 9px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #26397b;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pc-btn:hover {
+  filter: brightness(1.1);
+}
+
+.pc-btn[disabled] {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pc-btn.ghost {
+  background: transparent;
+  border: 1px solid #c9d1e0;
+  color: #17233f;
+}
+
+.pc-btn.small {
+  padding: 5px 14px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+.pc-btn.approve {
+  background: #1b7d46;
+}
+
+.pc-btn.reject {
+  background: #ffffff;
+  border: 1px solid #c0392b;
+  color: #c0392b;
+}
+
+.pc-col-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pc-remark {
+  color: #9aa3b5;
+  font-size: 12px;
+}
+
+/* ---------- 登记审核表格 ---------- */
+
+.pc-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pc-table th {
+  padding: 10px 12px;
+  text-align: left;
+  color: #8a93a6;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #e7eaf1;
+  white-space: nowrap;
+}
+
+.pc-table td {
+  padding: 12px;
+  color: #17233f;
+  font-size: 14px;
+  border-bottom: 1px solid #f0f2f7;
+}
+
+.pc-table tbody tr:hover {
+  background: #f7f9fd;
+}
+
+.pc-status {
+  padding: 3px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pc-status.PENDING {
+  background: #fdf3e0;
+  color: #b97d10;
+}
+
+.pc-status.APPROVED {
+  background: #e3f3e9;
+  color: #1b7d46;
+}
+
+.pc-status.REJECTED {
+  background: #fde8e6;
+  color: #c0392b;
+}
+
+.pc-empty {
+  text-align: center;
+  color: #9aa3b5;
+  padding: 32px 0 !important;
+}
+
+.pc-load-more {
+  display: block;
+  margin: 18px auto 0;
+}
+
+/* ---------- 表单行 / 下拉框 ---------- */
+
+.pc-form-label {
+  min-width: 48px;
+  color: #8a7447;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pc-select {
+  padding: 7px 12px;
+  border: 1px solid #c9d1e0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #17233f;
+  font-size: 14px;
+}
+
+/* ---------- 复用手机端面板的电脑化覆盖 ---------- */
+
+.admin-pc .seat-panel {
+  background: #ffffff;
+  border: 1px solid #e7eaf1;
+  border-radius: 12px;
+  padding: 18px 22px;
+  margin: 0 0 22px;
+}
+
+.admin-pc .seat-panel + .seat-panel {
+  margin-top: 22px;
+}
+
+.admin-pc .seat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #17233f;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.admin-pc .seat-head span:last-child {
+  color: #9aa3b5;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.admin-pc .seat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f2f7;
+}
+
+.admin-pc .seat-label {
+  color: #5c6478;
+  font-size: 14px;
+}
+
+.admin-pc .seat-value {
+  color: #17233f;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.admin-pc .pc-select {
+  min-width: 160px;
+}
+
+.admin-pc .seat-actions {
+  display: flex;
+  gap: 14px;
+  margin: 16px 0 4px;
+}
+
+.admin-pc .seat-file-btn {
+  padding: 9px 18px;
+  border: 1px dashed #9aa3b5;
+  border-radius: 8px;
+  background: #f7f9fd;
+  color: #17233f;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.admin-pc .seat-file-btn:hover {
+  border-color: #26397b;
+  color: #26397b;
+}
+
+.admin-pc .seat-input {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid #c9d1e0;
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: #17233f;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.admin-pc .seat-input:focus {
+  outline: none;
+  border-color: #26397b;
+}
+
+.admin-pc .seat-tip {
+  margin-top: 10px;
+  color: #9aa3b5;
+  font-size: 13px;
+}
+
+.admin-pc .seat-preview {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #f7f9fd;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #5c6478;
+}
+
+.admin-pc .seat-preview-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.admin-pc .seat-preview-more {
+  margin-top: 6px;
+  color: #9aa3b5;
+  font-size: 12px;
+  text-align: center;
+}
+
+.admin-pc .btn.seat-btn,
+.admin-pc .btn {
+  height: auto;
+  line-height: 1.5;
+  padding: 10px 26px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.admin-pc .btn.seat-btn {
+  background: #26397b;
+  color: #ffffff;
+}
+
+.admin-pc .pass-result {
+  margin-top: 18px;
+  padding: 16px;
+  background: #f7f9fd;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.admin-pc .pass-qr {
+  width: 160px;
+  height: 160px;
+}
+
+.admin-pc .pass-url {
+  margin-top: 10px;
+  color: #26397b;
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.admin-pc .pass-copy {
+  margin-top: 8px;
+  padding: 5px 14px;
+  border: 1px solid #26397b;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #26397b;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.admin-pc .pass-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f2f7;
+  font-size: 13px;
+  color: #17233f;
+}
+
+.admin-pc .pass-disable {
+  color: #c0392b;
+  cursor: pointer;
+}
+
+.admin-pc .device-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f2f7;
+}
+
+.admin-pc .device-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.admin-pc .device-user-info strong {
+  color: #17233f;
+  font-size: 14px;
+}
+
+.admin-pc .device-user-info span {
+  color: #8a93a6;
+  font-size: 12px;
+}
+
+.admin-pc .device-user-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.admin-pc .device-user-actions button {
+  padding: 6px 14px;
+  border: 1px solid #c9d1e0;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #26397b;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.admin-pc .device-user-actions button[disabled] {
+  color: #b4bac7;
+  cursor: default;
+}
+
+/* ---------- 登录页 ---------- */
+
+.pc-login-shell {
+  align-items: center;
+  justify-content: center;
+}
+
+.pc-login-card {
+  width: 400px;
+  background: #ffffff;
+  border: 1px solid #e7eaf1;
+  border-radius: 14px;
+  padding: 42px 44px;
+  box-shadow: 0 18px 50px rgba(23, 35, 63, 0.1);
+}
+
+.pc-login-card .login-box {
+  margin: 0;
+}
+
+.pc-login-card .eyebrow {
+  color: #9aa3b5;
+  font-size: 11px;
+  letter-spacing: 3px;
+}
+
+.pc-login-card .page-title {
+  margin-top: 6px;
+  color: #17233f;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.pc-login-card .key-input {
+  width: 100%;
+  margin-top: 18px;
+  padding: 11px 14px;
+  border: 1px solid #c9d1e0;
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: #17233f;
+  font-size: 14px;
+  height: auto;
+  line-height: 1.5;
+}
+
+.pc-login-card .key-input:focus {
+  outline: none;
+  border-color: #26397b;
+}
+
+.pc-login-card .btn {
+  margin-top: 24px;
+  width: 100%;
+  padding: 11px 0;
+  border: none;
+  border-radius: 8px;
+  background: #26397b;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  height: auto;
+  line-height: 1.5;
+}

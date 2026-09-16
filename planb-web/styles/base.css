@@ -45,6 +45,15 @@ body {
 }
 
 /* 桌面端居中展示为手机画幅，移动端铺满视口 */
+body.admin-pc-open {
+  display: block;
+  overflow: auto;
+  background: #f5f7ff;
+}
+
+body.admin-pc-open .device {
+  display: none;
+}
 body.pc-mode {
   align-items: stretch;
   background: #f5f7ff;
