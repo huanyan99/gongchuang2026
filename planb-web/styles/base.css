@@ -45,6 +45,15 @@ body {
 }
 
 /* 桌面端居中展示为手机画幅，移动端铺满视口 */
+body.pc-mode {
+  align-items: stretch;
+  background: #f5f7ff;
+}
+
+body.pc-mode .device {
+  border-radius: 0;
+  box-shadow: none;
+}
 .device {
   position: relative;
   width: var(--device-width);

@@ -206,6 +206,62 @@ public class ApplicationService {
      * 按登录用户查参会登记：先按 user_id，查不到且用户带手机号时按手机号回退匹配。
      * 网页版手机号登录是新建身份，手机号回退让老登记记录（小程序/其他渠道提交）同样可见。
      */
+    /** 后台导出：按场次（城市）与审核状态过滤，每位参会人一行（含主联系人与同行人） */
+    public java.util.List<java.util.Map<String, Object>> exportAttendees(String city, String status) {
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Application> wrapper =
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Application>()
+                        .orderByAsc(Application::getId);
+        if (city != null && !city.isBlank()) {
+            java.util.List<String> codes = invitationMapper.selectList(
+                            new LambdaQueryWrapper<Invitation>().eq(Invitation::getEventCity, city.trim()))
+                    .stream().map(Invitation::getCode).toList();
+            if (codes.isEmpty()) return new java.util.ArrayList<>();
+            wrapper.in(Application::getInvitationCode, codes);
+        }
+        if (status != null && !status.isBlank()) {
+            wrapper.eq(Application::getStatus, status.trim());
+        }
+        java.util.List<Application> apps = applicationMapper.selectList(wrapper);
+        if (apps.isEmpty()) return new java.util.ArrayList<>();
+
+        java.util.List<Long> ids = apps.stream().map(Application::getId).toList();
+        java.util.List<ApplicationGuest> guests = applicationGuestMapper.selectList(
+                new LambdaQueryWrapper<ApplicationGuest>()
+                        .in(ApplicationGuest::getApplicationId, ids)
+                        .orderByAsc(ApplicationGuest::getApplicationId)
+                        .orderByAsc(ApplicationGuest::getGuestIndex));
+
+        java.util.Map<String, String> cityByCode = new java.util.HashMap<>();
+        for (Invitation invitation : invitationMapper.selectList(null)) {
+            cityByCode.put(invitation.getCode(), invitation.getEventCity());
+        }
+        java.util.Map<Long, Application> appById = new java.util.HashMap<>();
+        for (Application application : apps) {
+            appById.put(application.getId(), application);
+        }
+
+        java.util.List<java.util.Map<String, Object>> rows = new java.util.ArrayList<>();
+        for (ApplicationGuest guest : guests) {
+            Application application = appById.get(guest.getApplicationId());
+            if (application == null) continue;
+            java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
+            row.put("场次", cityByCode.getOrDefault(application.getInvitationCode(), "") + "场");
+            row.put("姓名", guest.getName());
+            row.put("性别", guest.getGender());
+            row.put("手机号", guest.getPhone());
+            row.put("公司", guest.getCompany());
+            row.put("职位", guest.getPosition());
+            row.put("住宿要求", guest.getAccommodation());
+            row.put("房型", guest.getRoomType());
+            row.put("入住日期", guest.getCheckinDate() == null ? "" : guest.getCheckinDate().toString());
+            row.put("审核状态", application.getStatus());
+            row.put("邀请码", application.getInvitationCode());
+            row.put("提交时间", application.getCreatedAt() == null ? "" : application.getCreatedAt().toString());
+            rows.add(row);
+        }
+        return rows;
+    }
+
     public Application getByUser(User user) {
         if (user == null) {
             return null;

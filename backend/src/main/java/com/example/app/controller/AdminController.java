@@ -264,6 +264,16 @@ public class AdminController {
         return Result.ok(body);
     }
 
+    /** 导出参会人员名单：city=场次（佛山/济南/上海，空为全部）、status=审核状态（PENDING/APPROVED/REJECTED，空为全部） */
+    @GetMapping("/export")
+    public Result<java.util.List<java.util.Map<String, Object>>> exportAttendees(
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String status,
+            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
+        return Result.ok(applicationService.exportAttendees(city, status));
+    }
+
     /** 读取后台开关 */
     @GetMapping("/settings")
     public Result<Map<String, Boolean>> settings(@RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {

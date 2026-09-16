@@ -69,6 +69,8 @@ export class AdminView extends View {
     super(options);
     this.data = {
       adminToken: '',
+      exportCity: '全部',
+      exportStatus: '全部',
       adminName: '',
       username: '',
       password: '',
@@ -186,6 +188,52 @@ export class AdminView extends View {
     request('/api/admin/logout', 'POST', {}, this.adminHeader(), { silent: true }).catch(() => {});
     removeStorage('adminToken');
     this.setData({ adminToken: '', adminName: '', logged: false, list: [], total: 0 });
+  }
+
+  setExportCity(event, dataset) {
+    this.setData({ exportCity: dataset.city || '全部' });
+  }
+
+  setExportStatus(event, dataset) {
+    this.setData({ exportStatus: dataset.status || '全部' });
+  }
+
+  doExport() {
+    if (this.data.exporting) return;
+    const statusMap = { PENDING: '待审核', APPROVED: '已通过', REJECTED: '已驳回' };
+    const city = this.data.exportCity;
+    const status = this.data.exportStatus;
+    const query = [];
+    if (city && city !== '全部') query.push(`city=${encodeURIComponent(city)}`);
+    if (status && status !== '全部') query.push(`status=${status}`);
+    const qs = query.length ? `?${query.join('&')}` : '';
+    this.setData({ exporting: true });
+    request(`/api/admin/export${qs}`, 'GET', {}, this.authHeaders())
+      .then((rows) => {
+        if (!rows || !rows.length) return toast('该条件下暂无数据');
+        const header = Object.keys(rows[0]);
+        const NL = String.fromCharCode(10);
+        const CR = String.fromCharCode(13);
+        const badChars = [',', '"', NL, CR];
+        const needsQuote = (v) => badChars.some((ch) => String(v).includes(ch));
+        const esc = (v) => {
+          v = String(v == null ? '' : v);
+          return needsQuote(v) ? `"${v.replace(/"/g, '""')}"` : v;
+        };
+        const bom = String.fromCharCode(65279);
+        const lines = [bom + header.join(',')].concat(
+          rows.map((row) => header.map((h) => esc(h === '审核状态' ? (statusMap[row[h]] || row[h]) : row[h])).join(','))
+        );
+        const blob = new Blob([lines.join(NL + CR)], { type: 'text/csv;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `参会名单_${city}_${statusMap[status] || status}_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        toast(`已导出 ${rows.length} 条`, 'success');
+      })
+      .catch(() => {})
+      .finally(() => this.setData({ phoneLogging: false, exporting: false }));
   }
 
   switchTab(event, dataset) {
@@ -576,6 +624,24 @@ export class AdminView extends View {
 
       <div class="checkin-bar">
         <button type="button" class="btn scan-btn" data-tap="scanCheckin">入场核验</button>
+      </div>
+      <div class="export-panel">
+        <div class="export-title">导出名单</div>
+        <div class="export-row">
+          <span class="export-label">场次</span>
+          ${['全部', '佛山', '济南', '上海'].map((cityItem) => html`
+            <div class="export-chip tap ${cx({ active: this.data.exportCity === cityItem })}"
+                 data-city="${cityItem}" data-tap="setExportCity">${cityItem}</div>`)}
+        </div>
+        <div class="export-row">
+          <span class="export-label">状态</span>
+          ${['全部', 'PENDING', 'APPROVED'].map((statusItem) => html`
+            <div class="export-chip tap ${cx({ active: this.data.exportStatus === statusItem })}"
+                 data-status="${statusItem}" data-tap="setExportStatus">${{ 全部: '全部', PENDING: '待审核', APPROVED: '已通过' }[statusItem]}</div>`)}
+        </div>
+        <button type="button" class="btn export-btn" ${this.data.exporting ? 'disabled' : ''} data-tap="doExport">
+          ${this.data.exporting ? '导出中 ···' : '导出 Excel 名单'}
+        </button>
       </div>
 
       ${this.seatPanel()}

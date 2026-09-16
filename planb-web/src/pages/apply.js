@@ -423,25 +423,11 @@ export class ApplyView extends View {
         `)}
 
         <button type="button" class="cta secondary" data-tap="backHome">返回共创会</button>
-        ${when(!this.data.canEdit, html`<div class="edit-chance">您可查看同组参会信息；如需修改，请联系登记提交人。</div>`)}
+        ${when(!this.data.canEdit, html`<div class="edit-chance">如需修改登记信息，请联系登记提交人。</div>`)}
       </div>
     `;
   }
 
-  registrationDetails() {
-    return html`<div class="form-card"><div class="form">
-      <div class="label">同组参会信息 · ${this.data.attendeeCount} 人</div>
-      ${this.data.attendees.map((guest, index) => html`
-        <div class="form-item">
-          <div class="label">${index + 1}. ${guest.name}</div>
-          ${[['公司', guest.company], ['性别', guest.gender], ['手机号', guest.phone],
-            ['职位', guest.position], ['住宿要求', guest.accommodation],
-            ['房型', guest.roomType], ['入住日期', guest.checkinDate ? `${guest.checkinDate} 晚` : '—']]
-            .map(([label, value]) => html`<div class="picker-value">${label}：${value || '—'}</div>`)}
-        </div>`)}
-      ${when(this.data.reason, html`<div class="form-item">参会备注：${this.data.reason}</div>`)}
-    </div></div>`;
-  }
 
   formCard() {
     return html`
@@ -492,7 +478,7 @@ export class ApplyView extends View {
             </div>
           </div>
 
-          ${submitted ? html`${this.resultCard()}${this.registrationDetails()}` : this.formCard()}
+          ${submitted ? html`${this.resultCard()}` : this.formCard()}
         </div>
       </div>
 

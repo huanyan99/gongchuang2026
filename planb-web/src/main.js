@@ -41,6 +41,12 @@ const themeMeta = document.querySelector('meta[name="theme-color"]');
 
 function syncNavBar(meta, depth) {
   navTitle.textContent = meta.title;
+  // 审核后台在电脑上使用宽屏布局（body.pc-mode），其他页面保持手机视图
+  const pcMode = (location.hash || '').startsWith('#/admin');
+  if (document.body.classList.contains('pc-mode') !== pcMode) {
+    document.body.classList.toggle('pc-mode', pcMode);
+    window.dispatchEvent(new Event('pc-mode-change'));
+  }
   navBar.style.backgroundColor = meta.background;
   navBar.style.color = meta.textStyle === 'white' ? '#ffffff' : '#000000';
   navBar.classList.toggle('has-back', depth > 1);

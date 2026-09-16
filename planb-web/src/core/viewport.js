@@ -19,10 +19,16 @@ export function initViewport() {
   const root = document.documentElement.style;
 
   const apply = () => {
-    const width = Math.min(window.innerWidth, MAX_DEVICE_WIDTH);
-    const height = window.innerWidth <= MAX_DEVICE_WIDTH
+    // 电脑模式（审核后台）：去掉手机壳限制，页面铺满浏览器（宽度封顶 1200 防字体过大）
+    const pcMode = document.body.classList.contains('pc-mode');
+    const width = pcMode
+      ? Math.min(window.innerWidth, 1200)
+      : Math.min(window.innerWidth, MAX_DEVICE_WIDTH);
+    const height = pcMode
       ? window.innerHeight
-      : Math.min(window.innerHeight, MAX_DEVICE_HEIGHT);
+      : (window.innerWidth <= MAX_DEVICE_WIDTH
+        ? window.innerHeight
+        : Math.min(window.innerHeight, MAX_DEVICE_HEIGHT));
     const scale = width / DESIGN_WIDTH;
 
     root.setProperty('--device-width', `${width}px`);
@@ -36,4 +42,6 @@ export function initViewport() {
   apply();
   window.addEventListener('resize', apply);
   window.addEventListener('orientationchange', apply);
+  // 路由进入/离开审核后台时 body 的 pc-mode 类会变化，通知重新计算视口
+  window.addEventListener('pc-mode-change', apply);
 }

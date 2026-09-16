@@ -446,3 +446,73 @@
   flex: 1;
 }
 .view--admin .device-user-row{padding:16px 0;border-bottom:1px solid #edf0f6}.view--admin .device-user-row:last-child{border-bottom:0}.view--admin .device-user-info{display:flex;flex-direction:column;gap:5px}.view--admin .device-user-info strong{font-size:17px;color:#10234a}.view--admin .device-user-info span{font-size:13px;color:#7a8394}.view--admin .device-user-actions{display:flex;gap:10px;margin-top:12px}.view--admin .device-user-actions button{flex:1;height:36px;border:1px solid #c8a762;border-radius:18px;background:#fff;color:#8a671e}.view--admin .device-user-actions button:last-child{background:#17377c;color:#fff;border-color:#17377c}.view--admin .device-user-actions button:disabled{opacity:.38}
+
+/* 电脑模式：更宽松的排版 */
+body.pc-mode .view--admin .container {
+  padding-left: 48px;
+  padding-right: 48px;
+}
+
+body.pc-mode .view--admin .admin-head {
+  padding-top: 16px;
+}
+
+body.pc-mode .view--admin .card {
+  padding: 26px 30px;
+}
+
+body.pc-mode .view--admin .seat-panel,
+body.pc-mode .view--admin .login-box {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* 导出名单 */
+.view--admin .export-panel {
+  margin-top: 24px;
+  padding: 26px 28px;
+  background: #ffffff;
+  border: 1px solid rgba(38, 57, 123, 0.14);
+  border-radius: 14px;
+}
+
+.view--admin .export-title {
+  color: #17233f;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.view--admin .export-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.view--admin .export-label {
+  color: #8a7447;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-right: 6px;
+}
+
+.view--admin .export-chip {
+  padding: 10px 26px;
+  border-radius: 24px;
+  background: rgba(38, 57, 123, 0.07);
+  color: #5c6478;
+  font-size: 23px;
+}
+
+.view--admin .export-chip.active {
+  background: #26397b;
+  color: #ffffff;
+}
+
+.view--admin .export-btn {
+  margin-top: 26px;
+  width: 100%;
+}
