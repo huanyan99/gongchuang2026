@@ -18,6 +18,7 @@ import com.example.app.mapper.UserMapper;
 import com.example.app.service.ApplicationService;
 import com.example.app.service.InvitationService;
 import com.example.app.service.AdminAccountService;
+import com.example.app.service.LotteryService;
 import com.example.app.service.PassService;
 import com.example.app.service.SeatService;
 import com.example.app.service.SettingService;
@@ -47,6 +48,7 @@ public class AdminController {
 
     private final ApplicationService applicationService;
     private final InvitationService invitationService;
+    private final LotteryService lotteryService;
     private final AdminAccountService adminAccountService;
     private final PassService passService;
     private final UserMapper userMapper;
@@ -262,6 +264,15 @@ public class AdminController {
         body.put("page", result.getCurrent());
         body.put("size", result.getSize());
         return Result.ok(body);
+    }
+
+    /** 导出抽奖码：可按场次过滤 */
+    @GetMapping("/lottery-export")
+    public Result<java.util.List<java.util.Map<String, Object>>> exportLuckyCodes(
+            @RequestParam(required = false) String city,
+            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
+        return Result.ok(lotteryService.exportCodes(city));
     }
 
     /** 导出参会人员名单：city=场次（佛山/济南/上海，空为全部）、status=审核状态（PENDING/APPROVED/REJECTED，空为全部） */

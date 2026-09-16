@@ -95,7 +95,7 @@ class AttendeeRegistrationTest {
         Invitation invitation = new Invitation(); invitation.setEventCity("上海");
         when(invitations.getByCode(any())).thenReturn(invitation);
         when(settings.isLotteryOpen("上海")).thenReturn(true);
-        LotteryService lottery = new LotteryService(service, generator, settings, invitations);
+        LotteryService lottery = new LotteryService(service, generator, settings, invitations, mock(com.example.app.mapper.LotteryDrawMapper.class), mock(com.example.app.mapper.UserMapper.class));
         assertEquals("1234", lottery.get(companion()).getLuckyCode());
         verify(generator).getOrCreate(2L, "上海");
         verify(generator, never()).getOrCreate(1L, "上海");

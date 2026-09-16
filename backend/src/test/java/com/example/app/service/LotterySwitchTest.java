@@ -31,7 +31,7 @@ class LotterySwitchTest {
         when(applications.findForAttendee(user)).thenReturn(record);
         Invitation invitation = new Invitation(); invitation.setEventCity("上海");
         when(invitations.getByCode("SH")).thenReturn(invitation);
-        LotteryService lottery = new LotteryService(applications, generator, settings, invitations);
+        LotteryService lottery = new LotteryService(applications, generator, settings, invitations, mock(com.example.app.mapper.LotteryDrawMapper.class), mock(com.example.app.mapper.UserMapper.class));
         assertEquals("还没有到时间",assertThrows(BizException.class,()->lottery.get(user)).getMessage());
         assertThrows(BizException.class,()->lottery.draw(user));
         verifyNoInteractions(generator);
