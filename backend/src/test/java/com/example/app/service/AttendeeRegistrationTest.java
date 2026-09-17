@@ -85,6 +85,40 @@ class AttendeeRegistrationTest {
         verify(guests, never()).delete(any(com.baomidou.mybatisplus.core.conditions.Wrapper.class));
         verify(applications, never()).insert(any(Application.class));
     }
+    @Test void phoneAlreadyUsedByAnotherGroupIsRejected() {
+        com.example.app.dto.GuestRequest attendee = new com.example.app.dto.GuestRequest();
+        attendee.setPhone("13800000009");
+        ApplyRequest request = new ApplyRequest(); request.setAttendees(List.of(attendee));
+        when(guests.selectCount(any())).thenReturn(1L);
+        BizException error = assertThrows(BizException.class, () -> service.submit(request, companion()));
+        assertTrue(error.getMessage().contains("手机号已存在"));
+        verify(applications, never()).insert(any(Application.class));
+    }
+
+    @Test void lotteryExportUsesCompanionRegistrationAndOwnCompany() {
+        ApplicationService lookup = mock(ApplicationService.class);
+        InvitationService invitations = mock(InvitationService.class);
+        LotteryDrawMapper draws = mock(LotteryDrawMapper.class);
+        UserMapper users = mock(UserMapper.class);
+        Application group = new Application(); group.setId(10L); group.setUserId(1L);
+        group.setInvitationCode("INVITE"); group.setPhone("13800000001"); group.setCompany("主联系人公司");
+        ApplicationGuest companion = new ApplicationGuest(); companion.setApplicationId(10L);
+        companion.setPhone("13800000002"); companion.setCompany("同行人公司");
+        User companionUser = companion(); companionUser.setName("同行人");
+        LotteryDraw code = new LotteryDraw(); code.setUserId(2L); code.setLuckyCode("6123");
+        Invitation invitation = new Invitation(); invitation.setCode("INVITE"); invitation.setEventCity("济南");
+        when(lookup.findAllApplications()).thenReturn(List.of(group));
+        when(lookup.findAllGuests()).thenReturn(List.of(companion));
+        when(invitations.findAll()).thenReturn(List.of(invitation));
+        when(draws.selectList(null)).thenReturn(List.of(code));
+        when(users.selectList(null)).thenReturn(List.of(companionUser));
+        LotteryService lottery = new LotteryService(lookup, mock(LuckyCodeGeneratorService.class),
+                mock(SettingService.class), invitations, draws, users);
+        var rows = lottery.exportCodes("济南");
+        assertEquals(1, rows.size());
+        assertEquals("同行人公司", rows.get(0).get("公司"));
+        assertEquals("济南", rows.get(0).get("场次"));
+    }
     @Test void companionLotteryUsesOwnAccountAndSharedApproval() {
         linkCompanion("APPROVED");
         LuckyCodeGeneratorService generator = mock(LuckyCodeGeneratorService.class);

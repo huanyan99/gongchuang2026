@@ -279,6 +279,7 @@ export class AdminView extends View {
         const needsQuote = (v) => badChars.some((ch) => String(v).includes(ch));
         const esc = (v) => {
           v = String(v == null ? '' : v);
+          if (/^[=+\-@]/.test(v)) v = "'" + v;
           return needsQuote(v) ? `"${v.replace(/"/g, '""')}"` : v;
         };
         const bom = String.fromCharCode(65279);
@@ -312,6 +313,7 @@ export class AdminView extends View {
         const badChars = [',', '"', NL, CR];
         const esc = (v) => {
           v = String(v == null ? '' : v);
+          if (/^[=+\-@]/.test(v)) v = "'" + v;
           return badChars.some((ch) => v.includes(ch)) ? '"' + v.replace(/"/g, '""') + '"' : v;
         };
         const bom = String.fromCharCode(65279);

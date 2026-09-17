@@ -54,10 +54,23 @@ public class LotteryService {
             userById.put(user.getId(), user);
         }
         java.util.Map<Long, Application> appByUserId = new java.util.HashMap<>();
+        java.util.Map<Long, Application> appById = new java.util.HashMap<>();
         java.util.Map<String, Application> appByPhone = new java.util.HashMap<>();
+        java.util.Map<String, String> companyByPhone = new java.util.HashMap<>();
         for (Application application : applicationService.findAllApplications()) {
             if (application.getUserId() != null) appByUserId.put(application.getUserId(), application);
-            if (application.getPhone() != null) appByPhone.putIfAbsent(application.getPhone(), application);
+            appById.put(application.getId(), application);
+            if (application.getPhone() != null) {
+                appByPhone.putIfAbsent(application.getPhone(), application);
+                companyByPhone.putIfAbsent(application.getPhone(), application.getCompany());
+            }
+        }
+        for (com.example.app.entity.ApplicationGuest guest : applicationService.findAllGuests()) {
+            Application application = appById.get(guest.getApplicationId());
+            if (application != null && guest.getPhone() != null) {
+                appByPhone.putIfAbsent(guest.getPhone(), application);
+                companyByPhone.putIfAbsent(guest.getPhone(), guest.getCompany());
+            }
         }
         java.util.Map<String, String> cityByCode = new java.util.HashMap<>();
         for (com.example.app.entity.Invitation invitation : invitationService.findAll()) {
@@ -73,7 +86,7 @@ public class LotteryService {
             }
             String eventCity = application == null ? "" : cityByCode.getOrDefault(application.getInvitationCode(), "");
             if (city != null && !city.isBlank() && !city.equals(eventCity)) continue;
-            String company = application == null ? "" : application.getCompany();
+            String company = user.getPhone() == null ? "" : companyByPhone.getOrDefault(user.getPhone(), "");
             java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
             row.put("抽奖码", draw.getLuckyCode());
             row.put("姓名", user.getName() == null ? "" : user.getName());

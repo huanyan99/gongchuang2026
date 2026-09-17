@@ -52,6 +52,15 @@ class LuckyCodeGeneratorServiceTest {
         assertSame(old, new LuckyCodeGeneratorService(mapper).getOrCreate(9L, "上海"));
         verify(mapper, never()).insert(any(LotteryDraw.class));
     }
+    @Test void venueSwitchRealignsNumberPrefix() {
+        LotteryDrawMapper mapper = mock(LotteryDrawMapper.class);
+        LotteryDraw old = new LotteryDraw(); old.setId(3L); old.setUserId(9L); old.setLuckyCode("8123");
+        when(mapper.selectOne(any(com.baomidou.mybatisplus.core.conditions.Wrapper.class))).thenReturn(old);
+        when(mapper.updateById(old)).thenReturn(1);
+        LotteryDraw aligned = new LuckyCodeGeneratorService(mapper).alignToCity(9L, "佛山");
+        assertTrue(aligned.getLuckyCode().matches("1[012356789]{3}"));
+        verify(mapper).updateById(old);
+    }
     @Test void concurrentSameUserReturnsWinningNumber() {
         LotteryDrawMapper mapper = mock(LotteryDrawMapper.class);
         LotteryDraw winner = new LotteryDraw(); winner.setLuckyCode("0012");

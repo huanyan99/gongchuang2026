@@ -50,17 +50,12 @@ public class ApplicationService {
             throw new BizException(ErrorCode.BAD_REQUEST, "同行人员信息不完整");
         }
         validateDistinctPhones(guests);
+        validatePhonesAvailable(guests, null);
         GuestRequest primary = guests.get(0);
         String phone = trimToEmpty(primary.getPhone());
         String invitationCode = trimToEmpty(req.getInvitationCode());
 
         if (findForAttendee(user) != null) {
-            throw new BizException(ErrorCode.APPLY_DUPLICATED);
-        }
-
-        Long exist = applicationMapper.selectCount(
-                new LambdaQueryWrapper<Application>().eq(Application::getPhone, phone));
-        if (exist > 0) {
             throw new BizException(ErrorCode.APPLY_DUPLICATED);
         }
 
@@ -112,6 +107,7 @@ public class ApplicationService {
             throw new BizException(ErrorCode.BAD_REQUEST, "同行人员信息不完整");
         }
         validateDistinctPhones(guests);
+        validatePhonesAvailable(guests, current.getId());
         GuestRequest primary = guests.get(0);
         String phone = trimToEmpty(primary.getPhone());
         String requestedInvitationCode = trimToEmpty(req.getInvitationCode()).toUpperCase();
@@ -126,9 +122,6 @@ public class ApplicationService {
             invitationMapper.releaseUse(previous.getId());
             effectiveInvitationCode = replacement.getCode();
         }
-        Long duplicate = applicationMapper.selectCount(new LambdaQueryWrapper<Application>()
-                .eq(Application::getPhone, phone).ne(Application::getId, current.getId()));
-        if (duplicate > 0) throw new BizException(ErrorCode.APPLY_DUPLICATED);
         int updated = applicationMapper.resubmit(current.getId(), effectiveInvitationCode,
                 trimToEmpty(primary.getName()), phone,
                 trimToEmpty(primary.getCompany()), trimToEmpty(primary.getPosition()), trimToEmpty(req.getReason()));
@@ -136,8 +129,8 @@ public class ApplicationService {
         applicationGuestMapper.delete(new LambdaQueryWrapper<ApplicationGuest>()
                 .eq(ApplicationGuest::getApplicationId, current.getId()));
         insertGuests(current.getId(), guests);
-        luckyCodeGeneratorService.getOrCreate(user.getId(),
-                invitationService.getByCode(current.getInvitationCode()).getEventCity());
+        String effectiveCity = invitationService.getByCode(effectiveInvitationCode).getEventCity();
+        luckyCodeGeneratorService.alignToCity(user.getId(), effectiveCity);
         Application result = applicationMapper.selectById(current.getId());
         result.setAttendees(loadGuests(result.getId()));
         return result;
@@ -152,6 +145,24 @@ public class ApplicationService {
                 throw new BizException(ErrorCode.BAD_REQUEST,
                         "第" + (i + 1) + "位与第" + previous + "位手机号重复，请填写各自的手机号");
             }
+        }
+    }
+
+    /** 手机号代表唯一参会人，不能出现在其他登记单的主联系人或同行人中。 */
+    private void validatePhonesAvailable(List<GuestRequest> guests, Long excludedApplicationId) {
+        List<String> phones = guests.stream().map(GuestRequest::getPhone)
+                .map(ApplicationService::trimToEmpty).toList();
+        LambdaQueryWrapper<Application> applications = new LambdaQueryWrapper<Application>()
+                .in(Application::getPhone, phones)
+                .ne(excludedApplicationId != null, Application::getId, excludedApplicationId);
+        LambdaQueryWrapper<ApplicationGuest> attendeeRows = new LambdaQueryWrapper<ApplicationGuest>()
+                .in(ApplicationGuest::getPhone, phones)
+                .ne(excludedApplicationId != null, ApplicationGuest::getApplicationId, excludedApplicationId);
+        Long applicationMatches = applicationMapper.selectCount(applications);
+        Long guestMatches = applicationGuestMapper.selectCount(attendeeRows);
+        if ((applicationMatches != null && applicationMatches > 0)
+                || (guestMatches != null && guestMatches > 0)) {
+            throw new BizException(ErrorCode.APPLY_DUPLICATED, "手机号已存在于其他参会登记中");
         }
     }
 

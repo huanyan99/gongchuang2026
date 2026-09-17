@@ -59,6 +59,39 @@ public class LuckyCodeGeneratorService {
         throw new BizException(ErrorCode.CONFLICT, "该场次抽奖号码已用尽，请联系会务人员");
     }
 
+    /** 被驳回后切换场次时同步号码号段；未切换场次时号码保持不变。 */
+    public LotteryDraw alignToCity(Long userId, String eventCity) {
+        LotteryDraw existing = find(userId);
+        if (existing == null) return getOrCreate(userId, eventCity);
+        String prefix = cityPrefix(eventCity);
+        if (existing.getLuckyCode() != null && existing.getLuckyCode().startsWith(prefix)) return existing;
+
+        int start = random.nextInt(SUFFIX_SPACE);
+        for (int offset = 0; offset < SUFFIX_SPACE; offset++) {
+            existing.setLuckyCode(prefix + suffixAt((start + offset) % SUFFIX_SPACE));
+            try {
+                lotteryDrawMapper.updateById(existing);
+                return existing;
+            } catch (DuplicateKeyException ignored) {
+                // 目标场次中该号码已被占用，继续尝试下一个号码。
+            }
+        }
+        throw new BizException(ErrorCode.CONFLICT, "该场次抽奖号码已用尽，请联系会务人员");
+    }
+
+    private static String cityPrefix(String eventCity) {
+        return CITY_PREFIX.getOrDefault(eventCity == null ? "" : eventCity.trim(), "1");
+    }
+
+    private static String suffixAt(int value) {
+        StringBuilder suffix = new StringBuilder();
+        for (int i = 0; i < 3; i++) {
+            suffix.append(SUFFIX_DIGITS.charAt(value % SUFFIX_DIGITS.length()));
+            value /= SUFFIX_DIGITS.length();
+        }
+        return suffix.toString();
+    }
+
     private LotteryDraw find(Long userId) {
         return lotteryDrawMapper.selectOne(new LambdaQueryWrapper<LotteryDraw>()
                 .eq(LotteryDraw::getUserId, userId).last("LIMIT 1"));
