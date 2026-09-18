@@ -145,10 +145,11 @@ public class PassService {
 
     /** 首页、抽奖码等固定入口的二维码；不含任何密钥，扫码后仍需正常登录 */
     public Map<String, Object> entryQrCode(String target) {
-        String hash = "lottery".equalsIgnoreCase(target) ? "#/lottery" : "#/home";
+        String destination = "checkin".equalsIgnoreCase(target) ? "checkin" : ("lottery".equalsIgnoreCase(target) ? "lottery" : "home");
+        String hash = "#/" + destination;
         String url = baseUrl().isEmpty() ? "" : baseUrl() + "/" + hash;
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("target", "lottery".equalsIgnoreCase(target) ? "lottery" : "home");
+        body.put("target", destination);
         body.put("url", url);
         if (!url.isEmpty()) body.put("qrBase64", qrCodeService.pngBase64(url));
         return body;

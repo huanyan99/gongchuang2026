@@ -4,6 +4,7 @@ import { initViewport } from './core/viewport.js';
 import { Router } from './core/router.js';
 import { configureWechatShare } from './core/wechat-share.js';
 
+import { CheckinView } from './pages/checkin.js';
 import { HomeView } from './pages/home.js';
 import { ApplyView } from './pages/apply.js';
 import { LotteryView } from './pages/lottery.js';
@@ -18,6 +19,7 @@ import { InvitationLetterView, AgendaView, RouteView } from './pages/service.js'
 
 const routes = {
   home: HomeView,
+  checkin: CheckinView,
   apply: ApplyView,
   lottery: LotteryView,
   'lottery-rules': LotteryRulesView,

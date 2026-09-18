@@ -751,6 +751,7 @@ export class AdminView extends View {
 
       ${this.seatPanel()}
       ${this.entryQrPanel()}
+      ${this.attendancePanel()}
       ${this.passPanel()}
       ${this.securityPanel()}
       ${this.lotterySettingsPanel()}
@@ -893,6 +894,37 @@ export class AdminView extends View {
     `;
   }
 
+  async loadAttendance() {
+    try {
+      const rows = await this.adminRequest('/api/admin/export');
+      this.setData({ attendanceRows: rows });
+    } catch (_) {}
+  }
+
+  async attendanceHistory(event, dataset) {
+    const page = Number(dataset.page || 1);
+    try {
+      const history = await this.adminRequest(`/api/admin/attendance-records?applicationId=${dataset.id}&phone=${encodeURIComponent(dataset.phone)}&page=${page}`);
+      this.setData({ attendanceHistory: history, attendancePerson: { id: dataset.id, phone: dataset.phone } });
+    } catch (_) {}
+  }
+
+  attendancePanel() {
+    const history = this.data.attendanceHistory || {};
+    const person = this.data.attendancePerson || {};
+    return html`<div class="seat-panel">
+      <div class="seat-head"><span>签到管理</span><span>每人独立签到，每次扫码保留记录</span></div>
+      <button type="button" class="seat-file-btn" data-tap="loadAttendance">查看 / 刷新签到名单</button>
+      <div style="overflow:auto;max-height:420px"><table class="pc-table"><thead><tr><th>姓名</th><th>手机号</th><th>场次</th><th>签到状态</th><th>次数</th><th>最近签到</th><th>明细</th></tr></thead><tbody>
+      ${(this.data.attendanceRows || []).map(row => html`<tr><td>${row['姓名']}</td><td>${row['手机号']}</td><td>${row['场次']}</td><td>${row['签到状态']}</td><td>${row['签到次数']}</td><td>${row['最近签到时间'] || '—'}</td><td><button type="button" class="seat-file-btn" data-tap="attendanceHistory" data-id="${row['登记编号']}" data-phone="${row['手机号']}">记录</button></td></tr>`)}</tbody></table></div>
+      ${when(this.data.attendanceHistory, () => html`<p>${person.phone} · 共 ${history.total} 次签到</p>
+        ${(history.records || []).map(record => html`<p>${record.name} · ${record.eventCity} · ${String(record.scannedAt).replace('T', ' ')}</p>`)}
+        ${when(history.current > 1, html`<button type="button" class="seat-file-btn" data-tap="attendanceHistory" data-id="${person.id}" data-phone="${person.phone}" data-page="${history.current - 1}">上一页</button>`)}
+        ${when(history.current < history.pages, html`<button type="button" class="seat-file-btn" data-tap="attendanceHistory" data-id="${person.id}" data-phone="${person.phone}" data-page="${history.current + 1}">下一页</button>`)}
+      `)}
+    </div>`;
+  }
+
   entryQrPanel() {
     const qr = this.data.entryQr;
     return html`
@@ -904,6 +936,7 @@ export class AdminView extends View {
         <div class="seat-actions entry-actions">
           <button type="button" class="seat-file-btn" data-target="home" data-tap="showEntryQr">首页二维码</button>
           <button type="button" class="seat-file-btn" data-target="lottery" data-tap="showEntryQr">抽奖码二维码</button>
+          <button type="button" class="seat-file-btn" data-target="checkin" data-tap="showEntryQr">签到码</button>
         </div>
         ${when(qr, () => html`
           <div class="pass-result">
@@ -1123,7 +1156,8 @@ export class AdminView extends View {
       </section>
 
       <section id="sec-seats" class="pc-card">${this.pcSeatPanel()}</section>
-      <section id="sec-entry" class="pc-card">${this.entryQrPanel()}${this.pcPassPanel()}</section>
+      <section id="sec-entry" class="pc-card">${this.entryQrPanel()}
+      ${this.attendancePanel()}${this.pcPassPanel()}</section>
       <section id="sec-security" class="pc-card">${this.securityPanel()}${this.lotterySettingsPanel()}${this.userDevicePanel()}</section>
     `);
   }

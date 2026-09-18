@@ -47,6 +47,7 @@ public class AdminController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final ApplicationService applicationService;
+    private final com.example.app.service.AttendanceService attendanceService;
     private final InvitationService invitationService;
     private final LotteryService lotteryService;
     private final AdminAccountService adminAccountService;
@@ -282,7 +283,17 @@ public class AdminController {
             @RequestParam(required = false) String status,
             @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
         adminAccountService.require(adminToken);
-        return Result.ok(applicationService.exportAttendees(city, status));
+        return Result.ok(attendanceService.attendees(city, status));
+    }
+
+    @GetMapping("/attendance-records")
+    public Result<Page<com.example.app.entity.CheckinRecord>> attendanceRecords(
+            @RequestParam @Min(1) Long applicationId, @RequestParam String phone,
+            @RequestParam(defaultValue = "1") @Min(1) long page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) long size,
+            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        adminAccountService.require(adminToken);
+        return Result.ok(attendanceService.history(applicationId, phone, page, size));
     }
 
     /** 读取后台开关 */

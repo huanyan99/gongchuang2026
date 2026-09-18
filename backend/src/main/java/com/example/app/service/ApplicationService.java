@@ -257,6 +257,7 @@ public class ApplicationService {
             Application application = appById.get(guest.getApplicationId());
             if (application == null) continue;
             java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
+            row.put("登记编号", application.getId());
             row.put("场次", cityByCode.getOrDefault(application.getInvitationCode(), "") + "场");
             row.put("姓名", guest.getName());
             row.put("性别", guest.getGender());

@@ -31,7 +31,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/api/invitations/**");
         registry.addInterceptor(authInterceptor)
-                .addPathPatterns("/api/seat/**");
+                .addPathPatterns("/api/seat/**", "/api/attendance/**");
     }
 
     @Override
