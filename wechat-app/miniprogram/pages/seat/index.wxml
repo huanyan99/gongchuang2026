@@ -35,8 +35,6 @@
     <view wx:elif="{{published}}" class="state-card">未查询到您的桌号，请联系现场会务人员</view>
     <view wx:else class="state-card">桌位安排尚未发布</view>
 
-    <image wx:if="{{hallImage}}" class="hall-image" src="{{hallImage}}" mode="widthFix" bindtap="previewHall" />
-    <view wx:else class="hall-placeholder">全场位置图待发布</view>
   </block>
 </view>
 </scroll-view>

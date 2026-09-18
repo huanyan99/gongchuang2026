@@ -2,13 +2,8 @@
 
 import { View } from '../core/view.js';
 import { html } from '../core/dom.js';
-import { request, ensureLogin, config } from '../core/api.js';
-import { showImage, showModal } from '../core/ui.js';
-
-/** 全场位置图：把图片放进 assets/ 后在 config.js 的 hallImages 中填写路径 */
-function hallImage(eventCity) {
-  return (config.hallImages && config.hallImages[eventCity]) || '';
-}
+import { request, ensureLogin } from '../core/api.js';
+import { showModal } from '../core/ui.js';
 
 export class SeatView extends View {
   /** 需要登录：full=正常登录，any=正常登录或现场通道 */
@@ -23,13 +18,12 @@ export class SeatView extends View {
       eventCity: '',
       published: false,
       mySeats: [],
-      hallImage: '',
     };
   }
 
   onLoad(options) {
     const eventCity = decodeURIComponent(options.city || '');
-    this.setData({ eventCity, hallImage: hallImage(eventCity) });
+    this.setData({ eventCity });
     if (eventCity === '上海') { this.setData({ loading: false }); return; }
     this.loadSeat();
   }
@@ -60,12 +54,7 @@ export class SeatView extends View {
       eventCity,
       published: !!data.published,
       mySeats,
-      hallImage: hallImage(eventCity),
     });
-  }
-
-  previewHall() {
-    if (this.data.hallImage) showImage(this.data.hallImage);
   }
 
   seatCards() {
@@ -104,10 +93,6 @@ export class SeatView extends View {
                 : html`<div class="state-card">${this.data.published
                     ? '未查询到您的桌号，请联系现场会务人员'
                     : '桌位安排尚未发布'}</div>`}
-
-              ${this.data.hallImage
-                ? html`<img class="hall-image tap" src="${this.data.hallImage}" alt="全场位置图" data-tap="previewHall" />`
-                : html`<div class="hall-placeholder">全场位置图待发布</div>`}
             `}
         </div>
       </div>

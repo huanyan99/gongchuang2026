@@ -1,23 +1,15 @@
 const app = getApp();
 
-// 全场位置图：把图片放进 /images/ 后填写路径，或填写已配置域名的 https 图片地址。
-const HALL_IMAGES = {
-  上海: '/images/shanghai-invent.jpg',
-  济南: '/images/jinan-invent.jpg',
-  佛山: '/images/foshan-invent.jpg',
-};
-
 Page({
   data: {
     loading: true,
     eventCity: '',
     published: false,
     mySeats: [],
-    hallImage: '',
   },
   onLoad(options) {
     const eventCity = decodeURIComponent(options.city || '');
-    this.setData({ eventCity, hallImage: HALL_IMAGES[eventCity] || '' });
+    this.setData({ eventCity });
     if (eventCity === '上海') { this.setData({ loading: false }); return; }
     this.loadSeat();
   },
@@ -48,11 +40,6 @@ Page({
       eventCity,
       published: !!data.published,
       mySeats,
-      hallImage: HALL_IMAGES[eventCity] || '',
     });
-  },
-  previewHall() {
-    if (!this.data.hallImage) return;
-    wx.previewImage({ urls: [this.data.hallImage] });
   },
 });

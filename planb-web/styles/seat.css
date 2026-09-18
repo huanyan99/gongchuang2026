@@ -141,26 +141,4 @@
   font-weight: 700;
 }
 
-.view--seat .hall-image {
-  display: block;
-  width: calc(100% - 56px);
-  height: auto;
-  margin: 28px;
-  border-radius: 20px;
-  background: #ffffff;
-  object-fit: contain;
-  box-shadow: 0 18px 40px rgba(13, 31, 76, 0.1);
-}
 
-.view--seat .hall-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 420px;
-  margin: 28px;
-  color: #a8afbd;
-  font-size: 24px;
-  background: #ffffff;
-  border: 2px dashed #d4d9e4;
-  border-radius: 20px;
-}
