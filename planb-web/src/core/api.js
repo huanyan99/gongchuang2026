@@ -72,6 +72,8 @@ function applyLoginSession(data) {
   session.token = data.token;
   session.userInfo = data.user;
   setStorage('token', data.token);
+  // 手机号或微信登录拿到的是完整会话，不能继承现场通道的受限标记。
+  removeStorage('passScoped');
   if (nextUserId) setStorage('authUserId', nextUserId);
 }
 

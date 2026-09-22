@@ -304,7 +304,8 @@ export class LoginView extends View {
   }
 
   goHome() {
-    this.router.navigateBack();
+    // 守卫替换或直接打开时页面栈只有一页，navigateBack 无效，兜底回首页
+    this.router.backOrHome();
   }
 
   goLottery() {

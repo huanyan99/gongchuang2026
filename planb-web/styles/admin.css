@@ -161,6 +161,52 @@
   font-size: 22px;
 }
 
+/* 签到管理：名单汇总行与“刚签到”高亮（30 分钟内签到的人排最前且标绿） */
+.view--admin .attendance-summary {
+  margin-top: 12px;
+  color: #5f646c;
+  font-size: 22px;
+}
+
+.view--admin .att-recent td {
+  background: rgba(22, 163, 74, 0.10);
+}
+
+/* 待审核卡片上的同名提醒：姓名与其他登记重复时提示人工核对 */
+.view--admin .dup-name-warning {
+  margin-top: 14px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #fdf1e2;
+  color: #b45309;
+  font-size: 22px;
+  line-height: 1.5;
+}
+
+/* 审核/搜索加载中提示（旋转动画），加载期间按钮同时禁用 */
+.view--admin .searching-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  color: #5f646c;
+  font-size: 22px;
+}
+
+.view--admin .searching-hint .spin {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(38, 57, 123, 0.18);
+  border-top-color: #26397b;
+  border-radius: 50%;
+  animation: admin-spin 0.8s linear infinite;
+  flex: none;
+}
+
+@keyframes admin-spin {
+  to { transform: rotate(360deg); }
+}
+
 .view--admin .actions {
   margin-top: 28px;
   display: flex;
@@ -515,6 +561,31 @@ body.pc-mode .view--admin .login-box {
 .view--admin .export-btn {
   margin-top: 26px;
   width: 100%;
+}
+
+.view--admin .review-search {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.view--admin .review-search input {
+  min-width: 0;
+  flex: 1;
+  padding: 14px 18px;
+  border: 1px solid #c9d1e0;
+  border-radius: 10px;
+  font-size: 24px;
+}
+
+.view--admin .review-search button {
+  flex-shrink: 0;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 10px;
+  background: #26397b;
+  color: #ffffff;
+  font-size: 23px;
 }
 
 /* 开关控件（手机画布内为设计稿尺寸） */

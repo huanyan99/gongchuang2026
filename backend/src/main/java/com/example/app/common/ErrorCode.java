@@ -28,6 +28,7 @@ public enum ErrorCode {
     CHECKIN_EXPIRED(3005, "入场凭证已过期，请刷新二维码"),
     CHECKIN_ALREADY(3006, "该嘉宾已完成入场核验"),
     CHECKIN_NOT_APPROVED(3007, "该申报尚未通过审核，无法核验入场"),
+    NAME_COMPANY_DUPLICATED(3008, "该姓名和公司已有参会登记，请核对信息或联系会务人员"),
 
     // 抽奖
     LOTTERY_NOT_DRAWN(4001, "尚未抽取号码"),

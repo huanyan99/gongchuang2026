@@ -71,6 +71,14 @@ CREATE TABLE IF NOT EXISTS gonghcuang_application_guest (
     UNIQUE KEY uk_application_guest_phone (phone)
 ) ENGINE=InnoDB DEFAULT CHARSET utf8mb4;
 
+-- 只记录新提交的身份组合；历史同名同公司记录无需清理。
+CREATE TABLE IF NOT EXISTS gonghcuang_registration_identity (
+    identity_key CHAR(64) PRIMARY KEY,
+    application_id BIGINT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_registration_identity_application (application_id)
+) ENGINE=InnoDB DEFAULT CHARSET utf8mb4;
+
 CREATE TABLE IF NOT EXISTS gonghcuang_event_weather (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     city VARCHAR(32) NOT NULL UNIQUE,

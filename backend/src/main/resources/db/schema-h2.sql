@@ -80,8 +80,9 @@ CREATE TABLE IF NOT EXISTS gonghcuang_event_weather (
     updated_at TIMESTAMP
 );
 
-MERGE INTO gonghcuang_invitation (code, max_uses, used_count)
-KEY(code) VALUES ('TEST2026', 100, 0);
+-- 邀请码必带归属城市：前端按城市填入住日期，缺城市会导致登记提交被 checkinDate 校验拦截
+MERGE INTO gonghcuang_invitation (code, max_uses, used_count, event_city)
+KEY(code) VALUES ('TEST2026', 100, 0, '上海');
 
 MERGE INTO gonghcuang_event_weather
 (city, location_id, event_date, temp_min, temp_max, weather_text, icon, tip, updated_at)
@@ -160,6 +161,12 @@ CREATE TABLE IF NOT EXISTS gonghcuang_login_audit (
     user_agent VARCHAR(255),
     admin_id BIGINT,
     admin_name VARCHAR(64),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS gonghcuang_registration_identity (
+    identity_key CHAR(64) PRIMARY KEY,
+    application_id BIGINT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

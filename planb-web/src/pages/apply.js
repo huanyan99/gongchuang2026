@@ -279,8 +279,16 @@ export class ApplyView extends View {
       .then(() => request('/api/apply/me', 'GET', {}, {}, { silent: true }))
       .then((record) => { this.applyRecord(record); this.setData({ recordLoading: false }); })
       .catch((err) => {
-        if (err && err.code === 3002) this.setData({ submitted: false, recordLoading: false });
-        else toast('登记信息加载失败，请重新进入页面');
+        // 任何失败都复位加载态，避免提交按钮停在“正在查询登记”永久禁用
+        this.setData({ recordLoading: false });
+        if (err && err.code === 3002) { this.setData({ submitted: false }); return; }
+        if (err && err.code === 1001) {
+          // 登录态失效：带当前地址（含邀请码）回登录页，登录后自动返回本页
+          const current = (location.hash || '').replace(/^#/, '') || '/apply';
+          this.router.reLaunch(`/login?redirect=${encodeURIComponent(current)}`);
+          return;
+        }
+        toast('登记信息加载失败，请重新进入页面');
       });
   }
 
@@ -336,7 +344,7 @@ export class ApplyView extends View {
   }
 
   backHome() {
-    this.router.navigateBack();
+    this.router.backOrHome();
   }
 
   /* ---------- 视图 ---------- */

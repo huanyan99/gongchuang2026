@@ -38,7 +38,7 @@ export class InvitationsView extends View {
         this.setData({ invitations: cards });
       })
       .catch((err) => {
-        if (err && err.code === 1001) this.router.navigateBack();
+        if (err && err.code === 1001) this.router.backOrHome();
       });
   }
 

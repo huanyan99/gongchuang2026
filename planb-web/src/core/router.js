@@ -83,6 +83,12 @@ export class Router {
     history.back();
   }
 
+  /** 直链进入时页面栈可能只有一页，返回无效则回首页，避免页面卡死 */
+  backOrHome() {
+    if (this.stack.length > 1) this.navigateBack();
+    else this.reLaunch('/home');
+  }
+
   onPopState(event) {
     const target = parseUrl(location.hash || '/home');
     const nextIndex = (event.state && event.state.index) || 0;

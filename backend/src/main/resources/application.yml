@@ -16,7 +16,7 @@ spring:
     serialization:
       write-dates-as-timestamps: false
   datasource:
-    url: jdbc:mysql://localhost:3306/wechat_app?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/wechat_app?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&connectTimeout=5000&socketTimeout=20000
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -25,8 +25,10 @@ spring:
       minimum-idle: 2
       connection-timeout: 5000
       validation-timeout: 3000
-      idle-timeout: 600000
-      max-lifetime: 1800000
+      idle-timeout: 120000
+      max-lifetime: 300000
+      # 远程库链路上的中间设备会掐掉空闲连接：45s 心跳保活，避免导出等请求先卡在校验超时再重建连接
+      keepalive-time: 45000
 
 mybatis-plus:
   configuration:
@@ -61,6 +63,17 @@ admin:
   # backend/config/application-local.yml 或环境变量 ADMIN_BOOTSTRAP_PASSWORD。
   bootstrap-username: ${ADMIN_BOOTSTRAP_USERNAME:}
   bootstrap-password: ${ADMIN_BOOTSTRAP_PASSWORD:}
+
+wecom:
+  sheet:
+    # 企业微信自建应用须有此文档的调用权限；凭据只放环境变量或本地配置。
+    enabled: ${WECOM_SHEET_ENABLED:false}
+    corp-id: ${WECOM_CORP_ID:wxef71a09cb378ac6f}
+    app-secret: ${WECOM_APP_SECRET:}
+    # 可指定已建好的「上海登记同步」子表 ID，留空则自动创建。
+    sheet-id: ${WECOM_SHEET_ID:}
+    initial-delay-ms: 60000
+    interval-ms: 300000
 
 logging:
   level:

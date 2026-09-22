@@ -59,6 +59,10 @@ public class Application {
     @TableField(exist = false)
     private String viewerName;
 
+    /** 同名提醒：本登记中与其他登记重名（或登记内重复出现）的参会人姓名，供审核时人工核对。 */
+    @TableField(exist = false)
+    private List<String> duplicateNames;
+
     @TableField(exist = false)
     private String viewerGender;
 }

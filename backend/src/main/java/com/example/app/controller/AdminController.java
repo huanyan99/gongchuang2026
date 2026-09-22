@@ -24,9 +24,11 @@ import com.example.app.service.SeatService;
 import com.example.app.service.SettingService;
 import com.example.app.service.LoginAuditService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +37,10 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.List;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
 /** 管理端接口：请求头需带 X-Admin-Key */
@@ -167,10 +173,12 @@ public class AdminController {
         return Result.ok(invitationService.create(maxUses));
     }
 
-    /** 申报分页列表，status 可选（PENDING/APPROVED/REJECTED） */
+    /** 申报分页列表，可按场次、状态和参会人姓名筛选。 */
     @GetMapping("/applications")
     public Result<Map<String, Object>> list(
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) @Size(max = 64) String name,
             @RequestParam(defaultValue = "1") @Min(1) long page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) long size,
             @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
@@ -178,7 +186,7 @@ public class AdminController {
         if (status != null && !status.isBlank()) {
             status = ApplyStatus.of(status).name();
         }
-        Page<Application> result = applicationService.page(page, size, status);
+        Page<Application> result = applicationService.page(page, size, status, city, name);
         Map<String, Object> body = new HashMap<>();
         body.put("records", result.getRecords());
         body.put("total", result.getTotal());
@@ -284,6 +292,71 @@ public class AdminController {
             @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
         adminAccountService.require(adminToken);
         return Result.ok(attendanceService.attendees(city, status));
+    }
+
+    /** 直接生成 CSV，避免先传输体积更大的 JSON 再由浏览器拼接。 */
+    @GetMapping(value = "/export.csv", produces = "text/csv;charset=UTF-8")
+    public void exportAttendeesCsv(
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String status,
+            @RequestHeader(value = "X-Admin-Token", required = false) String adminToken,
+            HttpServletResponse response) throws IOException {
+        adminAccountService.require(adminToken);
+        if (status != null && !status.isBlank()) status = ApplyStatus.of(status).name();
+        String normalizedCity = city == null ? "" : city.trim();
+        String filename = "参会名单_" + (normalizedCity.isEmpty() ? "全部" : normalizedCity) + ".csv";
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setContentType("text/csv;charset=UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" +
+                URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20"));
+        response.setBufferSize(64 * 1024);
+
+        PrintWriter writer = response.getWriter();
+        writer.write('\uFEFF');
+        writer.println("登记编号,参会人编号,登记身份,主联系人,主联系人手机号,场次,桌号,姓名,性别,手机号,公司,职位,住宿要求,房型,入住日期,审核状态,申请原因,审核备注,审核时间,修改次数,邀请码,提交时间,入场核验状态,入场核验时间,签到状态,签到次数,首次签到时间,最近签到时间");
+        long cursor = 0;
+        while (true) {
+          var rows = applicationService.exportAttendeePage(normalizedCity, status, cursor, 500);
+          for (var row : rows) {
+            writeCsvRow(writer, row.getApplicationId(), row.getGuestId(), row.getRegistrationRole(),
+                    row.getContactName(), row.getContactPhone(), value(row.getEventCity()) + "场", row.getTableNo(),
+                    row.getName(), row.getGender(), row.getPhone(), row.getCompany(), row.getPosition(),
+                    row.getAccommodation(), row.getRoomType(), row.getCheckinDate(), statusText(row.getStatus()),
+                    row.getReason(), row.getReviewRemark(), row.getReviewedAt(), row.getEditCount(),
+                    row.getInvitationCode(), row.getCreatedAt(), row.getCheckedInAt() == null ? "未核验" : "已核验",
+                    row.getCheckedInAt(), row.getAttendanceCount() == null || row.getAttendanceCount() == 0 ? "未签到" : "已签到",
+                    row.getAttendanceCount(), row.getFirstAttendanceAt(), row.getLastAttendanceAt());
+          }
+          if (rows.size() < 500) break;
+          cursor = rows.get(rows.size() - 1).getGuestId();
+          writer.flush();
+          if (writer.checkError()) throw new IOException("CSV connection closed");
+        }
+    }
+
+    private static String statusText(String status) {
+        if ("PENDING".equals(status)) return "待审核";
+        if ("APPROVED".equals(status)) return "已通过";
+        if ("REJECTED".equals(status)) return "已驳回";
+        return value(status);
+    }
+
+    private static String value(Object value) { return value == null ? "" : String.valueOf(value); }
+
+    private static void writeCsvRow(PrintWriter writer, Object... values) {
+        for (int i = 0; i < values.length; i++) {
+            if (i > 0) writer.write(',');
+            String text = value(values[i]);
+            if (!text.isEmpty() && "=+-@".indexOf(text.charAt(0)) >= 0) text = "'" + text;
+            if (text.indexOf(',') >= 0 || text.indexOf('"') >= 0 || text.indexOf('\n') >= 0 || text.indexOf('\r') >= 0) {
+                writer.write('"');
+                writer.write(text.replace("\"", "\"\""));
+                writer.write('"');
+            } else {
+                writer.write(text);
+            }
+        }
+        writer.write("\r\n");
     }
 
     @GetMapping("/attendance-records")

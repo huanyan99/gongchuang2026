@@ -6,7 +6,7 @@
 
 import { View } from '../core/view.js';
 import { html, when } from '../core/dom.js';
-import { request, ensureLogin } from '../core/api.js';
+import { request, ensureLogin, clearIdentityCache } from '../core/api.js';
 import { toast, vibrate } from '../core/ui.js';
 
 const REEL_COUNT = 4;
@@ -40,9 +40,19 @@ export class LotteryView extends View {
 
   onLoad() {
     ensureLogin()
+      .then(() => request('/api/auth/me', 'GET', {}, {}, { silent: true }))
+      .then((user) => {
+        if (user && user.phone) return;
+        clearIdentityCache();
+        throw { code: 1001, message: '请先使用登记的手机号登录' };
+      })
       .then(() => request('/api/lottery/me', 'GET', {}, {}, { silent: true }))
       .then((result) => this.prepareCode(result.luckyCode))
       .catch((err) => {
+        if (err && err.code === 1001) {
+          this.router.reLaunch('/login?redirect=%2Flottery');
+          return;
+        }
         this.setData({ locked: !!err && err.code === 4003, preparedNumber: '' });
         if (!err || err.code !== 4001) toast((err && err.message) || '抽奖信息加载失败');
       })
@@ -72,6 +82,10 @@ export class LotteryView extends View {
         this.beginDraw(result.luckyCode);
       })
       .catch((err) => {
+        if (err && err.code === 1001) {
+          this.router.reLaunch('/login?redirect=%2Flottery');
+          return;
+        }
         this.assign({ locked: !!err && err.code === 4003, preparedNumber: '', buttonPressed: false });
         toast((err && err.message) || '抽奖信息加载失败');
       })

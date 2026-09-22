@@ -38,7 +38,7 @@ export class SeatView extends View {
           title: '暂不可查看',
           content: (err && err.message) || '桌位信息加载失败，请稍后重试',
           showCancel: false,
-        }).then(() => this.router.navigateBack());
+        }).then(() => this.router.backOrHome());
       });
   }
 

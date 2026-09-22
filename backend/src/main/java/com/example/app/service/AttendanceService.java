@@ -46,10 +46,11 @@ public class AttendanceService {
         if (city != null && !city.isBlank()) query.eq(CheckinRecord::getEventCity, city.trim());
         Map<String, List<CheckinRecord>> byPerson = new HashMap<>();
         for (CheckinRecord record : records.selectList(query)) {
-            byPerson.computeIfAbsent(record.getApplicationId() + ":" + record.getPhone(), k -> new ArrayList<>()).add(record);
+            byPerson.computeIfAbsent(record.getApplicationId() + ":" + record.getPhone() + ":" + record.getEventCity(), k -> new ArrayList<>()).add(record);
         }
         for (Map<String, Object> row : rows) {
-            var history = byPerson.getOrDefault(row.get("登记编号") + ":" + row.get("手机号"), List.of());
+            String eventCity = String.valueOf(row.get("场次")).replaceFirst("场$", "");
+            var history = byPerson.getOrDefault(row.get("登记编号") + ":" + row.get("手机号") + ":" + eventCity, List.of());
             row.put("签到状态", history.isEmpty() ? "未签到" : "已签到");
             row.put("签到次数", history.size());
             row.put("首次签到时间", history.isEmpty() ? "" : history.get(0).getScannedAt().toString());

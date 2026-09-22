@@ -7,3 +7,4 @@ wechat-app/miniprogram/images/home-banner.png
 .DS_Store
 Thumbs.db
 tmp_seat/
+tmp_runtime/

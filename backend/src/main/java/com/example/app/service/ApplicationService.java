@@ -13,8 +13,18 @@ import com.example.app.entity.User;
 import com.example.app.mapper.ApplicationMapper;
 import com.example.app.mapper.ApplicationGuestMapper;
 import com.example.app.entity.ApplicationGuest;
+import com.example.app.entity.RegistrationIdentity;
 import com.example.app.dto.GuestRequest;
 import java.time.LocalDate;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.HexFormat;
+import java.util.Locale;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -35,6 +45,8 @@ public class ApplicationService {
     private final QrCodeService qrCodeService;
     private final ApplicationGuestMapper applicationGuestMapper;
     private final LuckyCodeGeneratorService luckyCodeGeneratorService;
+    private final com.example.app.mapper.SeatMapper seatMapper;
+    private final com.example.app.mapper.RegistrationIdentityMapper registrationIdentityMapper;
 
     /**
      * 提交申报。事务内完成：
@@ -51,6 +63,7 @@ public class ApplicationService {
         }
         validateDistinctPhones(guests);
         validatePhonesAvailable(guests, null);
+        Set<String> identityKeys = validateIdentities(guests, null, Map.of());
         GuestRequest primary = guests.get(0);
         String phone = trimToEmpty(primary.getPhone());
         String invitationCode = trimToEmpty(req.getInvitationCode());
@@ -72,6 +85,7 @@ public class ApplicationService {
         application.setStatus(ApplyStatus.PENDING.name());
         try {
             applicationMapper.insert(application);
+            reserveIdentities(identityKeys, application.getId());
             for (int i = 0; i < guests.size(); i++) {
                 GuestRequest guest = guests.get(i);
                 ApplicationGuest row = new ApplicationGuest();
@@ -108,6 +122,8 @@ public class ApplicationService {
         }
         validateDistinctPhones(guests);
         validatePhonesAvailable(guests, current.getId());
+        Map<String, Integer> oldIdentityCounts = identityCounts(loadGuests(current.getId()));
+        Set<String> identityKeys = validateIdentities(guests, current.getId(), oldIdentityCounts);
         GuestRequest primary = guests.get(0);
         String phone = trimToEmpty(primary.getPhone());
         String requestedInvitationCode = trimToEmpty(req.getInvitationCode()).toUpperCase();
@@ -129,6 +145,16 @@ public class ApplicationService {
         applicationGuestMapper.delete(new LambdaQueryWrapper<ApplicationGuest>()
                 .eq(ApplicationGuest::getApplicationId, current.getId()));
         insertGuests(current.getId(), guests);
+        Set<String> removedKeys = new HashSet<>(oldIdentityCounts.keySet());
+        removedKeys.removeAll(identityKeys);
+        if (!removedKeys.isEmpty()) {
+            registrationIdentityMapper.delete(new LambdaQueryWrapper<RegistrationIdentity>()
+                    .eq(RegistrationIdentity::getApplicationId, current.getId())
+                    .in(RegistrationIdentity::getIdentityKey, removedKeys));
+        }
+        Set<String> addedKeys = new HashSet<>(identityKeys);
+        addedKeys.removeAll(oldIdentityCounts.keySet());
+        reserveIdentities(addedKeys, current.getId());
         String effectiveCity = invitationService.getByCode(effectiveInvitationCode).getEventCity();
         luckyCodeGeneratorService.alignToCity(user.getId(), effectiveCity);
         Application result = applicationMapper.selectById(current.getId());
@@ -184,12 +210,112 @@ public class ApplicationService {
                 .eq(ApplicationGuest::getApplicationId, applicationId).orderByAsc(ApplicationGuest::getGuestIndex));
     }
 
-    /** 分页查询，status 为空查全部 */
-    public Page<Application> page(long page, long size, String status) {
+    /** 分页查询，关键词可匹配主联系人/同行人的姓名或手机号，场次通过邀请码归属筛选。 */
+    public Page<Application> page(long page, long size, String status, String city, String name) {
         LambdaQueryWrapper<Application> wrapper = new LambdaQueryWrapper<Application>()
                 .eq(status != null && !status.isBlank(), Application::getStatus, status)
                 .orderByDesc(Application::getId);
-        return applicationMapper.selectPage(Page.of(page, size), wrapper);
+        if (name != null && !name.isBlank()) {
+            String pattern = name.trim().replace("!", "!!").replace("%", "!%").replace("_", "!_");
+            wrapper.and(match -> match
+                    .apply("gonghcuang_application.name LIKE CONCAT('%', {0}, '%') ESCAPE '!'", pattern)
+                    .or()
+                    .apply("gonghcuang_application.phone LIKE CONCAT('%', {0}, '%') ESCAPE '!'", pattern)
+                    .or()
+                    .apply("EXISTS (SELECT 1 FROM gonghcuang_application_guest g WHERE g.application_id = gonghcuang_application.id AND (g.name LIKE CONCAT('%', {0}, '%') ESCAPE '!' OR g.phone LIKE CONCAT('%', {0}, '%') ESCAPE '!'))", pattern));
+        }
+        if (city != null && !city.isBlank()) {
+            List<String> codes = invitationMapper.selectList(
+                            new LambdaQueryWrapper<Invitation>().eq(Invitation::getEventCity, city.trim()))
+                    .stream().map(Invitation::getCode).toList();
+            if (codes.isEmpty()) return new Page<>(page, size);
+            wrapper.in(Application::getInvitationCode, codes);
+        }
+        Page<Application> result = applicationMapper.selectPage(Page.of(page, size), wrapper);
+        if (!result.getRecords().isEmpty()) {
+            List<Long> ids = result.getRecords().stream().map(Application::getId).toList();
+            Map<Long, List<ApplicationGuest>> guestsByApplication = new HashMap<>();
+            for (ApplicationGuest guest : applicationGuestMapper.selectList(
+                    new LambdaQueryWrapper<ApplicationGuest>()
+                            .in(ApplicationGuest::getApplicationId, ids)
+                            .orderByAsc(ApplicationGuest::getApplicationId)
+                            .orderByAsc(ApplicationGuest::getGuestIndex))) {
+                guestsByApplication.computeIfAbsent(guest.getApplicationId(), ignored -> new ArrayList<>()).add(guest);
+            }
+            for (Application application : result.getRecords()) {
+                application.setAttendees(guestsByApplication.getOrDefault(application.getId(), List.of()));
+            }
+            annotateDuplicateNames(result.getRecords(), guestsByApplication);
+        }
+        return result;
+    }
+
+    /**
+     * 审核列表同名提醒：本登记任一参会人姓名出现在其他登记中、或同一姓名对应多位参会人时，
+     * 汇总进 duplicateNames，由后台在待审核条目上提示「有相同名字，请注意审核」。
+     * 主联系人在登记表和同行人表各存一行，按「姓名+手机号」折叠成同一个人，避免误报。
+     */
+    private void annotateDuplicateNames(List<Application> records,
+                                        Map<Long, List<ApplicationGuest>> guestsByApplication) {
+        Map<String, Set<Long>> applicationsByName = new HashMap<>();
+        for (Application application : applicationMapper.selectList(
+                new LambdaQueryWrapper<Application>())) {
+            mergeNameApplications(applicationsByName, application.getName(), application.getId());
+        }
+        for (ApplicationGuest guest : applicationGuestMapper.selectList(
+                new LambdaQueryWrapper<ApplicationGuest>())) {
+            mergeNameApplications(applicationsByName, guest.getName(), guest.getApplicationId());
+        }
+        for (Application record : records) {
+            Map<String, Integer> ownCounts = new HashMap<>();
+            Map<String, String> displayNames = new HashMap<>();
+            for (String rawName : personNames(record, guestsByApplication.getOrDefault(record.getId(), List.of()))) {
+                String normalized = normalizeName(rawName);
+                if (normalized.isEmpty()) continue;
+                ownCounts.merge(normalized, 1, Integer::sum);
+                displayNames.putIfAbsent(normalized, trimToEmpty(rawName));
+            }
+            List<String> duplicates = new ArrayList<>();
+            for (Map.Entry<String, Integer> own : ownCounts.entrySet()) {
+                String normalized = own.getKey();
+                boolean elsewhere = applicationsByName.getOrDefault(normalized, Set.of()).stream()
+                        .anyMatch(appId -> !appId.equals(record.getId()));
+                if (own.getValue() > 1 || elsewhere) {
+                    duplicates.add(displayNames.get(normalized));
+                }
+            }
+            if (!duplicates.isEmpty()) {
+                record.setDuplicateNames(duplicates);
+            }
+        }
+    }
+
+    /** 一份登记的参会人姓名（主联系人 + 各同行人），主联系人两处存储折叠为一个人。 */
+    private static List<String> personNames(Application record, List<ApplicationGuest> guests) {
+        List<String> names = new ArrayList<>();
+        Set<String> seenPersons = new HashSet<>();
+        mergePersonName(names, seenPersons, record.getName(), record.getPhone());
+        for (ApplicationGuest guest : guests) {
+            mergePersonName(names, seenPersons, guest.getName(), guest.getPhone());
+        }
+        return names;
+    }
+
+    private static void mergePersonName(List<String> names, Set<String> seenPersons, String name, String phone) {
+        String normalized = normalizeName(name);
+        if (normalized.isEmpty()) return;
+        if (!seenPersons.add(normalized + "\0" + trimToEmpty(phone))) return;
+        names.add(trimToEmpty(name));
+    }
+
+    private static void mergeNameApplications(Map<String, Set<Long>> applicationsByName, String name, Long applicationId) {
+        String normalized = normalizeName(name);
+        if (normalized.isEmpty() || applicationId == null) return;
+        applicationsByName.computeIfAbsent(normalized, ignored -> new HashSet<>()).add(applicationId);
+    }
+
+    private static String normalizeName(String name) {
+        return trimToEmpty(name).toLowerCase(Locale.ROOT);
     }
 
     public Map<ApplyStatus, Long> countByStatus() {
@@ -247,6 +373,15 @@ public class ApplicationService {
         for (Invitation invitation : invitationMapper.selectList(null)) {
             cityByCode.put(invitation.getCode(), invitation.getEventCity());
         }
+        // 桌号按「场次 + 手机号」与导入的桌位匹配，未导入或未匹配时留空
+        java.util.Map<String, String> tableByCityPhone = new java.util.HashMap<>();
+        var seatQuery = new LambdaQueryWrapper<com.example.app.entity.Seat>();
+        if (city != null && !city.isBlank()) {
+            seatQuery.eq(com.example.app.entity.Seat::getEventCity, city.trim());
+        }
+        for (com.example.app.entity.Seat seat : seatMapper.selectList(seatQuery)) {
+            tableByCityPhone.put(seat.getEventCity() + ":" + seat.getPhone(), seat.getTableNo());
+        }
         java.util.Map<Long, Application> appById = new java.util.HashMap<>();
         for (Application application : apps) {
             appById.put(application.getId(), application);
@@ -256,9 +391,15 @@ public class ApplicationService {
         for (ApplicationGuest guest : guests) {
             Application application = appById.get(guest.getApplicationId());
             if (application == null) continue;
+            String eventCity = cityByCode.getOrDefault(application.getInvitationCode(), "");
             java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
             row.put("登记编号", application.getId());
-            row.put("场次", cityByCode.getOrDefault(application.getInvitationCode(), "") + "场");
+            row.put("参会人编号", guest.getId());
+            row.put("登记身份", java.util.Objects.equals(guest.getPhone(), application.getPhone()) ? "主联系人" : "同行人");
+            row.put("主联系人", application.getName());
+            row.put("主联系人手机号", application.getPhone());
+            row.put("场次", eventCity + "场");
+            row.put("桌号", tableByCityPhone.getOrDefault(eventCity + ":" + guest.getPhone(), ""));
             row.put("姓名", guest.getName());
             row.put("性别", guest.getGender());
             row.put("手机号", guest.getPhone());
@@ -268,11 +409,100 @@ public class ApplicationService {
             row.put("房型", guest.getRoomType());
             row.put("入住日期", guest.getCheckinDate() == null ? "" : guest.getCheckinDate().toString());
             row.put("审核状态", application.getStatus());
+            row.put("申请原因", application.getReason());
+            row.put("审核备注", application.getReviewRemark());
+            row.put("审核时间", application.getReviewedAt() == null ? "" : application.getReviewedAt().toString());
+            row.put("修改次数", application.getEditCount() == null ? 0 : application.getEditCount());
             row.put("邀请码", application.getInvitationCode());
             row.put("提交时间", application.getCreatedAt() == null ? "" : application.getCreatedAt().toString());
+            row.put("入场核验状态", application.getCheckedInAt() == null ? "未核验" : "已核验");
+            row.put("入场核验时间", application.getCheckedInAt() == null ? "" : application.getCheckedInAt().toString());
             rows.add(row);
         }
         return rows;
+    }
+
+    public java.util.List<com.example.app.dto.AttendeeExportRow> exportAttendeeRows(String city, String status) {
+        java.util.List<com.example.app.dto.AttendeeExportRow> rows = new java.util.ArrayList<>();
+        long cursor = 0;
+        while (true) {
+            var page = exportAttendeePage(city, status, cursor, 500);
+            rows.addAll(page);
+            if (page.size() < 500) return rows;
+            cursor = page.get(page.size() - 1).getGuestId();
+        }
+    }
+
+    private Set<String> validateIdentities(List<GuestRequest> guests, Long currentApplicationId,
+                                           Map<String, Integer> oldCounts) {
+        Map<String, Integer> counts = new HashMap<>();
+        Set<String> keys = new HashSet<>();
+        for (GuestRequest guest : guests) {
+            String name = trimToEmpty(guest.getName());
+            String company = trimToEmpty(guest.getCompany());
+            if (name.isEmpty()) throw new BizException(ErrorCode.BAD_REQUEST, "参会人姓名不能为空");
+            String key = identityKey(name, company);
+            int count = counts.merge(key, 1, Integer::sum);
+            if (count > Math.max(1, oldCounts.getOrDefault(key, 0))) {
+                throw new BizException(ErrorCode.NAME_COMPANY_DUPLICATED);
+            }
+            keys.add(key);
+            // 历史登记原有的身份组合可以保留；新增组合必须检查所有历史记录。
+            if (oldCounts.containsKey(key)) continue;
+            String normalizedName = name.toLowerCase(Locale.ROOT);
+            String normalizedCompany = company.toLowerCase(Locale.ROOT);
+            Long guestMatches = applicationGuestMapper.selectCount(new LambdaQueryWrapper<ApplicationGuest>()
+                    .apply("LOWER(TRIM(name)) = {0}", normalizedName)
+                    .apply("LOWER(TRIM(COALESCE(company, ''))) = {0}", normalizedCompany)
+                    .ne(currentApplicationId != null, ApplicationGuest::getApplicationId, currentApplicationId));
+            Long applicationMatches = applicationMapper.selectCount(new LambdaQueryWrapper<Application>()
+                    .apply("LOWER(TRIM(name)) = {0}", normalizedName)
+                    .apply("LOWER(TRIM(COALESCE(company, ''))) = {0}", normalizedCompany)
+                    .ne(currentApplicationId != null, Application::getId, currentApplicationId));
+            if ((guestMatches != null && guestMatches > 0) || (applicationMatches != null && applicationMatches > 0)) {
+                throw new BizException(ErrorCode.NAME_COMPANY_DUPLICATED);
+            }
+        }
+        return keys;
+    }
+
+    private static Map<String, Integer> identityCounts(List<ApplicationGuest> guests) {
+        Map<String, Integer> counts = new HashMap<>();
+        for (ApplicationGuest guest : guests) {
+            String key = identityKey(trimToEmpty(guest.getName()), trimToEmpty(guest.getCompany()));
+            counts.merge(key, 1, Integer::sum);
+        }
+        return counts;
+    }
+
+    private void reserveIdentities(Set<String> keys, Long applicationId) {
+        for (String key : keys) {
+            RegistrationIdentity identity = new RegistrationIdentity();
+            identity.setIdentityKey(key);
+            identity.setApplicationId(applicationId);
+            try {
+                registrationIdentityMapper.insert(identity);
+            } catch (DuplicateKeyException ex) {
+                throw new BizException(ErrorCode.NAME_COMPANY_DUPLICATED);
+            }
+        }
+    }
+
+    private static String identityKey(String name, String company) {
+        String value = name.toLowerCase(Locale.ROOT) + "\0" + company.toLowerCase(Locale.ROOT);
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    public java.util.List<com.example.app.dto.AttendeeExportRow> exportAttendeePage(String city, String status,
+                                                                                      long afterGuestId, int limit) {
+        String normalizedCity = city == null ? "" : city.trim();
+        String normalizedStatus = status == null ? "" : status.trim();
+        return applicationMapper.selectAttendeeExport(normalizedCity, normalizedStatus, afterGuestId, limit);
     }
 
     /** 后台导出用：全量登记与明细（活动规模下数据量可控，避免逐行查询） */

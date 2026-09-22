@@ -1,5 +1,6 @@
 package com.example.app.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.app.common.BizException;
 import com.example.app.controller.ApplyController;
 import com.example.app.config.UserContext;
@@ -14,12 +15,28 @@ import static org.mockito.Mockito.*;
 class AttendeeRegistrationTest {
     private final ApplicationMapper applications = mock(ApplicationMapper.class);
     private final ApplicationGuestMapper guests = mock(ApplicationGuestMapper.class);
+    private final InvitationMapper invitationMapper = mock(InvitationMapper.class);
+    private final SeatMapper seats = mock(SeatMapper.class);
+    private final InvitationService invitationService = mock(InvitationService.class);
     private final ApplicationService service = new ApplicationService(applications,
-        mock(InvitationService.class), mock(InvitationMapper.class), mock(CheckinTokenService.class),
-        mock(QrCodeService.class), guests, mock(LuckyCodeGeneratorService.class));
+        invitationService, invitationMapper, mock(CheckinTokenService.class),
+        mock(QrCodeService.class), guests, mock(LuckyCodeGeneratorService.class), seats,
+        mock(RegistrationIdentityMapper.class));
 
     private User companion() {
         User user = new User(); user.setId(2L); user.setPhone("13800000002"); return user;
+    }
+    private com.example.app.dto.GuestRequest guest(String name, String company, String phone) {
+        com.example.app.dto.GuestRequest guest = new com.example.app.dto.GuestRequest();
+        guest.setName(name); guest.setCompany(company); guest.setPhone(phone);
+        guest.setCheckinDate("2026-09-18");
+        return guest;
+    }
+    private ApplicationGuest guestRow(Long applicationId, int guestIndex, String name, String phone) {
+        ApplicationGuest guest = new ApplicationGuest();
+        guest.setApplicationId(applicationId); guest.setGuestIndex(guestIndex);
+        guest.setName(name); guest.setPhone(phone);
+        return guest;
     }
     private Application linkCompanion(String status) {
         Application a = new Application(); a.setId(10L); a.setUserId(1L); a.setStatus(status);
@@ -85,6 +102,41 @@ class AttendeeRegistrationTest {
         verify(guests, never()).delete(any(com.baomidou.mybatisplus.core.conditions.Wrapper.class));
         verify(applications, never()).insert(any(Application.class));
     }
+    @Test void exportIncludesRegistrationAndReviewDetailsForEachPerson() {
+        Application application = new Application();
+        application.setId(10L); application.setName("主联系人"); application.setPhone("13800000001");
+        application.setInvitationCode("INVITE");
+        application.setStatus("REJECTED"); application.setReason("参加交流"); application.setReviewRemark("信息待补充");
+        application.setReviewedAt(java.time.LocalDateTime.of(2026, 9, 18, 10, 0));
+        application.setCheckedInAt(java.time.LocalDateTime.of(2026, 9, 18, 11, 30));
+        ApplicationGuest primary = new ApplicationGuest();
+        primary.setId(11L); primary.setApplicationId(10L); primary.setPhone("13800000001");
+        ApplicationGuest companion = new ApplicationGuest();
+        companion.setId(12L); companion.setApplicationId(10L); companion.setPhone("13800000002");
+        Invitation invitation = new Invitation(); invitation.setCode("INVITE"); invitation.setEventCity("佛山");
+        when(invitationMapper.selectList(any())).thenReturn(List.of(invitation));
+        Seat seat = new Seat(); seat.setEventCity("佛山"); seat.setPhone("13800000002"); seat.setTableNo("8桌");
+        when(seats.selectList(any())).thenReturn(List.of(seat));
+        when(applications.selectList(any())).thenReturn(List.of(application));
+        when(guests.selectList(any())).thenReturn(List.of(primary, companion));
+        var rows = service.exportAttendees(null, null);
+        assertEquals(2, rows.size());
+        assertEquals("主联系人", rows.get(0).get("登记身份"));
+        assertEquals("同行人", rows.get(1).get("登记身份"));
+        assertEquals(12L, rows.get(1).get("参会人编号"));
+        assertEquals("8桌", rows.get(1).get("桌号"));
+        assertEquals("", rows.get(0).get("桌号"));
+        for (var row : rows) {
+            assertEquals("13800000001", row.get("主联系人手机号"));
+            assertEquals("REJECTED", row.get("审核状态"));
+            assertEquals("参加交流", row.get("申请原因"));
+            assertEquals("信息待补充", row.get("审核备注"));
+            assertEquals("2026-09-18T10:00", row.get("审核时间"));
+            assertEquals(0, row.get("修改次数"));
+            assertEquals("已核验", row.get("入场核验状态"));
+            assertEquals("2026-09-18T11:30", row.get("入场核验时间"));
+        }
+    }
     @Test void phoneAlreadyUsedByAnotherGroupIsRejected() {
         com.example.app.dto.GuestRequest attendee = new com.example.app.dto.GuestRequest();
         attendee.setPhone("13800000009");
@@ -93,6 +145,81 @@ class AttendeeRegistrationTest {
         BizException error = assertThrows(BizException.class, () -> service.submit(request, companion()));
         assertTrue(error.getMessage().contains("手机号已存在"));
         verify(applications, never()).insert(any(Application.class));
+    }
+
+    @Test void duplicateNameAndCompanyRejectedOnSubmit() {
+        ApplyRequest request = new ApplyRequest();
+        request.setAttendees(List.of(guest(" 张三 ", "甲公司", "13800000009")));
+        // 姓名与公司忽略大小写和首尾空格后命中已有登记（主联系人或同行人任一处）即拦截；
+        // selectCount 先被手机号占用校验调用（应放行），再被姓名+公司校验调用（命中）
+        when(guests.selectCount(any())).thenReturn(0L);
+        when(applications.selectCount(any())).thenReturn(0L, 1L);
+        BizException error = assertThrows(BizException.class, () -> service.submit(request, companion()));
+        assertTrue(error.getMessage().contains("该姓名和公司已有参会登记"));
+        verify(applications, never()).insert(any(Application.class));
+        verify(guests, never()).insert(any(ApplicationGuest.class));
+    }
+
+    @Test void duplicateNameAndCompanyRejectedWithinOneSubmission() {
+        ApplyRequest request = new ApplyRequest();
+        request.setAttendees(List.of(guest("张三", "甲公司", "13800000008"),
+            guest("张三", "甲公司", "13800000009")));
+        BizException error = assertThrows(BizException.class, () -> service.submit(request, companion()));
+        assertTrue(error.getMessage().contains("该姓名和公司已有参会登记"));
+        verify(applications, never()).insert(any(Application.class));
+    }
+
+    @Test void resubmitKeepsOwnNameCompanyButRejectsOthers() {
+        Application owned = new Application();
+        owned.setId(10L); owned.setUserId(2L); owned.setStatus("REJECTED");
+        owned.setEditCount(0); owned.setInvitationCode("INVITE"); owned.setPhone("13800000002");
+        when(applications.selectOne(any(com.baomidou.mybatisplus.core.conditions.Wrapper.class))).thenReturn(owned);
+        when(guests.selectList(any())).thenReturn(List.of(guestRow(10L, 1, "张三", "13800000002")));
+        when(applications.resubmit(any(), any(), any(), any(), any(), any(), any())).thenReturn(1);
+        Invitation invitation = new Invitation(); invitation.setCode("INVITE"); invitation.setEventCity("上海");
+        when(invitationService.getByCode("INVITE")).thenReturn(invitation);
+        when(applications.selectById(10L)).thenReturn(owned);
+
+        // 修改登记时保留自己原有的姓名+公司组合：不拦截
+        ApplyRequest keep = new ApplyRequest();
+        keep.setInvitationCode("INVITE");
+        keep.setAttendees(List.of(guest("张三", "甲公司", "13800000002")));
+        service.resubmit(keep, companion());
+        verify(applications).resubmit(10L, "INVITE", "张三", "13800000002", "甲公司", "", "");
+
+        // 改成其他登记已占用的姓名+公司：拦截
+        ApplyRequest occupied = new ApplyRequest();
+        occupied.setInvitationCode("INVITE");
+        occupied.setAttendees(List.of(guest("李四", "乙公司", "13800000002")));
+        when(guests.selectCount(any())).thenReturn(0L);
+        // 第一次 selectCount 属手机号占用校验（放行），第二次属姓名+公司校验（命中）
+        when(applications.selectCount(any())).thenReturn(0L, 1L);
+        BizException error = assertThrows(BizException.class, () -> service.resubmit(occupied, companion()));
+        assertTrue(error.getMessage().contains("该姓名和公司已有参会登记"));
+        verify(applications, times(1)).resubmit(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test void reviewListFlagsDuplicateAttendeeNames() {
+        Application existing = new Application();
+        existing.setId(1L); existing.setName("张三"); existing.setStatus("APPROVED");
+        Application pending = new Application();
+        pending.setId(2L); pending.setName("王五"); pending.setPhone("13800000001"); pending.setStatus("PENDING");
+        Page<Application> pageResult = new Page<>(1, 20);
+        pageResult.setRecords(List.of(pending));
+        when(applications.selectPage(any(), any())).thenReturn(pageResult);
+        when(applications.selectList(any())).thenReturn(List.of(existing, pending));
+        when(guests.selectList(any())).thenReturn(List.of(
+            guestRow(2L, 1, "王五", "13800000001"),
+            guestRow(2L, 2, "张三", "13800000003"),
+            guestRow(2L, 3, "孙八", "13800000004"),
+            guestRow(2L, 4, "孙八", "13800000005")));
+
+        Page<Application> result = service.page(1, 20, null, null, null);
+        List<String> duplicates = result.getRecords().get(0).getDuplicateNames();
+        assertEquals(2, duplicates.size());
+        assertTrue(duplicates.contains("张三"), "与其他登记同名要提醒");
+        assertTrue(duplicates.contains("孙八"), "登记内重复姓名要提醒");
+        assertFalse(duplicates.contains("王五"), "仅主联系人与自身重复不提醒");
     }
 
     @Test void lotteryExportUsesCompanionRegistrationAndOwnCompany() {

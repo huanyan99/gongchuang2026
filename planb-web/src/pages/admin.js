@@ -5,11 +5,12 @@
 
 import { View } from '../core/view.js';
 import { html, when, cx } from '../core/dom.js';
-import { request } from '../core/api.js';
+import { request, config } from '../core/api.js';
 import { getStorage, setStorage, removeStorage } from '../core/storage.js';
 import { copyText, showModal, showSheet, toast } from '../core/ui.js';
 
 const STATUS_TEXT = { PENDING: '待审核', APPROVED: '已通过', REJECTED: '已驳回' };
+const EXPORT_STATUS_OPTIONS = [['全部', '全部'], ['PENDING', '待审核'], ['APPROVED', '已通过'], ['REJECTED', '已驳回']];
 const PAGE_SIZE = 20;
 const LOWER_THRESHOLD = 80;
 const CITY_OPTIONS = ['上海', '济南', '佛山'];
@@ -67,6 +68,7 @@ export class AdminView extends View {
 
   constructor(options) {
     super(options);
+    this.listRequestId = 0;
     this.data = {
       adminToken: '',
       pcSection: 'sec-review',
@@ -78,6 +80,8 @@ export class AdminView extends View {
       logging: false,
       logged: false,
       statusFilter: '',
+      reviewCity: '全部',
+      reviewName: '',
       list: [],
       total: 0,
       page: 1,
@@ -99,6 +103,10 @@ export class AdminView extends View {
       usersLoading: false,
       entryQr: null,
       entryTarget: 'home',
+      attendanceCity: '全部',
+      attendanceRows: [],
+      attendanceUpdatedAt: '',
+      attendanceLoading: false,
       passCityIndex: 0,
       passNote: '',
       passes: [],
@@ -124,7 +132,8 @@ export class AdminView extends View {
   }
 
   adminHeader() {
-    return { 'X-Admin-Token': this.data.adminToken };
+    // setData 重绘或页面恢复期间 data 可能尚未同步，导出等原生 fetch 始终从持久会话兜底取 token。
+    return { 'X-Admin-Token': this.data.adminToken || getStorage('adminToken') || '' };
   }
 
   /* ---------- 电脑版（宽屏）支持 ---------- */
@@ -200,7 +209,8 @@ export class AdminView extends View {
   }
 
   expireSession() {
-    if (!this.data.adminToken && !this.data.logged) return;
+    this.listRequestId += 1;
+    if (!this.data.adminToken && !this.data.logged && !getStorage('adminToken')) return;
     removeStorage('adminToken');
     this.setData({ adminToken: '', adminName: '', logged: false, list: [], total: 0 });
     toast('登录已失效，请重新登录');
@@ -246,6 +256,7 @@ export class AdminView extends View {
   }
 
   logout() {
+    this.listRequestId += 1;
     request('/api/admin/logout', 'POST', {}, this.adminHeader(), { silent: true }).catch(() => {});
     removeStorage('adminToken');
     this.setData({ adminToken: '', adminName: '', logged: false, list: [], total: 0 });
@@ -269,33 +280,51 @@ export class AdminView extends View {
     if (status && status !== '全部') query.push(`status=${status}`);
     const qs = query.length ? `?${query.join('&')}` : '';
     this.setData({ exporting: true });
-    request(`/api/admin/export${qs}`, 'GET', {}, this.authHeaders())
-      .then((rows) => {
-        if (!rows || !rows.length) return this.notify('该条件下暂无数据');
-        const header = Object.keys(rows[0]);
-        const NL = String.fromCharCode(10);
-        const CR = String.fromCharCode(13);
-        const badChars = [',', '"', NL, CR];
-        const needsQuote = (v) => badChars.some((ch) => String(v).includes(ch));
-        const esc = (v) => {
-          v = String(v == null ? '' : v);
-          if (/^[=+\-@]/.test(v)) v = "'" + v;
-          return needsQuote(v) ? `"${v.replace(/"/g, '""')}"` : v;
-        };
-        const bom = String.fromCharCode(65279);
-        const lines = [bom + header.join(',')].concat(
-          rows.map((row) => header.map((h) => esc(h === '审核状态' ? (statusMap[row[h]] || row[h]) : row[h])).join(','))
-        );
-        const blob = new Blob([lines.join(NL + CR)], { type: 'text/csv;charset=utf-8' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `参会名单_${city}_${statusMap[status] || status}_${new Date().toISOString().slice(0, 10)}.csv`;
-        link.click();
-        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-        this.notify(`已导出 ${rows.length} 条`, 'success');
+    fetch(`${config.apiBase}/api/admin/export.csv${qs}`, { headers: this.adminHeader() })
+      .then(async (response) => {
+        const type = response.headers.get('content-type') || '';
+        if (!response.ok || !type.includes('text/csv')) {
+          const error = await response.json().catch(() => ({}));
+          if (response.status === 404 || error.code === 1002) return this.exportLegacyCsv(qs, city, status, statusMap);
+          if (error.code === 1001) this.expireSession();
+          throw new Error(error.message || '导出失败');
+        }
+        const blob = await response.blob();
+        this.downloadCsv(blob, city, statusMap[status] || status);
+        this.notify('导出完成', 'success');
       })
-      .catch(() => {})
-      .finally(() => this.setData({ phoneLogging: false, exporting: false }));
+      .catch((error) => this.notify(error.message || '导出失败，请稍后重试'))
+      .finally(() => this.setData({ exporting: false }));
+  }
+
+  /** 发布期间兼容尚未升级、没有 /export.csv 的旧后端。 */
+  exportLegacyCsv(qs, city, status, statusMap) {
+    return request(`/api/admin/export${qs}`, 'GET', {}, this.adminHeader(), { silent: true })
+      .then((rows) => {
+        if (!rows || !rows.length) {
+          this.notify('该条件下暂无数据');
+          return;
+        }
+        const header = Object.keys(rows[0]);
+        const escapeCsv = (value) => {
+          let text = String(value == null ? '' : value);
+          if (/^[=+\-@]/.test(text)) text = "'" + text;
+          return /[,"\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+        };
+        const lines = ['\uFEFF' + header.join(',')].concat(rows.map((row) =>
+          header.map((key) => escapeCsv(key === '审核状态' ? (statusMap[row[key]] || row[key]) : row[key])).join(',')));
+        this.downloadCsv(new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }),
+          city, statusMap[status] || status);
+        this.notify(`已导出 ${rows.length} 条`, 'success');
+      });
+  }
+
+  downloadCsv(blob, city, status) {
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `参会名单_${city}_${status}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   }
 
   /** 导出抽奖码：抽奖码、姓名、公司、手机号，可按场次过滤 */
@@ -337,20 +366,61 @@ export class AdminView extends View {
     this.fetchList(true);
   }
 
+  setReviewCity(event, dataset) {
+    this.assign({ reviewCity: dataset.city || '全部' });
+    this.fetchList(true);
+  }
+
+  onReviewNameInput(event) {
+    // 只记录输入，不自动搜索；由回车或「搜索」按钮触发 searchReview
+    this.assign({ reviewName: event.target.value.slice(0, 64) });
+  }
+
+  searchReview(event) {
+    if (this.data.loading) return; // 加载中不重复提交，避免连点卡住
+    if (event && event.target) {
+      const input = event.target.querySelector('input');
+      if (input) this.assign({ reviewName: input.value.slice(0, 64) });
+    }
+    this.fetchList(true);
+  }
+
+  /** 按当前筛选条件（状态/区域/关键词）重新拉取列表 */
+  refreshReview() {
+    if (this.data.loading) return;
+    this.fetchList(true);
+  }
+
+  clearReviewName() {
+    this.assign({ reviewName: '' });
+    this.searchReview();
+  }
+
   fetchList(reset) {
     if (this.data.loading && !reset) return;
+    const requestId = ++this.listRequestId;
     const page = reset ? 1 : this.data.page + 1;
     this.assign({ loading: true });
 
     const status = this.data.statusFilter;
-    const query = `?page=${page}&size=${PAGE_SIZE}${status ? `&status=${encodeURIComponent(status)}` : ''}`;
+    const city = this.data.reviewCity;
+    const name = this.data.reviewName.trim();
+    const query = `?page=${page}&size=${PAGE_SIZE}`
+      + `${status ? `&status=${encodeURIComponent(status)}` : ''}`
+      + `${city && city !== '全部' ? `&city=${encodeURIComponent(city)}` : ''}`
+      + `${name ? `&name=${encodeURIComponent(name)}` : ''}`;
 
     return this.adminRequest(`/api/admin/applications${query}`)
       .then((result) => {
+        if (requestId !== this.listRequestId) return;
         const records = ((result && result.records) || []).map((item) => ({
           ...item,
           statusText: STATUS_TEXT[item.status] || item.status,
           checkedIn: !!item.checkedInAt,
+          matchedNames: name && Array.isArray(item.attendees)
+            ? [...new Set(item.attendees.filter((guest) => guest.name && guest.name.includes(name) && guest.name !== item.name)
+              .map((guest) => guest.name))].join('、') : '',
+          dupNames: Array.isArray(item.duplicateNames) ? [...new Set(item.duplicateNames)].join('、') : '',
         }));
         const list = reset ? records : this.data.list.concat(records);
         const total = Number((result && result.total) || 0);
@@ -363,7 +433,9 @@ export class AdminView extends View {
         }
       })
       .catch(() => {})
-      .finally(() => this.setData({ loading: false }));
+      .finally(() => {
+        if (requestId === this.listRequestId) this.setData({ loading: false });
+      });
   }
 
   /* ---------- 现场通道 ---------- */
@@ -729,6 +801,7 @@ export class AdminView extends View {
       </div>
       <div class="export-panel">
         <div class="export-title">导出名单</div>
+        <p>每位参会人一行，包含个人及住宿信息、桌号、登记身份、审核状态与备注、入场核验状态及时间、签到状态、签到次数和首次／最近签到时间。选择“全部”可导出所有登记人员。</p>
         <div class="export-row">
           <span class="export-label">场次</span>
           ${['全部', '佛山', '济南', '上海'].map((cityItem) => html`
@@ -737,12 +810,12 @@ export class AdminView extends View {
         </div>
         <div class="export-row">
           <span class="export-label">状态</span>
-          ${['全部', 'PENDING', 'APPROVED'].map((statusItem) => html`
+          ${EXPORT_STATUS_OPTIONS.map(([statusItem, label]) => html`
             <div class="export-chip tap ${cx({ active: this.data.exportStatus === statusItem })}"
-                 data-status="${statusItem}" data-tap="setExportStatus">${{ 全部: '全部', PENDING: '待审核', APPROVED: '已通过' }[statusItem]}</div>`)}
+                 data-status="${statusItem}" data-tap="setExportStatus">${label}</div>`)}
         </div>
         <button type="button" class="btn export-btn" ${this.data.exporting ? 'disabled' : ''} data-tap="doExport">
-          ${this.data.exporting ? '导出中 ···' : '导出 Excel 名单'}
+          ${this.data.exporting ? '导出中 ···' : '导出 CSV 名单（Excel 可打开）'}
         </button>
         <button type="button" class="btn export-btn" ${this.data.exporting ? 'disabled' : ''} data-tap="exportCodes">
           导出抽奖码
@@ -762,8 +835,22 @@ export class AdminView extends View {
           <div class="tab tap ${cx({ active: this.data.statusFilter === status })}" data-status="${status}" data-tap="switchTab">${label}</div>
         `)}
       </div>
+      <div class="export-row review-city-row">
+        <span class="export-label">区域</span>
+        ${['全部', '佛山', '济南', '上海'].map((cityItem) => html`
+          <div class="export-chip tap ${cx({ active: this.data.reviewCity === cityItem })}"
+               data-city="${cityItem}" data-tap="setReviewCity">${cityItem}</div>`)}
+      </div>
+      <form class="review-search" data-submit="searchReview">
+        <input name="reviewName" type="search" maxlength="64" value="${this.data.reviewName}"
+               placeholder="搜索姓名或手机号" data-input="onReviewNameInput" />
+        <button type="submit" ${this.data.loading ? 'disabled' : ''}>${this.data.loading ? '搜索中 ···' : '搜索'}</button>
+        <button type="button" ${this.data.loading ? 'disabled' : ''} data-tap="refreshReview">刷新</button>
+        ${when(this.data.reviewName, html`<button type="button" data-tap="clearReviewName">清空</button>`)}
+      </form>
 
-      ${when(!this.data.list.length, html`<div class="empty">暂无登记记录</div>`)}
+      ${when(this.data.loading, () => html`<div class="searching-hint"><span class="spin"></span>加载中，请稍候…</div>`)}
+      ${when(!this.data.loading && !this.data.list.length, html`<div class="empty">暂无登记记录</div>`)}
 
       ${this.data.list.map((item) => html`
         <div class="card">
@@ -772,6 +859,8 @@ export class AdminView extends View {
             <span class="status ${item.status}">${item.checkedIn ? '已入场' : item.statusText}</span>
           </div>
           <div class="info">${item.phone} / ${item.company || '未填写'} / ${item.position || '未填写'}</div>
+          ${when(item.matchedNames, html`<div class="info">匹配同行人：${item.matchedNames}</div>`)}
+          ${when(item.status === 'PENDING' && item.dupNames, html`<div class="dup-name-warning">同名提醒：${item.dupNames} 已有相同姓名的参会登记，请注意审核</div>`)}
           ${when(item.reason, html`<div class="reason">${item.reason}</div>`)}
           ${when(item.reviewRemark, html`<div class="remark">审核备注：${item.reviewRemark}</div>`)}
           ${when(item.status === 'PENDING', () => html`
@@ -894,11 +983,52 @@ export class AdminView extends View {
     `;
   }
 
+  setAttendanceCity(event, dataset) {
+    const city = dataset.city || '全部';
+    if (city === this.data.attendanceCity) return;
+    this.assign({ attendanceCity: city });
+    this.loadAttendance();
+  }
+
+  /**
+   * 签到名单：按区域拉取全部参会人，已签到者按最近签到时间倒序排在最前，
+   * 新签到的（30 分钟内）行高亮，方便现场一眼看到最新签到的人。
+   */
   async loadAttendance() {
+    this.assign({ attendanceLoading: true });
+    const city = this.data.attendanceCity === '全部' ? '' : this.data.attendanceCity;
     try {
-      const rows = await this.adminRequest('/api/admin/export');
-      this.setData({ attendanceRows: rows });
+      const rows = await this.adminRequest(`/api/admin/export${city ? `?city=${encodeURIComponent(city)}` : ''}`);
+      const checked = rows.filter((row) => row['签到状态'] === '已签到');
+      const unchecked = rows.filter((row) => row['签到状态'] !== '已签到');
+      checked.sort((a, b) => String(b['最近签到时间'] || '').localeCompare(String(a['最近签到时间'] || '')));
+      this.setData({
+        attendanceRows: checked.concat(unchecked),
+        attendanceUpdatedAt: new Date().toTimeString().slice(0, 5),
+      });
+      this.scheduleAttendanceRefresh();
     } catch (_) {}
+    this.assign({ attendanceLoading: false });
+  }
+
+  /** 名单加载后每 30 秒静默刷新，签到后最新的人自动排到最前。 */
+  scheduleAttendanceRefresh() {
+    if (this.attendanceTimer) {
+      clearTimeout(this.attendanceTimer);
+      this.timers.delete(this.attendanceTimer);
+    }
+    this.attendanceTimer = this.later(() => {
+      this.attendanceTimer = null;
+      this.loadAttendance();
+    }, 30000);
+  }
+
+  /** 30 分钟内签过的行标记为“刚签到” */
+  attFresh(row) {
+    const latest = row['最近签到时间'];
+    if (!latest) return false;
+    const time = new Date(String(latest).replace('T', ' ').replace(/-/g, '/'));
+    return Number.isFinite(time.getTime()) && Date.now() - time.getTime() < 30 * 60 * 1000;
   }
 
   async attendanceHistory(event, dataset) {
@@ -912,11 +1042,25 @@ export class AdminView extends View {
   attendancePanel() {
     const history = this.data.attendanceHistory || {};
     const person = this.data.attendancePerson || {};
+    const rows = this.data.attendanceRows || [];
+    const checkedCount = rows.filter((row) => row['签到状态'] === '已签到').length;
     return html`<div class="seat-panel">
       <div class="seat-head"><span>签到管理</span><span>每人独立签到，每次扫码保留记录</span></div>
-      <button type="button" class="seat-file-btn" data-tap="loadAttendance">查看 / 刷新签到名单</button>
+      <div class="export-row attendance-city-row">
+        <span class="export-label">区域</span>
+        ${['全部', '佛山', '济南', '上海'].map((city) => html`
+          <div class="export-chip tap ${cx({ active: this.data.attendanceCity === city })}"
+               data-city="${city}" data-tap="setAttendanceCity">${city}</div>`)}
+      </div>
+      <button type="button" class="seat-file-btn" ${this.data.attendanceLoading ? 'disabled' : ''} data-tap="loadAttendance">
+        ${this.data.attendanceLoading ? '刷新中 ···' : (rows.length ? '刷新签到名单' : '查看签到名单')}
+      </button>
+      ${when(rows.length, () => html`
+        <div class="attendance-summary">
+          已签到 ${checkedCount} 人 / 共 ${rows.length} 人 · 最新签到排在最前${this.data.attendanceUpdatedAt ? ` · ${this.data.attendanceUpdatedAt} 更新` : ''}
+        </div>`)}
       <div style="overflow:auto;max-height:420px"><table class="pc-table"><thead><tr><th>姓名</th><th>手机号</th><th>场次</th><th>签到状态</th><th>次数</th><th>最近签到</th><th>明细</th></tr></thead><tbody>
-      ${(this.data.attendanceRows || []).map(row => html`<tr><td>${row['姓名']}</td><td>${row['手机号']}</td><td>${row['场次']}</td><td>${row['签到状态']}</td><td>${row['签到次数']}</td><td>${row['最近签到时间'] || '—'}</td><td><button type="button" class="seat-file-btn" data-tap="attendanceHistory" data-id="${row['登记编号']}" data-phone="${row['手机号']}">记录</button></td></tr>`)}</tbody></table></div>
+      ${rows.map((row) => html`<tr class="${cx({ 'att-recent': this.attFresh(row) })}"><td>${row['姓名']}</td><td>${row['手机号']}</td><td>${row['场次']}</td><td>${row['签到状态']}</td><td>${row['签到次数']}</td><td>${row['最近签到时间'] ? String(row['最近签到时间']).replace('T', ' ') : '—'}</td><td><button type="button" class="seat-file-btn" data-tap="attendanceHistory" data-id="${row['登记编号']}" data-phone="${row['手机号']}">记录</button></td></tr>`)}</tbody></table></div>
       ${when(this.data.attendanceHistory, () => html`<p>${person.phone} · 共 ${history.total} 次签到</p>
         ${(history.records || []).map(record => html`<p>${record.name} · ${record.eventCity} · ${String(record.scannedAt).replace('T', ' ')}</p>`)}
         ${when(history.current > 1, html`<button type="button" class="seat-file-btn" data-tap="attendanceHistory" data-id="${person.id}" data-phone="${person.phone}" data-page="${history.current - 1}">上一页</button>`)}
@@ -1105,11 +1249,27 @@ export class AdminView extends View {
       <section id="sec-review" class="pc-card">
         <div class="pc-card-head">
           <h3>登记审核</h3>
-          <div class="pc-tabs">
+          <div class="pc-review-filters">
+            <div class="pc-tabs">
+              <span class="pc-filter-label">区域</span>
+              ${['全部', '佛山', '济南', '上海'].map((cityItem) => html`
+                <div class="pc-chip tap ${cx({ active: this.data.reviewCity === cityItem })}" data-city="${cityItem}" data-tap="setReviewCity">${cityItem}</div>`)}
+            </div>
+            <div class="pc-tabs">
+              <span class="pc-filter-label">状态</span>
             ${[['', '全部'], ['PENDING', '待审核'], ['APPROVED', '已通过'], ['REJECTED', '已驳回']].map(([status, label]) => html`
               <div class="pc-chip tap ${cx({ active: this.data.statusFilter === status })}" data-status="${status}" data-tap="switchTab">${label}</div>`)}
+            </div>
           </div>
         </div>
+        <form class="pc-review-search" data-submit="searchReview">
+          <input name="reviewName" type="search" maxlength="64" value="${this.data.reviewName}"
+                 placeholder="搜索姓名或手机号" data-input="onReviewNameInput" />
+          <button type="submit" class="pc-btn primary" ${this.data.loading ? 'disabled' : ''}>${this.data.loading ? '搜索中 ···' : '搜索'}</button>
+          <button type="button" class="pc-btn ghost" ${this.data.loading ? 'disabled' : ''} data-tap="refreshReview">刷新</button>
+          ${when(this.data.reviewName, html`<button type="button" class="pc-btn ghost" data-tap="clearReviewName">清空</button>`)}
+        </form>
+        ${when(this.data.loading, () => html`<div class="searching-hint"><span class="spin"></span>加载中，请稍候…</div>`)}
         <table class="pc-table">
           <thead>
             <tr><th>姓名</th><th>手机号</th><th>公司</th><th>职位</th><th>状态</th><th class="pc-col-actions">操作</th></tr>
@@ -1117,7 +1277,7 @@ export class AdminView extends View {
           <tbody>
             ${this.data.list.map((item) => html`
               <tr>
-                <td>${item.checkedIn ? '✓ ' : ''}${item.name}</td>
+                <td>${item.checkedIn ? '✓ ' : ''}${item.name}${when(item.matchedNames, html`<div class="pc-match-name">匹配同行人：${item.matchedNames}</div>`)}${when(item.status === 'PENDING' && item.dupNames, html`<div class="pc-dup-warning">同名提醒：${item.dupNames} 已有相同姓名的参会登记，请注意审核</div>`)}</td>
                 <td>${item.phone}</td>
                 <td>${item.company || '—'}</td>
                 <td>${item.position || '—'}</td>
@@ -1129,7 +1289,7 @@ export class AdminView extends View {
                   ${when(item.status !== 'PENDING' && item.reviewRemark, html`<span class="pc-remark" title="${item.reviewRemark}">有备注</span>`)}
                 </td>
               </tr>`)}
-            ${when(!this.data.list.length, () => html`<tr><td colspan="6" class="pc-empty">暂无登记记录</td></tr>`)}
+            ${when(!this.data.loading && !this.data.list.length, () => html`<tr><td colspan="6" class="pc-empty">暂无登记记录</td></tr>`)}
           </tbody>
         </table>
         ${when(this.data.hasMore, () => html`<button type="button" class="pc-btn ghost pc-load-more" data-tap="loadMore">加载更多</button>`)}
@@ -1137,6 +1297,7 @@ export class AdminView extends View {
 
       <section id="sec-export" class="pc-card">
         <div class="pc-card-head"><h3>导出名单</h3></div>
+        <p>每位参会人一行，包含个人及住宿信息、桌号、登记身份、审核状态与备注、入场核验状态及时间、签到状态、签到次数和首次／最近签到时间。选择“全部”可导出所有登记人员。</p>
         <div class="pc-form-row">
           <span class="pc-form-label">场次</span>
           ${['全部', '佛山', '济南', '上海'].map((cityItem) => html`
@@ -1144,7 +1305,7 @@ export class AdminView extends View {
         </div>
         <div class="pc-form-row">
           <span class="pc-form-label">状态</span>
-          ${[['', '全部'], ['PENDING', '待审核'], ['APPROVED', '已通过']].map(([status, label]) => html`
+          ${EXPORT_STATUS_OPTIONS.map(([status, label]) => html`
             <div class="pc-chip tap ${cx({ active: this.data.exportStatus === status })}" data-status="${status}" data-tap="setExportStatus">${label}</div>`)}
         </div>
         <button type="button" class="pc-btn primary" ${this.data.exporting ? 'disabled' : ''} data-tap="doExport">
@@ -1158,7 +1319,8 @@ export class AdminView extends View {
       <section id="sec-seats" class="pc-card">${this.pcSeatPanel()}</section>
       <section id="sec-entry" class="pc-card">${this.entryQrPanel()}
       ${this.attendancePanel()}${this.pcPassPanel()}</section>
-      <section id="sec-security" class="pc-card">${this.securityPanel()}${this.lotterySettingsPanel()}${this.userDevicePanel()}</section>
+      <section id="sec-security" class="pc-card">${this.securityPanel()}${this.lotterySettingsPanel()}</section>
+      <section id="sec-devices" class="pc-card">${this.userDevicePanel()}</section>
     `);
   }
 
@@ -1168,7 +1330,7 @@ export class AdminView extends View {
         <aside class="pc-side">
           <div class="pc-brand">审核后台<span>ADMIN CONSOLE</span></div>
           <nav class="pc-nav">
-            ${[['sec-review', '登记审核'], ['sec-export', '导出名单'], ['sec-seats', '桌位导入'], ['sec-entry', '入口与通道'], ['sec-security', '安全与设备']].map(([id, label]) => html`
+            ${[['sec-review', '登记审核'], ['sec-export', '导出名单'], ['sec-seats', '桌位导入'], ['sec-entry', '入口与通道'], ['sec-security', '安全设置'], ['sec-devices', '用户设备管理']].map(([id, label]) => html`
               <a class="${cx({ active: this.data.pcSection === id })}" data-target="${id}" data-tap="pcGoSection">${label}</a>`)}
           </nav>
           <div class="pc-side-foot">
