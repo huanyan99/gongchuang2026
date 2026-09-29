@@ -20,6 +20,90 @@ body.admin-pc-open #adminLayer {
   display: block;
 }
 
+/*
+ * ui.css 里的 .modal / .toast 是按 750 设计稿写的（在手机画布里靠 zoom 缩小显示）。
+ * 电脑模式下弹层挂在 #adminLayer，脱离了 zoom，直接用会大出一倍多——
+ * 这里把它们换算成桌面尺寸，并补上手机画布之外不再生效的 input 默认样式。
+ */
+body.admin-pc-open #adminLayer .modal {
+  width: 400px;
+  border-radius: 12px;
+}
+
+body.admin-pc-open #adminLayer .modal-title {
+  padding: 22px 24px 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+body.admin-pc-open #adminLayer .modal-content {
+  padding: 10px 24px 22px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+body.admin-pc-open #adminLayer .modal-title + .modal-content {
+  padding-top: 8px;
+}
+
+body.admin-pc-open #adminLayer .modal-input {
+  margin: 0 24px 18px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+body.admin-pc-open #adminLayer .modal-input input {
+  width: 100%;
+  padding: 2px 0;
+  color: #1c2740;
+  background: transparent;
+  border: 0;
+  outline: none;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+body.admin-pc-open #adminLayer .modal-actions button {
+  height: 44px;
+  font-size: 14px;
+  line-height: 44px;
+  cursor: pointer;
+}
+
+body.admin-pc-open #adminLayer .modal-actions button:hover {
+  background: #f2f5fb;
+}
+
+body.admin-pc-open #adminLayer .toast {
+  padding: 10px 16px;
+  max-width: 320px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+body.admin-pc-open #adminLayer .toast.with-icon {
+  width: 120px;
+  padding: 14px 10px 10px;
+}
+
+body.admin-pc-open #adminLayer .toast-icon {
+  width: 38px;
+  height: 38px;
+  margin: 0 auto 10px;
+  border-width: 3px;
+}
+
+body.admin-pc-open #adminLayer .toast-icon::after {
+  left: 9px;
+  top: 7px;
+  width: 12px;
+  height: 20px;
+  border-right-width: 3px;
+  border-bottom-width: 3px;
+}
+
 /* PC 后台的页面容器脱离 H5 画布约束（.view 默认 absolute + inset:0 + overflow:hidden，
    会把内容锁死在一屏内无法滚动），恢复文档流由 body 整页滚动 */
 .admin-pc .view.admin-pc-view {
@@ -557,50 +641,10 @@ body.admin-pc-open .admin-pc {
   color: #26397b;
 }
 
-.admin-pc .seat-input {
-  width: 100%;
-  margin-top: 16px;
-  padding: 12px 14px;
-  border: 1px solid #c9d1e0;
-  border-radius: 8px;
-  box-sizing: border-box;
-  color: #17233f;
-  font-size: 14px;
-  font-family: inherit;
-  resize: vertical;
-}
-
-.admin-pc .seat-input:focus {
-  outline: none;
-  border-color: #26397b;
-}
-
 .admin-pc .seat-tip {
   margin-top: 10px;
   color: #9aa3b5;
   font-size: 13px;
-}
-
-.admin-pc .seat-preview {
-  margin-top: 12px;
-  padding: 10px 14px;
-  background: #f7f9fd;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #5c6478;
-}
-
-.admin-pc .seat-preview-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px 0;
-}
-
-.admin-pc .seat-preview-more {
-  margin-top: 6px;
-  color: #9aa3b5;
-  font-size: 12px;
-  text-align: center;
 }
 
 .admin-pc .btn.seat-btn,

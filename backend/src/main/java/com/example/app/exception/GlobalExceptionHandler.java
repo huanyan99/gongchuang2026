@@ -87,6 +87,13 @@ public class GlobalExceptionHandler {
         if (msg.contains("gonghcuang_invitation")) {
             return Result.fail(ErrorCode.INVITATION_CODE_CONFLICT);
         }
+        // 桌位/开关的并发冲突不能沿用「手机号已提交过申报」的说法
+        if (msg.contains("gonghcuang_seat") || msg.contains("gonghcuang_table")) {
+            return Result.fail(ErrorCode.CONFLICT, "该场次桌位正在被其他管理员更新，请刷新后重试");
+        }
+        if (msg.contains("gonghcuang_setting")) {
+            return Result.fail(ErrorCode.CONFLICT, "该开关正被其他管理员修改，请重试");
+        }
         return Result.fail(ErrorCode.APPLY_DUPLICATED);
     }
 

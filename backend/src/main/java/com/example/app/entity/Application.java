@@ -41,6 +41,11 @@ public class Application {
 
     private LocalDateTime reviewedAt;
 
+    /** 审核人（后台管理员或邀请人），历史数据为空 */
+    private Long reviewedBy;
+
+    private String reviewedByName;
+
     private LocalDateTime checkedInAt;
 
     /** 嘉宾主动修改次数，最多 2 次 */

@@ -140,8 +140,11 @@ public class ApplicationService {
         }
         int updated = applicationMapper.resubmit(current.getId(), effectiveInvitationCode,
                 trimToEmpty(primary.getName()), phone,
-                trimToEmpty(primary.getCompany()), trimToEmpty(primary.getPosition()), trimToEmpty(req.getReason()));
-        if (updated == 0) throw new BizException(ErrorCode.CONFLICT, "登记信息最多修改两次");
+                trimToEmpty(primary.getCompany()), trimToEmpty(primary.getPosition()), trimToEmpty(req.getReason()),
+                editCount, current.getStatus());
+        if (updated == 0) {
+            throw new BizException(ErrorCode.CONFLICT, "登记状态已变化（可能刚被审核），请刷新后确认再修改");
+        }
         applicationGuestMapper.delete(new LambdaQueryWrapper<ApplicationGuest>()
                 .eq(ApplicationGuest::getApplicationId, current.getId()));
         insertGuests(current.getId(), guests);
@@ -612,6 +615,12 @@ public class ApplicationService {
      */
     @Transactional
     public Application review(Long id, ApplyStatus target, String remark) {
+        return review(id, target, remark, null, null);
+    }
+
+    /** 带审核人留痕的审核；操作人可为后台管理员或邀请人 */
+    @Transactional
+    public Application review(Long id, ApplyStatus target, String remark, Long operatorId, String operatorName) {
         if (target == null || target == ApplyStatus.PENDING) {
             throw new BizException(ErrorCode.BAD_REQUEST, "目标状态不能是 PENDING");
         }
@@ -622,7 +631,7 @@ public class ApplicationService {
         if (isFinalStatus(current.getStatus())) {
             throw new BizException(ErrorCode.APPLY_ALREADY_REVIEWED);
         }
-        int updated = applicationMapper.reviewIfPending(id, target.name(), trimToNull(remark));
+        int updated = applicationMapper.reviewIfPending(id, target.name(), trimToNull(remark), operatorId, operatorName);
         if (updated == 0) {
             throw new BizException(ErrorCode.APPLY_ALREADY_REVIEWED);
         }

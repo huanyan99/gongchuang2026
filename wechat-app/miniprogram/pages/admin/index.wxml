@@ -36,7 +36,7 @@
 
     <view class="seat-panel">
       <view class="seat-head">
-        <text>桌位批量导入</text>
+        <text>桌位分配</text>
         <text>{{seatSummary}}</text>
       </view>
       <view class="seat-row">
@@ -45,23 +45,8 @@
           <view class="seat-value">{{cityOptions[cityIndex]}} ›</view>
         </picker>
       </view>
-      <view class="seat-row">
-        <text class="seat-label">导入方式</text>
-        <picker range="{{modeOptions}}" value="{{modeIndex}}" bindchange="onSeatModeChange">
-          <view class="seat-value">{{modeOptions[modeIndex]}} ›</view>
-        </picker>
-      </view>
-      <textarea
-        class="seat-input"
-        placeholder="每行一位嘉宾：姓名,手机号,桌号"
-        placeholder-class="seat-ph"
-        value="{{seatText}}"
-        bindinput="onSeatTextInput"
-        auto-height="{{true}}"
-        cursor-spacing="80"
-      />
-      <view class="seat-tip">{{seatParseTip}}</view>
-      <button class="btn seat-btn" loading="{{seatImporting}}" disabled="{{seatImporting}}" bindtap="importSeats">导入桌位</button>
+      <view class="seat-tip">桌位分配请在电脑端后台操作：左侧人员、右侧桌位，可拖动分配。小程序端只提供统计。</view>
+      <button class="btn seat-btn" bindtap="showSeatBoardHint">分配说明</button>
     </view>
 
     <view class="seat-panel">

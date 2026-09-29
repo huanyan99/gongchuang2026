@@ -335,65 +335,11 @@
   font-weight: 700;
 }
 
-.view--admin .seat-input {
-  width: 100%;
-  min-height: 220px;
-  margin-top: 20px;
-  padding: 22px;
-  color: #111111;
-  font-size: 24px;
-  line-height: 1.7;
-  background: #f7f9fd;
-  border: 1px solid #e3e7f0;
-  border-radius: 12px;
-  box-sizing: border-box;
-  overflow: auto;
-  resize: none;
-}
-
-.view--admin .seat-input::placeholder {
-  color: #b8bec9;
-}
-
 .view--admin .seat-tip {
   margin-top: 16px;
   color: #8c94a3;
   font-size: 21px;
   line-height: 1.6;
-}
-
-.view--admin .seat-preview {
-  margin-top: 18px;
-  padding: 18px 20px;
-  background: #f7f9fd;
-  border: 1px solid #e7eaf1;
-  border-radius: 12px;
-}
-
-.view--admin .seat-preview-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 10px;
-  color: #24345c;
-  font-size: 22px;
-}
-
-.view--admin .seat-preview-row:first-child {
-  margin-top: 0;
-}
-
-.view--admin .seat-preview-row span:nth-child(2) {
-  color: #8c94a3;
-}
-
-.view--admin .seat-preview-more {
-  margin-top: 14px;
-  padding-top: 12px;
-  color: #9aa0a8;
-  font-size: 20px;
-  text-align: center;
-  border-top: 1px solid #e7eaf1;
 }
 
 .view--admin .seat-btn {

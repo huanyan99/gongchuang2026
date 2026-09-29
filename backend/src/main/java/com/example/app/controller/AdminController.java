@@ -8,10 +8,9 @@ import com.example.app.dto.AdminPasswordRequest;
 import com.example.app.dto.AccessPassRequest;
 import com.example.app.dto.CheckinRequest;
 import com.example.app.dto.ReviewRequest;
-import com.example.app.dto.SeatImportRequest;
+import com.example.app.dto.SeatBoardSaveRequest;
 import com.example.app.entity.Application;
 import com.example.app.entity.Invitation;
-import com.example.app.entity.Seat;
 import com.example.app.entity.AdminUser;
 import com.example.app.entity.User;
 import com.example.app.mapper.UserMapper;
@@ -20,7 +19,7 @@ import com.example.app.service.InvitationService;
 import com.example.app.service.AdminAccountService;
 import com.example.app.service.LotteryService;
 import com.example.app.service.PassService;
-import com.example.app.service.SeatService;
+import com.example.app.service.SeatBoardService;
 import com.example.app.service.SettingService;
 import com.example.app.service.LoginAuditService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -59,7 +58,7 @@ public class AdminController {
     private final AdminAccountService adminAccountService;
     private final PassService passService;
     private final UserMapper userMapper;
-    private final SeatService seatService;
+    private final SeatBoardService seatBoardService;
     private final SettingService settingService;
     private final LoginAuditService loginAuditService;
 
@@ -158,9 +157,11 @@ public class AdminController {
         adminAccountService.require(adminToken);
         User user = userMapper.selectById(id);
         if (user == null) throw new com.example.app.common.BizException(com.example.app.common.ErrorCode.NOT_FOUND, "用户不存在");
-        user.setCanInvite(canInvite);
-        user.setCanReview(canReview);
-        userMapper.updateById(user);
+        // 只更新这两列：整行回写会把另一位管理员刚改的字段一起覆盖回去
+        userMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<User>()
+                .eq(User::getId, id)
+                .set(User::getCanInvite, canInvite)
+                .set(User::getCanReview, canReview));
         return Result.ok(userMapper.selectById(id));
     }
 
@@ -201,8 +202,9 @@ public class AdminController {
     public Result<Application> review(@PathVariable @Min(1) Long id,
                                       @Valid @RequestBody ReviewRequest req,
                                       @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
-        adminAccountService.require(adminToken);
-        return Result.ok(applicationService.review(id, ApplyStatus.of(req.getStatus()), req.getRemark()));
+        AdminUser reviewer = adminAccountService.require(adminToken);
+        return Result.ok(applicationService.review(id, ApplyStatus.of(req.getStatus()), req.getRemark(),
+                reviewer.getId(), reviewer.getDisplayName()));
     }
 
     /** 扫码入场核验 */
@@ -213,31 +215,22 @@ public class AdminController {
         return Result.ok(applicationService.checkIn(req.getToken()));
     }
 
-    /** 批量导入桌位；mode=REPLACE 时先清空该场次 */
-    @PostMapping("/seats/import")
-    public Result<Map<String, Object>> importSeats(@Valid @RequestBody SeatImportRequest req,
-                                                   @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
-        adminAccountService.require(adminToken);
-        List<Seat> rows = req.getRows().stream().map((row) -> {
-            Seat seat = new Seat();
-            seat.setName(row.getName());
-            seat.setPhone(row.getPhone());
-            seat.setTableNo(row.getTableNo());
-            seat.setRemark(row.getRemark());
-            return seat;
-        }).toList();
-        return Result.ok(seatService.importSeats(req.getEventCity(), req.getMode(), rows));
-    }
-
-    /** 桌位分页列表，city 为空查全部 */
-    @GetMapping("/seats")
-    public Result<Map<String, Object>> seats(
-            @RequestParam(required = false) String city,
-            @RequestParam(defaultValue = "1") @Min(1) long page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) long size,
+    /** 桌位分配看板：左侧人员名单 + 右侧桌位定义 + 场次版本号；summaryOnly 只回统计 */
+    @GetMapping("/seats/board")
+    public Result<Map<String, Object>> seatBoard(
+            @RequestParam String city,
+            @RequestParam(defaultValue = "false") boolean summaryOnly,
             @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
         adminAccountService.require(adminToken);
-        return Result.ok(seatService.page(city, page, size));
+        return Result.ok(seatBoardService.board(city, summaryOnly));
+    }
+
+    /** 保存桌位看板：提交最终状态，带版本号，冲突返回 1003 */
+    @PostMapping("/seats/board")
+    public Result<Map<String, Object>> saveSeatBoard(@RequestBody SeatBoardSaveRequest req,
+                                                     @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
+        AdminUser admin = adminAccountService.require(adminToken);
+        return Result.ok(seatBoardService.save(req, admin));
     }
 
     /** 解绑用户设备：邀请人换手机后由管理员放行 */
@@ -249,7 +242,10 @@ public class AdminController {
         if (user == null) {
             throw new com.example.app.common.BizException(com.example.app.common.ErrorCode.NOT_FOUND, "用户不存在");
         }
-        loginAuditService.recordAdminReset(user, admin);
+        // 只有确实绑定过设备才写审计，重复解绑不再重复记账
+        if (user.getDeviceId() != null && !user.getDeviceId().isBlank()) {
+            loginAuditService.recordAdminReset(user, admin);
+        }
         userMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<User>()
                 .eq(User::getId, id)
                 .set(User::getDeviceId, null)
@@ -376,18 +372,19 @@ public class AdminController {
         return Result.ok(settingService.all());
     }
 
-    /** 开关：是否对普通嘉宾也执行一个账号一台设备 */
+    /** 开关：设备绑定 / 抽奖码按场次开放 / 桌位图按场次可见 */
     @PostMapping("/settings/{key}")
     public Result<Map<String, Boolean>> updateSetting(@PathVariable String key,
                                                       @RequestParam boolean enabled,
                                                       @RequestHeader(value = "X-Admin-Token", required = false) String adminToken) {
-        adminAccountService.require(adminToken);
+        AdminUser settingOperator = adminAccountService.require(adminToken);
         if (!SettingService.DEVICE_BINDING_GUESTS.equals(key)
                 && !SettingService.DEVICE_BINDING_INVITERS.equals(key)
-                && !SettingService.LOTTERY_KEYS.containsValue(key)) {
+                && !SettingService.LOTTERY_KEYS.containsValue(key)
+                && !SettingService.SEAT_VISIBLE_KEYS.containsValue(key)) {
             throw new com.example.app.common.BizException(com.example.app.common.ErrorCode.BAD_REQUEST, "未知开关");
         }
-        settingService.setEnabled(key, enabled);
+        settingService.setEnabled(key, enabled, settingOperator.getDisplayName());
         return Result.ok(settingService.all());
     }
 

@@ -31,7 +31,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/api/invitations/**");
         registry.addInterceptor(authInterceptor)
-                .addPathPatterns("/api/seat/**", "/api/attendance/**");
+                .addPathPatterns("/api/seat/**", "/api/attendance/**")
+                // 桌位图可见性是公开开关查询：未登记的嘉宾也要能拿到，否则会先撞登录/审核
+                .excludePathPatterns("/api/seat/visibility");
     }
 
     @Override

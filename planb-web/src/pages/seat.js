@@ -16,6 +16,8 @@ export class SeatView extends View {
     this.data = {
       loading: true,
       eventCity: '',
+      /** 该场次是否对嘉宾开放，由后端场次开关决定 */
+      visible: true,
       published: false,
       mySeats: [],
     };
@@ -24,8 +26,23 @@ export class SeatView extends View {
   onLoad(options) {
     const eventCity = decodeURIComponent(options.city || '');
     this.setData({ eventCity });
-    if (eventCity === '上海') { this.setData({ loading: false }); return; }
-    this.loadSeat();
+    this.checkVisible(eventCity);
+  }
+
+  /**
+   * 先问后端这个场次是否开放（公开接口，不需要登录，也不泄露任何嘉宾数据）。
+   * 未开放就停在「暂未更新~」，与开关上线前的表现完全一致；
+   * 查询失败时退回原逻辑，避免网络抖动把正常场次也挡掉。
+   */
+  checkVisible(eventCity) {
+    if (!eventCity) return this.loadSeat();
+    return request(`/api/seat/visibility?city=${encodeURIComponent(eventCity)}`, 'GET', {}, {}, { silent: true })
+      .then((data) => {
+        if (data && data.visible) return this.loadSeat();
+        this.setData({ loading: false, visible: false });
+        return undefined;
+      })
+      .catch(() => this.loadSeat());
   }
 
   loadSeat() {
@@ -52,6 +69,7 @@ export class SeatView extends View {
     this.setData({
       loading: false,
       eventCity,
+      visible: data.visible !== false,
       published: !!data.published,
       mySeats,
     });
@@ -70,7 +88,7 @@ export class SeatView extends View {
   }
 
   template() {
-    if (this.data.eventCity === '上海') return html`<div class="page-scroll"><div class="page"><div class="head"><img class="head-bg" src="assets/banner.jpg" alt="" /><div class="head-shade"></div><div class="head-copy"><div class="eyebrow">SEATING MAP</div><div class="title">桌位图</div><div class="gold-line"></div><div class="sub">上海场</div></div></div><div class="state-card">暂未更新~</div></div></div>`;
+    if (!this.data.visible) return html`<div class="page-scroll"><div class="page"><div class="head"><img class="head-bg" src="assets/banner.jpg" alt="" /><div class="head-shade"></div><div class="head-copy"><div class="eyebrow">SEATING MAP</div><div class="title">桌位图</div><div class="gold-line"></div><div class="sub">${this.data.eventCity}场</div></div></div><div class="state-card">暂未更新~</div></div></div>`;
     return html`
       <div class="page-scroll">
         <div class="page">

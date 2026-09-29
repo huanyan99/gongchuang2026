@@ -1,0 +1,415 @@
+/* 桌位分配看板（后台大弹窗）：左人员名单、右桌位卡片，支持拖动与点击分配 */
+
+body.sb-open { overflow: hidden; }
+
+.sb-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(8, 14, 32, 0.55);
+}
+
+.sb-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(1240px, 96vw);
+  height: min(880px, 92vh);
+  overflow: hidden;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(8, 18, 46, 0.32);
+  font-size: 13px;
+  color: #1c2740;
+}
+
+/* ---------- 头部 ---------- */
+
+.sb-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #e6ebf5;
+  background: #fbfcfe;
+}
+
+.sb-title { font-size: 15px; font-weight: 600; }
+.sb-city { color: #2f6bff; }
+.sb-stats { flex: 1; color: #5a6784; }
+.sb-stats b { color: #1c2740; font-weight: 600; }
+.sb-version { margin-left: 10px; padding: 1px 6px; border-radius: 4px; background: #eef2f9; color: #8695b3; font-size: 11px; }
+.sb-tools { display: flex; gap: 8px; }
+
+.sb-btn {
+  padding: 6px 14px;
+  border: 1px solid #d5dded;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1c2740;
+  font-size: 13px;
+  cursor: pointer;
+}
+.sb-btn:hover:not(:disabled) { border-color: #2f6bff; color: #2f6bff; }
+.sb-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.sb-btn.primary { background: #2f6bff; border-color: #2f6bff; color: #ffffff; }
+.sb-btn.primary:hover:not(:disabled) { background: #1f56dd; color: #ffffff; }
+.sb-btn.ghost { background: transparent; }
+.sb-btn.small { padding: 4px 10px; font-size: 12px; }
+
+/* ---------- 主体 ---------- */
+
+.sb-body { display: flex; flex: 1; min-height: 0; }
+
+.sb-left {
+  display: flex;
+  flex-direction: column;
+  width: 38%;
+  min-width: 300px;
+  border-right: 1px solid #e6ebf5;
+  min-height: 0;
+}
+
+.sb-left-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eef2f9;
+}
+.sb-search {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #d5dded;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.sb-toggle { display: flex; align-items: center; gap: 4px; color: #5a6784; white-space: nowrap; cursor: pointer; }
+
+.sb-left-body { flex: 1; overflow: auto; padding: 6px 0 12px; }
+
+.sb-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  color: #3d4a66;
+  font-weight: 600;
+  cursor: pointer;
+  background: #f7f9fd;
+}
+.sb-caret { width: 12px; color: #8695b3; }
+.sb-company { flex: 1; }
+.sb-group-count { color: #8695b3; font-weight: 400; }
+
+.sb-person {
+  display: grid;
+  grid-template-columns: minmax(64px, 1fr) auto 44px 60px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 14px;
+  border-left: 3px solid transparent;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.sb-person:hover { background: #f4f8ff; }
+.sb-person.selected { background: #e9f0ff; border-left-color: #2f6bff; }
+.sb-person-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-person-meta { color: #8695b3; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+.sb-person-phone { color: #a3aec7; font-size: 12px; text-align: right; }
+.sb-person-table { color: #2f6bff; font-size: 12px; text-align: right; }
+.sb-person.unassigned .sb-person-table { color: #a3aec7; }
+
+.sb-right { display: flex; flex-direction: column; flex: 1; min-height: 0; background: #f6f8fc; }
+.sb-right-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e6ebf5;
+  background: #fbfcfe;
+}
+.sb-hint { color: #8695b3; font-size: 12px; }
+
+/*
+ * 用 flex 换行，而不是 grid。
+ * grid 的 auto 行高是按「卡片里的 chip 都不换行」估算出来的 max-content 高度，
+ * 实际渲染时 chip 会换行、卡片比行高更高，于是下一行的卡片就盖上来——
+ * 之前 align-items:start 只让卡片自己长高，行高仍然是错的，遮挡照旧。
+ * flex 换行的每一行高度 = 该行最高卡片的高度，卡片永远装得下自己的内容。
+ */
+.sb-tables {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* 显示公司：每张卡一行放不下两个带公司的 chip，改成两列并留出更多竖向空间 */
+.sb-tables.show-company {
+  gap: 12px;
+}
+
+.sb-tables.show-company .sb-table {
+  flex-basis: calc((100% - 12px) / 2);
+}
+
+.sb-tables.show-company .sb-table {
+  min-height: 136px;
+  gap: 8px;
+  padding: 10px;
+}
+
+.sb-tables.show-company .sb-chips {
+  gap: 6px;
+}
+
+.sb-tables.show-company .sb-chip {
+  padding: 4px 5px 4px 9px;
+}
+
+/* 给 × 按钮留位置后两个 chip 要放得下，否则会退化成一行一个、卡片忽高忽低 */
+.sb-tables.show-company .sb-chip-body {
+  max-width: 132px;
+}
+
+.sb-table {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 calc((100% - 20px) / 3);
+  min-width: 0;
+  box-sizing: border-box;
+  gap: 6px;
+  min-height: 108px;
+  padding: 8px;
+  border: 1px solid #e3e8f2;
+  border-radius: 10px;
+  background: #ffffff;
+}
+.sb-table.drop-target { border-color: #2f6bff; box-shadow: 0 0 0 2px rgba(47, 107, 255, 0.25); }
+.sb-table-head { display: flex; align-items: center; gap: 6px; }
+.sb-table-no { flex: 1; font-weight: 600; }
+.sb-table-count { color: #5a6784; font-size: 12px; }
+.sb-table-count.empty { color: #b6c0d4; }
+.sb-icon {
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #8695b3;
+  font-size: 12px;
+  cursor: pointer;
+}
+.sb-icon:hover { border-color: #d5dded; color: #2f6bff; }
+.sb-icon.danger:hover { border-color: #f0b4b4; color: #d64545; }
+
+.sb-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.sb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 8px;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #24406e;
+  font-size: 12px;
+  cursor: grab;
+  touch-action: none;
+}
+/* 成员 chip：姓名 + 可选的公司第二行；同名的人整体标成琥珀色 */
+.sb-chip-body {
+  display: flex;
+  flex-direction: column;
+  max-width: 150px;
+  line-height: 1.3;
+}
+
+.sb-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-chip-company {
+  color: #8695b3;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-chip.dup {
+  background: #fff3e0;
+  color: #8a5300;
+  box-shadow: inset 0 0 0 1px #f0c98a;
+}
+
+.sb-dup-tag {
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: #ffe6bf;
+  color: #8a5300;
+  font-size: 10px;
+  font-style: normal;
+  vertical-align: 1px;
+}
+
+.sb-person.dup {
+  border-left-color: #f0a53a;
+}
+
+.sb-toggle-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #5a6784;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sb-chips-empty { color: #b6c0d4; font-size: 12px; }
+.sb-chip-x {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #7d8bab;
+  line-height: 1;
+  cursor: pointer;
+}
+.sb-chip-x:hover { background: #d7e2ff; color: #d64545; }
+
+.sb-empty { padding: 24px 12px; color: #98a3ba; text-align: center; }
+
+.sb-note {
+  padding: 8px 18px;
+  border-top: 1px solid #e6ebf5;
+  background: #fbfcfe;
+  color: #5a6784;
+  font-size: 12px;
+  min-height: 30px;
+}
+.sb-warn { color: #b06a00; }
+
+.sb-ghost {
+  position: fixed;
+  z-index: 400;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #2f6bff;
+  color: #ffffff;
+  font-size: 12px;
+  pointer-events: none;
+  box-shadow: 0 6px 16px rgba(47, 107, 255, 0.35);
+}
+
+/* ---------- 看板自带的对话框与提示 ----------
+   看板是脱离手机画布的整屏浮层（z-index 300），而全局弹层挂在 #stageLayer（z-index 200）：
+   手机后台模式下全局弹窗会被看板自己盖住，所以对话框与提示都由看板自己渲染。 */
+
+.sb-dialog-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(8, 14, 32, 0.45);
+}
+
+.sb-dialog {
+  width: 100%;
+  max-width: 360px;
+  padding: 20px 22px 0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 18px 44px rgba(8, 18, 46, 0.28);
+  text-align: center;
+}
+
+.sb-dialog-title {
+  color: #1c2740;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.sb-dialog-content {
+  margin-top: 8px;
+  color: #5a6784;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.sb-dialog-input {
+  width: 100%;
+  margin-top: 14px;
+  padding: 9px 12px;
+  border: 1px solid #d5dded;
+  border-radius: 8px;
+  background: #f7f9fd;
+  color: #1c2740;
+  font-family: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.sb-dialog-input:focus {
+  border-color: #2f6bff;
+  background: #ffffff;
+  outline: none;
+}
+
+.sb-dialog-actions {
+  display: flex;
+  gap: 10px;
+  margin: 18px -22px 0;
+  padding: 14px 22px;
+  border-top: 1px solid #eef2f9;
+}
+
+.sb-dialog-actions .sb-btn {
+  flex: 1;
+  padding: 8px 0;
+}
+
+.sb-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 64px;
+  z-index: 30;
+  transform: translateX(-50%);
+  padding: 9px 18px;
+  border-radius: 8px;
+  background: rgba(17, 24, 39, 0.92);
+  color: #ffffff;
+  font-size: 13px;
+  box-shadow: 0 8px 24px rgba(2, 8, 26, 0.3);
+}
+
+/* ---------- 小屏：折叠为上下两块，仍用点击分配 ---------- */
+
+@media (max-width: 900px) {
+  .sb-mask { padding: 0; }
+  .sb-modal { width: 100vw; height: 100vh; border-radius: 0; }
+  .sb-head { flex-wrap: wrap; gap: 8px; }
+  .sb-stats { order: 3; flex-basis: 100%; }
+  .sb-body { flex-direction: column; }
+  .sb-left { width: auto; min-width: 0; height: 46%; border-right: 0; border-bottom: 1px solid #e6ebf5; }
+  .sb-right { height: 54%; }
+  .sb-table { flex-basis: calc((100% - 10px) / 2); }
+  .sb-tables.show-company .sb-table { flex-basis: calc((100% - 12px) / 2); }
+  .sb-tables.show-company .sb-chip-body { max-width: 96px; }
+}

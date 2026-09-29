@@ -3,39 +3,6 @@ const app = getApp();
 const STATUS_TEXT = { PENDING: '待审核', APPROVED: '已通过', REJECTED: '已驳回' };
 const PAGE_SIZE = 20;
 const CITY_OPTIONS = ['上海', '济南', '佛山'];
-const MODE_OPTIONS = ['合并更新', '覆盖该场次'];
-const PHONE = /^1\d{10}$/;
-
-/**
- * 解析批量导入文本：每行「姓名,手机号,桌号」，多余的列忽略。
- * 行内出现逗号/分号/制表符时按分隔符切分，否则按空白切分；首行表头自动跳过。
- */
-function parseSeatRows(text) {
-  const rows = [];
-  const invalidLines = [];
-  let firstContentLine = true;
-
-  String(text || '').replace(/^\uFEFF/, '').split(/\r?\n/).forEach((line, index) => {
-    const raw = line.trim();
-    if (!raw) return;
-    if (firstContentLine && raw.indexOf('姓名') >= 0 && raw.indexOf('手机') >= 0) {
-      firstContentLine = false;
-      return;
-    }
-    firstContentLine = false;
-
-    const parts = (/[,，;；\t]/.test(raw) ? raw.split(/[,，;；\t]+/) : raw.split(/\s+/))
-      .map((item) => item.trim())
-      .filter((item) => item !== '');
-    if (parts.length < 3 || !PHONE.test(parts[1])) {
-      invalidLines.push(index + 1);
-      return;
-    }
-    rows.push({ name: parts[0], phone: parts[1], tableNo: parts[2] });
-  });
-
-  return { rows, invalidLines };
-}
 
 Page({
   data: {
@@ -54,12 +21,6 @@ Page({
     checkinName: '',
     cityOptions: CITY_OPTIONS,
     cityIndex: 0,
-    modeOptions: MODE_OPTIONS,
-    modeIndex: 0,
-    seatText: '',
-    seatRows: [],
-    seatParseTip: '支持从 Excel 直接复制粘贴，每行：姓名,手机号,桌号',
-    seatImporting: false,
     seatSummary: '',
     guestDeviceLimit: false,
     inviterDeviceLimit: true,
@@ -215,62 +176,25 @@ Page({
   onSeatCityChange(e) {
     this.setData({ cityIndex: Number(e.detail.value) }, () => this.loadSeatSummary());
   },
-  onSeatModeChange(e) {
-    this.setData({ modeIndex: Number(e.detail.value) });
-  },
-  onSeatTextInput(e) {
-    const seatText = e.detail.value;
-    const parsed = parseSeatRows(seatText);
-    const invalid = parsed.invalidLines.length;
-    this.setData({
-      seatText,
-      seatRows: parsed.rows,
-      seatParseTip: seatText.trim()
-        ? `已解析 ${parsed.rows.length} 位嘉宾${invalid ? `，第 ${parsed.invalidLines.slice(0, 5).join('、')} 行格式异常` : ''}`
-        : '支持从 Excel 直接复制粘贴，每行：姓名,手机号,桌号',
-    });
-  },
-  importSeats() {
-    if (this.data.seatImporting) return;
-    const rows = this.data.seatRows;
-    if (!rows.length) {
-      wx.showToast({ title: '请先粘贴桌位数据', icon: 'none' });
-      return;
-    }
-    const eventCity = CITY_OPTIONS[this.data.cityIndex];
-    const mode = this.data.modeIndex === 1 ? 'REPLACE' : 'MERGE';
-    const confirmText = mode === 'REPLACE'
-      ? `将清空${eventCity}场原有桌位，并导入 ${rows.length} 位嘉宾的桌号。`
-      : `将按手机号更新或新增 ${rows.length} 位嘉宾的桌号。`;
-
-    wx.showModal({
-      title: '确认导入桌位',
-      content: confirmText,
-      success: (res) => {
-        if (!res.confirm) return;
-        this.setData({ seatImporting: true });
-        app.request('/api/admin/seats/import', 'POST', { eventCity, mode, rows }, {
-          'X-Admin-Token': this.data.adminToken,
-        }).then((result) => {
-          const errors = (result.errors || []).map((item) => `第${item.line}行：${item.message}`);
-          wx.showModal({
-            title: '导入完成',
-            content: `新增 ${result.created} 条，更新 ${result.updated} 条，失败 ${result.failed} 条。\n当前${eventCity}场共 ${result.tableCount} 桌 / ${result.guestCount} 人。${errors.length ? `\n${errors.slice(0, 5).join('\n')}` : ''}`,
-            showCancel: false,
-          });
-          this.setData({ seatText: '', seatRows: [], seatParseTip: '支持从 Excel 直接复制粘贴，每行：姓名,手机号,桌号' });
-          this.loadSeatSummary();
-        }).catch(() => {}).finally(() => this.setData({ seatImporting: false }));
-      },
-    });
-  },
   loadSeatSummary() {
     const eventCity = CITY_OPTIONS[this.data.cityIndex];
-    app.request(`/api/admin/seats?city=${encodeURIComponent(eventCity)}&size=1`, 'GET', {}, {
+    app.request(`/api/admin/seats/board?city=${encodeURIComponent(eventCity)}&summaryOnly=true`, 'GET', {}, {
       'X-Admin-Token': this.data.adminToken,
     }, { silent: true }).then((result) => {
-      this.setData({ seatSummary: `${eventCity}场 ${result.tableCount} 桌 / ${result.guestCount} 人` });
+      const summary = result.summary || {};
+      this.setData({
+        seatSummary: `${eventCity}场 ${summary.tableCount || 0} 桌 / ${summary.peopleCount || 0} 人 · 已分配 ${summary.assigned || 0}`,
+      });
     }).catch(() => this.setData({ seatSummary: '' }));
+  },
+
+  /** 小程序端只提供统计：分配请用电脑端后台的拖拽看板 */
+  showSeatBoardHint() {
+    wx.showModal({
+      title: '桌位分配请用电脑端',
+      content: '电脑端登录审核后台 → 桌位分配，左侧人员、右侧桌位，可拖动分配并保存。小程序端只显示统计。',
+      showCancel: false,
+    });
   },
   review(e) {
     const id = e.currentTarget.dataset.id;

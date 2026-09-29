@@ -114,10 +114,10 @@ public class AdminAccountService {
             throw new BizException(ErrorCode.UNAUTHORIZED, "账号或口令不正确");
         }
 
+        adminUserMapper.markLoginSuccess(admin.getId());
         admin.setFailedCount(0);
         admin.setLockedUntil(null);
         admin.setLastLoginAt(LocalDateTime.now());
-        adminUserMapper.updateById(admin);
         // 登录成功后作废该账号的旧会话，避免多处常驻
         adminSessionMapper.delete(new LambdaQueryWrapper<AdminSession>().eq(AdminSession::getAdminId, admin.getId()));
 
@@ -175,9 +175,15 @@ public class AdminAccountService {
         requireStrongPassword(newPassword);
         byte[] nextSalt = new byte[16];
         random.nextBytes(nextSalt);
-        admin.setPasswordSalt(Base64.getEncoder().encodeToString(nextSalt));
-        admin.setPasswordHash(hash(newPassword, nextSalt));
-        adminUserMapper.updateById(admin);
+        String nextSaltBase64 = Base64.getEncoder().encodeToString(nextSalt);
+        String nextHash = hash(newPassword, nextSalt);
+        // 条件更新：期间被别人改过口令就拒绝，别把对方的新口令覆盖回去
+        if (adminUserMapper.updatePasswordIfHashMatches(admin.getId(), admin.getPasswordHash(),
+                nextSaltBase64, nextHash) != 1) {
+            throw new BizException(ErrorCode.CONFLICT, "口令已被其他会话修改，请重新登录后再改");
+        }
+        admin.setPasswordSalt(nextSaltBase64);
+        admin.setPasswordHash(nextHash);
         adminSessionMapper.delete(new LambdaQueryWrapper<AdminSession>().eq(AdminSession::getAdminId, admin.getId()));
     }
 
@@ -192,14 +198,9 @@ public class AdminAccountService {
         }
     }
 
+    /** 失败计数用数据库原子自增：并发登录时不会因为读改写而丢失计数、绕过锁定 */
     private void recordFailure(AdminUser admin) {
-        int failed = (admin.getFailedCount() == null ? 0 : admin.getFailedCount()) + 1;
-        admin.setFailedCount(failed);
-        if (failed >= MAX_FAILED) {
-            admin.setFailedCount(0);
-            admin.setLockedUntil(LocalDateTime.now().plusMinutes(LOCK_MINUTES));
-        }
-        adminUserMapper.updateById(admin);
+        adminUserMapper.recordFailure(admin.getId(), MAX_FAILED, LOCK_MINUTES);
     }
 
     /** 同一来源 IP 的登录尝试限速，挡住撞库 */

@@ -215,9 +215,25 @@ public class AuthService {
                 : settingService.isEnabled(inviter
                         ? SettingService.DEVICE_BINDING_INVITERS
                         : SettingService.DEVICE_BINDING_GUESTS, inviter);
-        if (bound.isEmpty() || !enforce) {
+        if (!enforce) {
+            // 未开启限制：绑定跟随最新设备
             user.setDeviceId(incoming);
             return;
+        }
+        if (bound.isEmpty()) {
+            // 首次绑定走条件更新，避免两台设备同时首登时双双绑定成功
+            if (userMapper.bindDeviceIfEmpty(user.getId(), incoming) == 1) {
+                user.setDeviceId(incoming);
+                return;
+            }
+            User fresh = userMapper.selectById(user.getId());
+            String nowBound = fresh == null || fresh.getDeviceId() == null ? "" : fresh.getDeviceId().trim();
+            if (nowBound.equals(incoming)) {
+                user.setDeviceId(incoming);
+                return;
+            }
+            safeAudit(user, loginType, incoming, "DEVICE_CONFLICT", "账号已绑定其他设备");
+            throw new BizException(ErrorCode.DEVICE_LIMITED);
         }
         safeAudit(user, loginType, incoming, "DEVICE_CONFLICT", "账号已绑定其他设备");
         throw new BizException(ErrorCode.DEVICE_LIMITED);

@@ -89,6 +89,7 @@ public class InvitationManagementController {
                 throw new BizException(ErrorCode.UNAUTHORIZED, "只能审核自己邀请的嘉宾");
             }
         }
-        return Result.ok(applicationService.review(id, ApplyStatus.of(req.getStatus()), req.getRemark()));
+        return Result.ok(applicationService.review(id, ApplyStatus.of(req.getStatus()), req.getRemark(),
+                user.getId(), user.getName()));
     }
 }

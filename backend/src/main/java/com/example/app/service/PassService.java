@@ -76,10 +76,12 @@ public class PassService {
     public Map<String, Object> disable(Long id) {
         AccessPass pass = accessPassMapper.selectById(id);
         if (pass == null) throw new BizException(ErrorCode.NOT_FOUND, "通道不存在");
-        pass.setEnabled(false);
-        accessPassMapper.updateById(pass);
+        int changed = accessPassMapper.disableIfEnabled(id);
         passSessionMapper.delete(new LambdaQueryWrapper<PassSession>().eq(PassSession::getPassId, id));
-        return describe(pass, false);
+        pass.setEnabled(false);
+        Map<String, Object> body = describe(pass, false);
+        body.put("changed", changed == 1);
+        return body;
     }
 
     /* ---------- 嘉宾端 ---------- */

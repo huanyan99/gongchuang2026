@@ -23,9 +23,25 @@ public class SettingService {
     public static final Map<String, String> LOTTERY_KEYS = Map.of(
             "佛山", "lottery_open_foshan", "济南", "lottery_open_jinan", "上海", "lottery_open_shanghai");
 
+    /** 场次桌位图是否对嘉宾显示 */
+    public static final Map<String, String> SEAT_VISIBLE_KEYS = Map.of(
+            "佛山", "seat_visible_foshan", "济南", "seat_visible_jinan", "上海", "seat_visible_shanghai");
+
+    /** 桌位图可见性默认值：与开关上线前的线上表现逐场一致 */
+    private static final Map<String, Boolean> SEAT_VISIBLE_DEFAULTS = Map.of(
+            "佛山", true, "济南", true, "上海", false);
+
     public boolean isLotteryOpen(String city) {
         String key = city == null ? null : LOTTERY_KEYS.get(city);
         return key != null && isEnabled(key, false);
+    }
+
+    /** 桌位图是否对该场次嘉宾开放；未配置的场次默认开放，避免新场次被误藏 */
+    public boolean isSeatVisible(String eventCity) {
+        String city = eventCity == null ? "" : eventCity.trim();
+        String key = SEAT_VISIBLE_KEYS.get(city);
+        if (key == null) return true;
+        return isEnabled(key, SEAT_VISIBLE_DEFAULTS.getOrDefault(city, true));
     }
 
     private final SettingMapper settingMapper;
@@ -42,15 +58,12 @@ public class SettingService {
     }
 
     public void setEnabled(String key, boolean enabled) {
-        Setting setting = new Setting();
-        setting.setSettingKey(key);
-        setting.setSettingValue(String.valueOf(enabled));
-        setting.setUpdatedAt(LocalDateTime.now());
-        if (settingMapper.selectById(key) == null) {
-            settingMapper.insert(setting);
-        } else {
-            settingMapper.updateById(setting);
-        }
+        setEnabled(key, enabled, null);
+    }
+
+    /** 写入开关并记录操作人；用原子 upsert，避免两人同时改同一个开关时先查后写互相打断 */
+    public void setEnabled(String key, boolean enabled, String updatedBy) {
+        settingMapper.upsert(key, String.valueOf(enabled), updatedBy);
     }
 
     /** 管理端读取全部开关 */
@@ -59,6 +72,7 @@ public class SettingService {
         body.put(DEVICE_BINDING_GUESTS, isEnabled(DEVICE_BINDING_GUESTS, false));
         body.put(DEVICE_BINDING_INVITERS, isEnabled(DEVICE_BINDING_INVITERS, true));
         LOTTERY_KEYS.values().forEach(key -> body.put(key, isEnabled(key, false)));
+        SEAT_VISIBLE_KEYS.forEach((city, key) -> body.put(key, isEnabled(key, SEAT_VISIBLE_DEFAULTS.getOrDefault(city, true))));
         return body;
     }
 }

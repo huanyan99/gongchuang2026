@@ -50,6 +50,8 @@ CREATE TABLE IF NOT EXISTS gonghcuang_application (
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
     reviewed_at     DATETIME,
     checked_in_at   DATETIME,
+    reviewed_by     BIGINT,
+    reviewed_by_name VARCHAR(64),
     edit_count      INT NOT NULL DEFAULT 0,
     KEY idx_status (status),
     UNIQUE KEY uk_user_id (user_id)
@@ -105,9 +107,30 @@ CREATE TABLE IF NOT EXISTS gonghcuang_seat (
     KEY idx_city_table (event_city, table_no)
 ) ENGINE=InnoDB DEFAULT CHARSET utf8mb4;
 
+CREATE TABLE IF NOT EXISTS gonghcuang_table (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    event_city VARCHAR(32) NOT NULL,
+    table_no VARCHAR(32) NOT NULL,
+    capacity INT NULL,
+    sort_no INT NOT NULL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_table_city_no (event_city, table_no),
+    KEY idx_table_city_sort (event_city, sort_no)
+) ENGINE=InnoDB DEFAULT CHARSET utf8mb4;
+
+CREATE TABLE IF NOT EXISTS gonghcuang_seat_revision (
+    event_city VARCHAR(32) PRIMARY KEY,
+    revision BIGINT NOT NULL DEFAULT 1,
+    updated_by BIGINT NULL,
+    updated_by_name VARCHAR(64) NULL,
+    updated_at DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET utf8mb4;
+
 CREATE TABLE IF NOT EXISTS gonghcuang_setting (
     setting_key VARCHAR(64) PRIMARY KEY,
     setting_value VARCHAR(255),
+    updated_by VARCHAR(64),
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET utf8mb4;
 

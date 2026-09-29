@@ -4,17 +4,31 @@ Page({
   data: {
     loading: true,
     eventCity: '',
+    visible: true,
     published: false,
     mySeats: [],
   },
   onLoad(options) {
     const eventCity = decodeURIComponent(options.city || '');
     this.setData({ eventCity });
-    if (eventCity === '上海') { this.setData({ loading: false }); return; }
-    this.loadSeat();
+    this.checkVisible(eventCity);
   },
   onShow() {
-    if (!this.data.loading) this.loadSeat();
+    if (!this.data.loading && this.data.visible) this.loadSeat();
+  },
+  /**
+   * 先问后端这个场次是否开放（公开接口，不需要登录）。
+   * 未开放就停在「暂未更新~」，与开关上线前的表现一致；查询失败时退回原逻辑。
+   */
+  checkVisible(eventCity) {
+    if (!eventCity) return this.loadSeat();
+    return app.request(`/api/seat/visibility?city=${encodeURIComponent(eventCity)}`, 'GET', {}, {}, { silent: true })
+      .then((data) => {
+        if (data && data.visible) return this.loadSeat();
+        this.setData({ loading: false, visible: false });
+        return undefined;
+      })
+      .catch(() => this.loadSeat());
   },
   loadSeat() {
     app.ensureLogin()
@@ -38,6 +52,7 @@ Page({
     this.setData({
       loading: false,
       eventCity,
+      visible: data.visible !== false,
       published: !!data.published,
       mySeats,
     });

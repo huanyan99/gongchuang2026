@@ -175,7 +175,7 @@ class AttendeeRegistrationTest {
         owned.setEditCount(0); owned.setInvitationCode("INVITE"); owned.setPhone("13800000002");
         when(applications.selectOne(any(com.baomidou.mybatisplus.core.conditions.Wrapper.class))).thenReturn(owned);
         when(guests.selectList(any())).thenReturn(List.of(guestRow(10L, 1, "张三", "13800000002")));
-        when(applications.resubmit(any(), any(), any(), any(), any(), any(), any())).thenReturn(1);
+        when(applications.resubmit(any(), any(), any(), any(), any(), any(), any(), anyInt(), any())).thenReturn(1);
         Invitation invitation = new Invitation(); invitation.setCode("INVITE"); invitation.setEventCity("上海");
         when(invitationService.getByCode("INVITE")).thenReturn(invitation);
         when(applications.selectById(10L)).thenReturn(owned);
@@ -185,7 +185,7 @@ class AttendeeRegistrationTest {
         keep.setInvitationCode("INVITE");
         keep.setAttendees(List.of(guest("张三", "甲公司", "13800000002")));
         service.resubmit(keep, companion());
-        verify(applications).resubmit(10L, "INVITE", "张三", "13800000002", "甲公司", "", "");
+        verify(applications).resubmit(10L, "INVITE", "张三", "13800000002", "甲公司", "", "", 0, "REJECTED");
 
         // 改成其他登记已占用的姓名+公司：拦截
         ApplyRequest occupied = new ApplyRequest();
@@ -196,7 +196,7 @@ class AttendeeRegistrationTest {
         when(applications.selectCount(any())).thenReturn(0L, 1L);
         BizException error = assertThrows(BizException.class, () -> service.resubmit(occupied, companion()));
         assertTrue(error.getMessage().contains("该姓名和公司已有参会登记"));
-        verify(applications, times(1)).resubmit(any(), any(), any(), any(), any(), any(), any());
+        verify(applications, times(1)).resubmit(any(), any(), any(), any(), any(), any(), any(), anyInt(), any());
     }
 
     @Test void reviewListFlagsDuplicateAttendeeNames() {

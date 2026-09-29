@@ -4,6 +4,7 @@
  */
 
 import { View } from '../core/view.js';
+import { SeatBoardModal } from './seat-board.js';
 import { html, when, cx } from '../core/dom.js';
 import { request, config } from '../core/api.js';
 import { getStorage, setStorage, removeStorage } from '../core/storage.js';
@@ -14,60 +15,14 @@ const EXPORT_STATUS_OPTIONS = [['全部', '全部'], ['PENDING', '待审核'], [
 const PAGE_SIZE = 20;
 const LOWER_THRESHOLD = 80;
 const CITY_OPTIONS = ['上海', '济南', '佛山'];
-const MODE_OPTIONS = ['合并更新', '覆盖该场次'];
-const PHONE = /^1\d{10}$/;
-const SEAT_HINT = '支持从 Excel 复制粘贴或选择 CSV 文件，每行：姓名,手机号,桌号';
-
-/**
- * 解析批量导入文本：每行「姓名,手机号,桌号」，多余的列忽略。
- * 行内出现逗号/分号/制表符时按分隔符切分，否则按空白切分；首行表头自动跳过。
- * 与小程序 pages/admin/index.js 中的实现保持一致。
- */
-function parseSeatRows(text) {
-  const rows = [];
-  const invalidLines = [];
-  let firstContentLine = true;
-
-  String(text || '').replace(/^\uFEFF/, '').split(/\r?\n/).forEach((line, index) => {
-    const raw = line.trim();
-    if (!raw) return;
-    if (firstContentLine && raw.includes('姓名') && raw.includes('手机')) {
-      firstContentLine = false;
-      return;
-    }
-    firstContentLine = false;
-
-    const parts = (/[,，;；\t]/.test(raw) ? raw.split(/[,，;；\t]+/) : raw.split(/\s+/))
-      .map((item) => item.trim())
-      .filter((item) => item !== '');
-    if (parts.length < 3 || !PHONE.test(parts[1])) {
-      invalidLines.push(index + 1);
-      return;
-    }
-    rows.push({ name: parts[0], phone: parts[1], tableNo: parts[2] });
-  });
-
-  return { rows, invalidLines };
-}
-
-/** CSV 常见为 UTF-8，Excel 导出的中文 CSV 多为 GBK，这里按顺序尝试 */
-function decodeText(buffer) {
-  try {
-    return new TextDecoder('utf-8', { fatal: true }).decode(buffer);
-  } catch (err) {
-    try {
-      return new TextDecoder('gbk').decode(buffer);
-    } catch (fallbackError) {
-      return new TextDecoder().decode(buffer);
-    }
-  }
-}
 
 export class AdminView extends View {
   static meta = { title: '审核后台', background: '#ffffff', textStyle: 'black' };
 
   constructor(options) {
     super(options);
+    /** 正在提交审核的登记 id：行级互斥，避免整页只有一个布尔导致"点了没反应" */
+    this.pendingReviewIds = new Set();
     this.listRequestId = 0;
     this.data = {
       adminToken: '',
@@ -88,12 +43,8 @@ export class AdminView extends View {
       hasMore: false,
       loading: false,
       cityIndex: 0,
-      modeIndex: 0,
-      seatText: '',
-      seatRows: [],
-      seatInvalidLines: [],
-      seatImporting: false,
       seatSummary: '',
+      pendingReviewIds: [],
       guestDeviceLimit: false,
       lotterySettings: {},
       lotterySettingsReady: false,
@@ -421,6 +372,8 @@ export class AdminView extends View {
             ? [...new Set(item.attendees.filter((guest) => guest.name && guest.name.includes(name) && guest.name !== item.name)
               .map((guest) => guest.name))].join('、') : '',
           dupNames: Array.isArray(item.duplicateNames) ? [...new Set(item.duplicateNames)].join('、') : '',
+          reviewedByName: item.reviewedByName || '',
+          reviewedAtText: item.reviewedAt ? String(item.reviewedAt).replace('T', ' ') : '',
         }));
         const list = reset ? records : this.data.list.concat(records);
         const total = Number((result && result.total) || 0);
@@ -603,16 +556,13 @@ export class AdminView extends View {
       .catch(() => {});
   }
 
-  /* ---------- 桌位批量导入 ---------- */
+  /* ---------- 桌位分配 ---------- */
 
   onSeatCitySelect(event) {
     this.setData({ cityIndex: Math.max(0, CITY_OPTIONS.indexOf(event.target.value)) });
     this.loadSeatSummary();
   }
 
-  onSeatModeSelect(event) {
-    this.setData({ modeIndex: Math.max(0, MODE_OPTIONS.indexOf(event.target.value)) });
-  }
 
   onPassCitySelect(event) {
     this.setData({ passCityIndex: Math.max(0, CITY_OPTIONS.indexOf(event.target.value)) });
@@ -629,95 +579,35 @@ export class AdminView extends View {
     this.loadSeatSummary();
   }
 
-  async onSeatModeChange() {
-    const picked = await showSheet({
-      title: '导入方式',
-      options: MODE_OPTIONS,
-      currentIndex: this.data.modeIndex,
-    });
-    if (picked == null) return;
-    this.setData({ modeIndex: picked });
-  }
 
-  onSeatTextInput(event) {
-    this.applySeatText(event.target.value, { keepFocus: true });
-  }
 
-  applySeatText(seatText, options = {}) {
-    const parsed = parseSeatRows(seatText);
-    if (options.keepFocus) {
-      this.assign({ seatText, seatRows: parsed.rows, seatInvalidLines: parsed.invalidLines });
-      this.renderSeatTip();
-      return;
-    }
-    this.setData({ seatText, seatRows: parsed.rows, seatInvalidLines: parsed.invalidLines });
-  }
 
   /** 输入时只更新提示文案，避免整页重绘打断输入 */
-  renderSeatTip() {
-    const tip = this.$('.seat-tip');
-    if (tip) tip.textContent = this.seatTip();
-    const preview = this.$('.seat-preview');
-    if (preview) preview.outerHTML = String(this.seatPreview());
-  }
 
-  seatTip() {
-    if (!this.data.seatText.trim()) return SEAT_HINT;
-    const invalid = this.data.seatInvalidLines;
-    return `已解析 ${this.data.seatRows.length} 位嘉宾${invalid.length
-      ? `，第 ${invalid.slice(0, 5).join('、')} 行格式异常`
-      : ''}`;
-  }
 
-  pickSeatFile() {
-    const input = this.$('.seat-file');
-    if (input) input.click();
-  }
 
-  onSeatFile(event) {
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
-    file.arrayBuffer()
-      .then((buffer) => this.applySeatText(decodeText(buffer)))
-      .catch(() => toast('文件读取失败'))
-      .finally(() => { event.target.value = ''; });
-  }
 
-  async importSeats() {
-    if (this.data.seatImporting) return;
-    const rows = this.data.seatRows;
-    if (!rows.length) {
-      this.notify('请先粘贴或选择桌位数据');
-      return;
-    }
+
+  /** 打开桌位分配看板：独立覆盖层，不参与本页重绘，保存后刷新统计 */
+  openSeatBoard() {
     const eventCity = CITY_OPTIONS[this.data.cityIndex];
-    const mode = this.data.modeIndex === 1 ? 'REPLACE' : 'MERGE';
-    const confirmed = await this.confirmBox('确认导入桌位',
-      mode === 'REPLACE'
-        ? `将清空${eventCity}场原有桌位，并导入 ${rows.length} 位嘉宾的桌号。`
-        : `将按手机号更新或新增 ${rows.length} 位嘉宾的桌号。`);
-    if (!confirmed.confirm) return;
-
-    this.setData({ seatImporting: true });
-    return this.adminRequest('/api/admin/seats/import', 'POST', { eventCity, mode, rows })
-      .then((result) => {
-        const errors = (result.errors || []).slice(0, 5).map((item) => `第${item.line}行：${item.message}`);
-        showModal({
-          title: '导入完成',
-          content: `新增 ${result.created} 条，更新 ${result.updated} 条，失败 ${result.failed} 条。\n当前${eventCity}场共 ${result.tableCount} 桌 / ${result.guestCount} 人。${errors.length ? `\n${errors.join('\n')}` : ''}`,
-          showCancel: false,
-        });
-        this.applySeatText('');
-        this.loadSeatSummary();
-      })
-      .catch(() => {})
-      .finally(() => this.setData({ seatImporting: false }));
+    const modal = new SeatBoardModal({
+      adminRequest: (path, method, data, options) => this.adminRequest(path, method, data, options),
+      city: eventCity,
+      onSaved: () => this.loadSeatSummary(),
+    });
+    return modal.mount();
   }
 
   loadSeatSummary() {
     const eventCity = CITY_OPTIONS[this.data.cityIndex];
-    return this.adminRequest(`/api/admin/seats?city=${encodeURIComponent(eventCity)}&size=1`, 'GET', {}, { silent: true })
-      .then((result) => this.setData({ seatSummary: `${eventCity}场 ${result.tableCount} 桌 / ${result.guestCount} 人` }))
+    return this.adminRequest(`/api/admin/seats/board?city=${encodeURIComponent(eventCity)}&summaryOnly=true`, 'GET', {}, { silent: true })
+      .then((result) => {
+        const summary = result.summary || {};
+        this.setData({
+          seatSummary: `${eventCity}场 ${summary.tableCount || 0} 桌 / ${summary.peopleCount || 0} 人 · 已分配 ${summary.assigned || 0}`,
+        });
+      })
       .catch(() => this.setData({ seatSummary: '' }));
   }
 
@@ -755,16 +645,32 @@ export class AdminView extends View {
     if (result.confirm) this.doReview(id, status, '');
   }
 
+  /** 该行是否正在处理中（多管理员同时操作时只锁住这一行） */
+  isReviewPending(id) {
+    return this.pendingReviewIds.has(String(id));
+  }
+
   doReview(id, status, remark) {
-    if (this.reviewing) return;
-    this.reviewing = true;
+    const key = String(id);
+    if (this.pendingReviewIds.has(key)) return;
+    this.pendingReviewIds.add(key);
+    this.setData({ pendingReviewIds: [...this.pendingReviewIds] });
     return this.adminRequest(`/api/admin/applications/${id}/review`, 'POST', { status, remark })
       .then(() => {
         this.notify('已处理', 'success');
         this.fetchList(true);
       })
-      .catch(() => {})
-      .finally(() => { this.reviewing = false; });
+      .catch((err) => {
+        // 已被其他管理员处理：给出提示并自动刷新，避免对着陈旧卡片反复点
+        if (err && (err.code === 3003 || err.code === 1003)) {
+          this.notify(err.message || '该登记已被其他管理员处理，列表已刷新');
+          this.fetchList(true);
+        }
+      })
+      .finally(() => {
+        this.pendingReviewIds.delete(key);
+        this.setData({ pendingReviewIds: [...this.pendingReviewIds] });
+      });
   }
 
   loginBox() {
@@ -863,10 +769,11 @@ export class AdminView extends View {
           ${when(item.status === 'PENDING' && item.dupNames, html`<div class="dup-name-warning">同名提醒：${item.dupNames} 已有相同姓名的参会登记，请注意审核</div>`)}
           ${when(item.reason, html`<div class="reason">${item.reason}</div>`)}
           ${when(item.reviewRemark, html`<div class="remark">审核备注：${item.reviewRemark}</div>`)}
+          ${when(item.status !== 'PENDING' && item.reviewedAtText, html`<div class="info">审核：${item.reviewedByName || '—'} ${item.reviewedAtText}</div>`)}
           ${when(item.status === 'PENDING', () => html`
             <div class="actions">
-              <button type="button" class="mini-btn approve" data-id="${item.id}" data-status="APPROVED" data-tap="review">通过</button>
-              <button type="button" class="mini-btn reject" data-id="${item.id}" data-status="REJECTED" data-tap="review">驳回</button>
+              <button type="button" class="mini-btn approve" data-id="${item.id}" data-status="APPROVED" data-tap="review" ${this.isReviewPending(item.id) ? 'disabled' : ''}>${this.isReviewPending(item.id) ? '处理中' : '通过'}</button>
+              <button type="button" class="mini-btn reject" data-id="${item.id}" data-status="REJECTED" data-tap="review" ${this.isReviewPending(item.id) ? 'disabled' : ''}>驳回</button>
             </div>
           `)}
         </div>
@@ -876,24 +783,6 @@ export class AdminView extends View {
     `;
   }
 
-  seatPreview() {
-    const rows = this.data.seatRows.slice(0, 5);
-    if (!rows.length) return html`<div class="seat-preview" hidden></div>`;
-    return html`
-      <div class="seat-preview">
-        ${rows.map((row) => html`
-          <div class="seat-preview-row">
-            <span>${row.name}</span>
-            <span>${row.phone}</span>
-            <span>${row.tableNo} 桌</span>
-          </div>
-        `)}
-        ${when(this.data.seatRows.length > rows.length, html`
-          <div class="seat-preview-more">共 ${this.data.seatRows.length} 行，仅预览前 5 行</div>
-        `)}
-      </div>
-    `;
-  }
 
   passPanel() {
     const pass = this.data.lastPass;
@@ -1099,33 +988,15 @@ export class AdminView extends View {
     return html`
       <div class="seat-panel">
         <div class="seat-head">
-          <span>桌位批量导入</span>
+          <span>桌位分配</span>
           <span>${this.data.seatSummary}</span>
         </div>
         <div class="seat-row">
           <span class="seat-label">活动场次</span>
           <span class="seat-value tap" data-tap="onSeatCityChange">${CITY_OPTIONS[this.data.cityIndex]} ›</span>
         </div>
-        <div class="seat-row">
-          <span class="seat-label">导入方式</span>
-          <span class="seat-value tap" data-tap="onSeatModeChange">${MODE_OPTIONS[this.data.modeIndex]} ›</span>
-        </div>
-        <div class="seat-actions">
-          <button type="button" class="seat-file-btn" data-tap="pickSeatFile">选择 CSV / TXT 文件</button>
-          <input class="seat-file" type="file" accept=".csv,.txt,text/csv,text/plain" data-change="onSeatFile" hidden />
-        </div>
-        <textarea
-          class="seat-input"
-          name="seatText"
-          rows="6"
-          placeholder="每行一位嘉宾：姓名,手机号,桌号"
-          data-input="onSeatTextInput"
-        >${this.data.seatText}</textarea>
-        <div class="seat-tip">${this.seatTip()}</div>
-        ${this.seatPreview()}
-        <button type="button" class="btn seat-btn" ${this.data.seatImporting ? 'disabled' : ''} data-tap="importSeats">
-          ${this.data.seatImporting ? '导入中 ···' : '导入桌位'}
-        </button>
+        <button type="button" class="btn seat-btn" data-tap="openSeatBoard">打开桌位分配表</button>
+        <div class="seat-tip">左侧是按公司分组的人员，右侧是桌位；拖动人员到桌位上即可分配，保存后嘉宾端立即生效。</div>
       </div>
     `;
   }
@@ -1136,7 +1007,7 @@ export class AdminView extends View {
     return html`
       <div class="seat-panel">
         <div class="seat-head">
-          <span>桌位批量导入</span>
+          <span>桌位分配</span>
           <span>${this.data.seatSummary}</span>
         </div>
         <div class="seat-row">
@@ -1145,28 +1016,8 @@ export class AdminView extends View {
             ${CITY_OPTIONS.map((cityItem) => html`<option value="${cityItem}" ${CITY_OPTIONS[this.data.cityIndex] === cityItem ? 'selected' : ''}>${cityItem}</option>`)}
           </select>
         </div>
-        <div class="seat-row">
-          <span class="seat-label">导入方式</span>
-          <select class="pc-select" data-change="onSeatModeSelect">
-            ${MODE_OPTIONS.map((modeItem) => html`<option value="${modeItem}" ${MODE_OPTIONS[this.data.modeIndex] === modeItem ? 'selected' : ''}>${modeItem}</option>`)}
-          </select>
-        </div>
-        <div class="seat-actions">
-          <button type="button" class="seat-file-btn" data-tap="pickSeatFile">选择 CSV / TXT 文件</button>
-          <input class="seat-file" type="file" accept=".csv,.txt,text/csv,text/plain" data-change="onSeatFile" hidden />
-        </div>
-        <textarea
-          class="seat-input"
-          name="seatText"
-          rows="6"
-          placeholder="每行一位嘉宾：姓名,手机号,桌号"
-          data-input="onSeatTextInput"
-        >${this.data.seatText}</textarea>
-        <div class="seat-tip">${this.seatTip()}</div>
-        ${this.seatPreview()}
-        <button type="button" class="btn seat-btn" ${this.data.seatImporting ? 'disabled' : ''} data-tap="importSeats">
-          ${this.data.seatImporting ? '导入中 ···' : '导入桌位'}
-        </button>
+        <button type="button" class="btn seat-btn" data-tap="openSeatBoard">打开桌位分配表</button>
+        <div class="seat-tip">左侧是按公司分组的人员，右侧是桌位；拖动人员到桌位上即可分配，保存后嘉宾端立即生效。</div>
       </div>
     `;
   }
@@ -1229,9 +1080,6 @@ export class AdminView extends View {
     this.loadSeatSummary();
   }
 
-  onSeatModeSelect(event) {
-    this.setData({ modeIndex: Math.max(0, MODE_OPTIONS.indexOf(event.target.value)) });
-  }
 
   onPassCitySelect(event) {
     this.setData({ passCityIndex: Math.max(0, CITY_OPTIONS.indexOf(event.target.value)) });
@@ -1284,9 +1132,10 @@ export class AdminView extends View {
                 <td><span class="pc-status ${item.status}">${item.checkedIn ? '已入场' : item.statusText}</span></td>
                 <td class="pc-col-actions">
                   ${when(item.status === 'PENDING', () => html`
-                    <button type="button" class="pc-btn small approve" data-id="${item.id}" data-status="APPROVED" data-tap="review">通过</button>
-                    <button type="button" class="pc-btn small reject" data-id="${item.id}" data-status="REJECTED" data-tap="review">驳回</button>`)}
+                    <button type="button" class="pc-btn small approve" data-id="${item.id}" data-status="APPROVED" data-tap="review" ${this.isReviewPending(item.id) ? 'disabled' : ''}>${this.isReviewPending(item.id) ? '处理中' : '通过'}</button>
+                    <button type="button" class="pc-btn small reject" data-id="${item.id}" data-status="REJECTED" data-tap="review" ${this.isReviewPending(item.id) ? 'disabled' : ''}>驳回</button>`)}
                   ${when(item.status !== 'PENDING' && item.reviewRemark, html`<span class="pc-remark" title="${item.reviewRemark}">有备注</span>`)}
+                  ${when(item.status !== 'PENDING' && item.reviewedAtText, html`<span class="pc-remark" title="${item.reviewedAtText}">${item.reviewedByName || '—'}</span>`)}
                 </td>
               </tr>`)}
             ${when(!this.data.loading && !this.data.list.length, () => html`<tr><td colspan="6" class="pc-empty">暂无登记记录</td></tr>`)}
@@ -1330,7 +1179,7 @@ export class AdminView extends View {
         <aside class="pc-side">
           <div class="pc-brand">审核后台<span>ADMIN CONSOLE</span></div>
           <nav class="pc-nav">
-            ${[['sec-review', '登记审核'], ['sec-export', '导出名单'], ['sec-seats', '桌位导入'], ['sec-entry', '入口与通道'], ['sec-security', '安全设置'], ['sec-devices', '用户设备管理']].map(([id, label]) => html`
+            ${[['sec-review', '登记审核'], ['sec-export', '导出名单'], ['sec-seats', '桌位分配'], ['sec-entry', '入口与通道'], ['sec-security', '安全设置'], ['sec-devices', '用户设备管理']].map(([id, label]) => html`
               <a class="${cx({ active: this.data.pcSection === id })}" data-target="${id}" data-tap="pcGoSection">${label}</a>`)}
           </nav>
           <div class="pc-side-foot">

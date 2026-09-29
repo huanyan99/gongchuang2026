@@ -136,24 +136,3 @@ page {
   font-weight: 700;
 }
 
-.hall-image {
-  display: block;
-  width: calc(100% - 56rpx);
-  margin: 28rpx;
-  border-radius: 20rpx;
-  background: #ffffff;
-  box-shadow: 0 18rpx 40rpx rgba(13, 31, 76, 0.1);
-}
-
-.hall-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 420rpx;
-  margin: 28rpx;
-  color: #a8afbd;
-  font-size: 24rpx;
-  background: #ffffff;
-  border: 2rpx dashed #d4d9e4;
-  border-radius: 20rpx;
-}

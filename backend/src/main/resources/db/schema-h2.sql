@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS gonghcuang_application (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     reviewed_at TIMESTAMP,
     checked_in_at TIMESTAMP
+    ,reviewed_by BIGINT
+    ,reviewed_by_name VARCHAR(64)
     ,edit_count INT NOT NULL DEFAULT 0
 );
 
@@ -103,9 +105,29 @@ CREATE TABLE IF NOT EXISTS gonghcuang_seat (
     UNIQUE (event_city, phone)
 );
 
+CREATE TABLE IF NOT EXISTS gonghcuang_table (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    event_city VARCHAR(32) NOT NULL,
+    table_no VARCHAR(32) NOT NULL,
+    capacity INT,
+    sort_no INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (event_city, table_no)
+);
+
+CREATE TABLE IF NOT EXISTS gonghcuang_seat_revision (
+    event_city VARCHAR(32) PRIMARY KEY,
+    revision BIGINT NOT NULL DEFAULT 1,
+    updated_by BIGINT,
+    updated_by_name VARCHAR(64),
+    updated_at TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS gonghcuang_setting (
     setting_key VARCHAR(64) PRIMARY KEY,
     setting_value VARCHAR(255),
+    updated_by VARCHAR(64),
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

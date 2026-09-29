@@ -49,29 +49,34 @@ planb-web/           Plan B 网页版（小程序的一比一网页复刻，无�
 | POST | /api/auth/login | 小程序登录（body: { code }） |
 | POST | /api/auth/phone-hint | 手机号在登记中的姓名掩码（登录时补全姓名核验） |
 | POST | /api/auth/profile/verify | 已登录用户补全姓名核验并回填档案 |
-| GET | /api/seat/me | 我的桌位与本场桌位图（需登录且登记已审核通过） |
+| GET | /api/seat/me | 我的桌位（需登录且登记已审核通过；场次未开放时不下发桌位） |
+| GET | /api/seat/visibility | 场次桌位图是否对嘉宾开放（公开，只回布尔） |
 | POST | /api/admin/login | 后台账号口令登录，返回会话 token |
 | POST | /api/pass/session | 现场通道换会话（扫码 + 姓名） |
 | POST | /api/admin/passes | 生成现场通道二维码（需 X-Admin-Token） |
 | POST | /api/admin/users/{id}/reset-device | 解绑用户设备（需 X-Admin-Token） |
 | GET、POST | /api/admin/settings | 后台开关读取与修改（需 X-Admin-Token） |
-| POST | /api/admin/seats/import | 批量导入桌位（需 X-Admin-Key） |
-| GET | /api/admin/seats | 桌位分页列表与桌数统计（需 X-Admin-Key） |
+| GET | /api/admin/seats/board | 桌位分配看板：人员名单 + 桌位定义 + 场次版本号（需 X-Admin-Token） |
+| POST | /api/admin/seats/board | 保存桌位分配，带版本号，冲突返回 1003（需 X-Admin-Token） |
 
 ## 桌位图
 
-嘉宾在「参会服务 → 桌位图」查看桌号，本人与每位同行人各一张卡片，下方是全场位置图。
-全场位置图为预留图片位：小程序在 `pages/seat/index.js` 的 `HALL_IMAGES` 按场次填写图片路径，
-网页版在 `planb-web/config.js` 的 `hallImages` 填写；未配置时显示占位框。
+嘉宾在「参会服务 → 桌位图」查看桌号，本人与每位同行人各一张卡片。
 接口只下发本人及同行人的桌号，不返回其他嘉宾信息。
 
-会务在「审核后台 → 桌位批量导入」导入桌号：
+会务在「审核后台 → 桌位分配」打开分配看板（**电脑端**）：
 
-- 格式：每行 `姓名,手机号,桌号`，首行表头自动跳过，多余的列忽略，支持逗号/分号/制表符/空白分隔
-- 网页版还支持直接选择 CSV / TXT 文件（UTF-8 解析失败时自动按 GBK 重试）
-- 导入方式：`合并更新`（按手机号更新或新增）或 `覆盖该场次`（先清空再导入）
-- 按「场次 + 手机号」与参会登记的同行人匹配，单次最多 2000 条，不合法的行会跳过并回传行号
-- 数据表 `gonghcuang_seat`，新库见 `db/schema.sql`，老库执行 `db/migrate_v9_seat.sql`
+- 左侧是按公司分组的参会人名单（只含本场次审核通过的登记），右侧是桌位卡片
+- 把人员拖到桌位上即完成分配；也可以「点人 → 点桌位」；点成员上的 × 退回未分配
+- 可新增桌位、改桌号、删桌（删桌时桌上的人自动退回未分配，会先二次确认）
+- 点保存提交整份「最终状态」，带场次版本号：期间有其他管理员改过就会被拒绝并要求重新加载
+- 数据表：桌位定义在 `gonghcuang_table`，人坐哪桌在 `gonghcuang_seat`（嘉宾端只读这张表）
+- 新库见 `db/schema.sql`；老库先执行 `db/migrate_v9_seat.sql`（若未执行）再执行 `db/migrate_v17_seat_board.sql`
+- 小程序后台只提供统计与「请用电脑端分配」提示
+
+每个场次的桌位图是否对嘉宾显示，由后台「安全设置」的三个开关控制
+（`seat_visible_foshan` / `seat_visible_jinan` / `seat_visible_shanghai`，默认佛山、济南开，上海关）。
+关闭时嘉宾端显示「暂未更新~」，与开关上线前的表现一致；改完立即生效，无需重启。
 
 ## 数据库与本地运行
 

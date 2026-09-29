@@ -74,7 +74,7 @@ python3 planb-web/dev-server.py            # 网页 http://127.0.0.1:4173，/api
 
 ```
 index.html              页面骨架（导航栏、页面容器、弹层容器）
-config.js               运行时配置（apiBase / token / 全场位置图）
+config.js               运行时配置（apiBase / token / 隐私弹窗）
 src/
   main.js               注册路由、同步导航栏
   core/
@@ -99,6 +99,7 @@ styles/*.css            与小程序各页 wxss 一一对应
 | `pages/login` | `src/pages/login.js` + `styles/login.css` |
 | `pages/invitations`、`pages/invitation-list` | `src/pages/invitations.js`、`src/pages/invitation-list.js` + `styles/invitations.css` |
 | `pages/seat` | `src/pages/seat.js` + `styles/seat.css` |
+| （网页独有）桌位分配看板 | `src/pages/seat-board.js` + `styles/seat-board.css` |
 | `pages/admin` | `src/pages/admin.js` + `styles/admin.css` |
 | （网页独有）现场通道 | `src/pages/pass.js` + `styles/pass.css` |
 | `pages/agreement`、`pages/privacy`、`pages/lottery-rules` | `src/pages/policy.js` + `styles/policy.css` |
@@ -115,20 +116,23 @@ styles/*.css            与小程序各页 wxss 一一对应
   优先级等同元素选择器，页面样式可直接覆盖，不需要 `!important`
 - 小程序里未被 wxml 使用的死样式（如 `.hero-code`、`.qr-grid`、旧入场码二维码相关）未移植
 
-## 桌位图与批量导入
+## 桌位图与桌位分配
 
 - 嘉宾端：首页 →「参会服务」→「桌位图」（与其他参会服务一样，仅审核通过后可进入）。
-  本人与每位同行人各一张金色桌号卡片，下方是全场位置图。
+  本人与每位同行人各一张金色桌号卡片。
   接口只下发本人及同行人的桌号，不返回其他嘉宾信息。
-- 全场位置图是预留图片位：把图片放进 `assets/`，在 `config.js` 的 `hallImages` 按场次填写路径
-  （也可填 https 地址），未配置时显示占位框；点击图片可全屏查看。
-- 管理端：审核后台 →「桌位批量导入」。可以选择 CSV/TXT 文件，或直接从 Excel 复制粘贴。
-  文件按 UTF-8 解析，失败时自动按 GBK 重试（Excel 导出的中文 CSV 常见编码）。
-- 导入格式：每行 `姓名,手机号,桌号`，首行表头自动跳过，多余的列忽略；
-  逗号、分号、制表符均可作分隔符，没有分隔符时按空白切分。
-- 导入方式：`合并更新` 按手机号更新或新增；`覆盖该场次` 先清空该场次再导入。
-- 匹配规则：按「场次 + 手机号」与参会登记中的同行人手机号对应，单次最多 2000 条，
-  逐行校验，不合法的行会跳过并在结果中给出行号。
+- 场次是否对嘉宾开放由后端开关决定（`seat_visible_*`）。桌位图本身仍需登录（页面声明 `auth = 'any'`，
+  路由守卫先跑），登录后进入页面再请求公开接口 `GET /api/seat/visibility?city=xx`：
+  未开放就直接显示「暂未更新~」、不再请求桌位数据；开放才请求 `/api/seat/me`。
+- 管理端：审核后台 →「桌位分配」→「打开桌位分配表」，打开独立的分配看板
+  （`src/pages/seat-board.js` + `styles/seat-board.css`）：
+  - 左侧按公司分组的参会人名单（只含本场次审核通过的登记），右侧桌位卡片
+  - 拖动人员到桌位、或「点人 → 点桌位」完成分配；点成员上的 × 退回未分配
+  - 可新增桌位、改桌号、删桌（桌上有人时二次确认后自动退回未分配）
+  - 保存提交整份「最终状态」并带场次版本号，冲突（1003）时提示重新加载
+  - 撤销 / 重做是弹窗本地的；有未保存改动时关闭会二次确认
+- 看板是独立的覆盖层，不参与 AdminView 的整页重绘，所以拖动不会被 render 打断。
+- 小程序后台只提供统计与「请用电脑端分配」提示；分配只在网页端做。
 
 ## 登录
 
