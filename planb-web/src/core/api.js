@@ -177,11 +177,12 @@ function networkMessage(error) {
  * @param {'GET'|'POST'|'PUT'|'DELETE'} method
  * @param {object} data GET 时忽略，其余作为 JSON body
  * @param {object} extraHeader 附加请求头，例如 X-Admin-Key
- * @param {{silent?: boolean, skipRetry?: boolean}} options
+ * @param {{silent?: boolean, skipRetry?: boolean, timeout?: number}} options
  */
 export function request(path, method = 'GET', data = {}, extraHeader = {}, options = {}) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), config.timeout);
+  // 提交登记等慢接口可用 options.timeout 覆盖全局超时，避免后端仍在处理时前端先放弃
+  const timer = setTimeout(() => controller.abort(), options.timeout || config.timeout);
 
   return fetch(config.apiBase + path, {
     method,

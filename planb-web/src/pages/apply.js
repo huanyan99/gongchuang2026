@@ -258,7 +258,7 @@ export class ApplyView extends View {
     };
 
     return ensureLogin()
-      .then(() => request('/api/apply', this.data.editMode ? 'PUT' : 'POST', payload))
+      .then(() => request('/api/apply', this.data.editMode ? 'PUT' : 'POST', payload, {}, { timeout: 45000 }))
       .then(() => {
         setStorage('lastApplyPhone', phone);
         setStorage('bochuApplyProfile', {
